@@ -68,9 +68,17 @@ const RoomBooking = () => {
 
     const timeSlots = generateTimeSlots();
 
+    // Helper to get YYYY-MM-DD in local time
+    const toLocalISOString = (date) => {
+        const year = date.getFullYear();
+        const month = String(date.getMonth() + 1).padStart(2, '0');
+        const day = String(date.getDate()).padStart(2, '0');
+        return `${year}-${month}-${day}`;
+    };
+
     const isSlotOccupied = (slotIndex) => {
         const slot = timeSlots[slotIndex];
-        const dateStr = selectedDate.toISOString().split('T')[0];
+        const dateStr = toLocalISOString(selectedDate);
         const slotStart = new Date(`${dateStr}T${slot.start}:00`);
         const slotEnd = new Date(`${dateStr}T${slot.end}:00`);
 
@@ -78,14 +86,17 @@ const RoomBooking = () => {
             const bookingStart = new Date(booking.startTime);
             const bookingEnd = new Date(booking.endTime);
 
-            if (bookingStart.toISOString().split('T')[0] !== dateStr) return false;
+            // Compare just the date part (YYYY-MM-DD)
+            const bookingDateStr = toLocalISOString(bookingStart);
+            if (bookingDateStr !== dateStr) return false;
+
             return (slotStart < bookingEnd && slotEnd > bookingStart);
         });
     };
 
     const getSlotBooking = (slotIndex) => {
         const slot = timeSlots[slotIndex];
-        const dateStr = selectedDate.toISOString().split('T')[0];
+        const dateStr = toLocalISOString(selectedDate);
         const slotStart = new Date(`${dateStr}T${slot.start}:00`);
         const slotEnd = new Date(`${dateStr}T${slot.end}:00`);
 
@@ -93,7 +104,9 @@ const RoomBooking = () => {
             const bookingStart = new Date(booking.startTime);
             const bookingEnd = new Date(booking.endTime);
 
-            if (bookingStart.toISOString().split('T')[0] !== dateStr) return false;
+            const bookingDateStr = toLocalISOString(bookingStart);
+            if (bookingDateStr !== dateStr) return false;
+
             return (slotStart < bookingEnd && slotEnd > bookingStart);
         });
     };
@@ -128,7 +141,7 @@ const RoomBooking = () => {
                 return;
             }
 
-            const dateStr = selectedDate.toISOString().split('T')[0];
+            const dateStr = toLocalISOString(selectedDate);
             setInitialBookingData({
                 date: dateStr,
                 startTime: timeSlots[startIdx].start,
@@ -242,8 +255,8 @@ const RoomBooking = () => {
                             <div className="mt-3">
                                 <input
                                     type="date"
-                                    value={selectedDate.toISOString().split('T')[0]}
-                                    min={new Date().toISOString().split('T')[0]}
+                                    value={toLocalISOString(selectedDate)}
+                                    min={toLocalISOString(new Date())}
                                     onChange={(e) => {
                                         setSelectedDate(new Date(e.target.value));
                                         setSelectionStart(null);

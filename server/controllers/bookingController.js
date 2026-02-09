@@ -1,5 +1,5 @@
 const Booking = require('../models/Booking');
-const { sendBookingCreated, sendBookingApproved, sendBookingModified, sendBookingReminder } = require('../services/emailService');
+const { sendBookingCreated, sendBookingApproved, sendBookingModified, sendBookingReminder, sendBookingCancelled } = require('../services/emailService');
 const { checkRoomAvailability, validateBookingTime, isUrgentBooking } = require('../services/bookingService');
 
 // @desc    Get all bookings
@@ -17,6 +17,12 @@ const getBookings = async (req, res) => {
 
         // Loop over removeFields and delete them from reqQuery
         removeFields.forEach(param => delete reqQuery[param]);
+
+        // Support filtering by email (map 'email' query param to 'user.email' path in DB)
+        if (reqQuery.email) {
+            reqQuery['user.email'] = reqQuery.email;
+            delete reqQuery.email;
+        }
 
         // Create query string
         let queryStr = JSON.stringify(reqQuery);
@@ -147,7 +153,7 @@ const updateBooking = async (req, res) => {
             runValidators: true
         }).populate('room');
 
-        const { sendBookingCancelled } = require('../services/emailService');
+
 
         // Send Email if Cancelled
         if (req.body.status === 'cancelled' && originalBooking.status !== 'cancelled') {
@@ -198,18 +204,15 @@ const deleteBooking = async (req, res) => {
 // @route   POST /api/bookings/import
 // @access  Private (Admin only)
 const importBookings = async (req, res) => {
-    console.log('--- Starting Import Process ---');
     try {
         if (!req.file) {
             console.error('No file uploaded');
             return res.status(400).json({ success: false, error: 'Please upload an Excel file' });
         }
-        console.log('File received:', req.file.originalname, 'Size:', req.file.size);
 
         let xlsx;
         try {
             xlsx = require('xlsx');
-            console.log('xlsx module loaded successfully');
         } catch (e) {
             console.error('Failed to load xlsx module:', e);
             return res.status(500).json({ success: false, error: 'Server Error: xlsx dependency missing. Please restart server.' });
@@ -217,18 +220,14 @@ const importBookings = async (req, res) => {
 
         const Room = require('../models/Room');
 
-        console.log('Reading workbook...');
         const workbook = xlsx.read(req.file.buffer, { type: 'buffer' });
         const sheetName = workbook.SheetNames[0];
         const sheet = workbook.Sheets[sheetName];
         const data = xlsx.utils.sheet_to_json(sheet);
-        console.log(`Parsed ${data.length} rows from sheet '${sheetName}'`);
 
-        // Get semester range from request or default
-        console.log('Request Body:', req.body);
+
         let semesterStart = req.body.startDate ? new Date(req.body.startDate) : new Date();
         let semesterEnd = req.body.endDate ? new Date(req.body.endDate) : new Date(new Date().setMonth(new Date().getMonth() + 4));
-        console.log(`Semester Range: ${semesterStart.toISOString()} to ${semesterEnd.toISOString()}`);
 
         // Helper to map Day string to index (0=Sun, 1=Mon, ..., 6=Sat)
         const getDayIndex = (dayStr) => {

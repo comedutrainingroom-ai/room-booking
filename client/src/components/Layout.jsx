@@ -2,6 +2,7 @@ import { useState } from 'react';
 import Navbar from './Navbar';
 import Footer from './Footer';
 import Sidebar from './Sidebar';
+import LogoWatermark from './LogoWatermark';
 
 const Layout = ({ children }) => {
     const [isSidebarOpen, setIsSidebarOpen] = useState(true);
@@ -40,6 +41,9 @@ const Layout = ({ children }) => {
                 )}
 
                 <main className={`flex-grow bg-gray-50 transition-smooth w-full relative flex flex-col overflow-hidden`}>
+                    {/* Logo Watermark - conditional based on route */}
+                    <LogoWatermark />
+
                     {/* Animated Background Orbs */}
                     <div className="fixed inset-0 overflow-hidden pointer-events-none -z-10">
                         <div className="absolute top-20 left-10 w-96 h-96 bg-gradient-to-br from-green-300/50 to-cyan-300/40 rounded-full blur-3xl animate-float"></div>

@@ -64,12 +64,21 @@ export const AuthProvider = ({ children }) => {
         return signOut(auth);
     };
 
-    const unlockAdmin = (pin) => {
-        if (pin === '22885693') {
-            setIsAdminUnlocked(true);
-            return true;
+    const unlockAdmin = async (pin) => {
+        try {
+            const res = await api.post('/auth/verify-pin', { pin });
+            if (res.data.success) {
+                setIsAdminUnlocked(true);
+                return { success: true };
+            }
+            return { success: false, error: 'PIN ไม่ถูกต้อง' };
+        } catch (error) {
+            console.error('Error verifying PIN:', error);
+            return {
+                success: false,
+                error: error.response?.data?.error || 'เกิดข้อผิดพลาดในการตรวจสอบ PIN'
+            };
         }
-        return false;
     };
 
     useEffect(() => {

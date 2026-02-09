@@ -11,6 +11,14 @@ import { useToast } from '../contexts/ToastContext';
 import api from '../services/api';
 import { FaTimes, FaClock, FaUser, FaBuilding, FaTag } from 'react-icons/fa';
 
+// Helper to get YYYY-MM-DD in local time
+const toLocalISOString = (date) => {
+    const year = date.getFullYear();
+    const month = String(date.getMonth() + 1).padStart(2, '0');
+    const day = String(date.getDate()).padStart(2, '0');
+    return `${year}-${month}-${day}`;
+};
+
 const Calendar = () => {
     const calendarRef = useRef(null);
     const containerRef = useRef(null);
@@ -32,9 +40,9 @@ const Calendar = () => {
     const fileInputRef = useRef(null);
 
     // Semester Date Range State
-    const [semesterStartDate, setSemesterStartDate] = useState(new Date().toISOString().split('T')[0]);
+    const [semesterStartDate, setSemesterStartDate] = useState(toLocalISOString(new Date()));
     const [semesterEndDate, setSemesterEndDate] = useState(
-        new Date(new Date().setMonth(new Date().getMonth() + 4)).toISOString().split('T')[0]
+        toLocalISOString(new Date(new Date().setMonth(new Date().getMonth() + 4)))
     );
 
     const handleFileChange = (e) => {

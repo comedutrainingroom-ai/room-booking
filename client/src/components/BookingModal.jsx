@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useMemo } from 'react';
 import { FaTimes, FaUsers, FaBuilding, FaCalendarAlt, FaClock, FaTag, FaUser, FaGraduationCap, FaPhone, FaStickyNote, FaCheck, FaCalendarPlus, FaArrowRight, FaChevronLeft } from 'react-icons/fa';
 import api from '../services/api';
 import { useAuth } from '../contexts/AuthContext';
@@ -81,7 +81,7 @@ const BookingModal = ({ room, onClose, step, setStep, toast, initialData }) => {
         }
     };
 
-    const generateTimeOptions = () => {
+    const timeOptions = useMemo(() => {
         const options = [];
         const [startHour] = openTime.split(':').map(Number);
         const [endHour] = closeTime.split(':').map(Number);
@@ -94,9 +94,7 @@ const BookingModal = ({ room, onClose, step, setStep, toast, initialData }) => {
             }
         }
         return options;
-    };
-
-    const timeOptions = generateTimeOptions();
+    }, [openTime, closeTime]);
 
     if (!room) return null;
 

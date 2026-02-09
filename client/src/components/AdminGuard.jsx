@@ -1,12 +1,13 @@
 import { useState } from 'react';
 import { useAuth } from '../contexts/AuthContext';
 import { Navigate } from 'react-router-dom';
-import { FaLock, FaUnlock } from 'react-icons/fa';
+import { FaLock, FaUnlock, FaSpinner } from 'react-icons/fa';
 
 const AdminGuard = ({ children }) => {
     const { isAdmin, isAdminUnlocked, unlockAdmin, loading } = useAuth();
     const [pin, setPin] = useState('');
     const [error, setError] = useState('');
+    const [verifying, setVerifying] = useState(false);
 
     if (loading) return <div>Loading...</div>;
 
@@ -20,19 +21,31 @@ const AdminGuard = ({ children }) => {
         return children;
     }
 
-    const handleSubmit = (e) => {
+    const handleSubmit = async (e) => {
         e.preventDefault();
-        if (unlockAdmin(pin)) {
-            setError('');
-        } else {
-            setError('รหัสผ่านไม่ถูกต้อง');
+        setVerifying(true);
+        setError('');
+
+        const result = await unlockAdmin(pin);
+
+        if (!result.success) {
+            setError(result.error || 'รหัสผ่านไม่ถูกต้อง');
             setPin('');
         }
+        setVerifying(false);
     };
 
     return (
-        <div className="flex flex-col items-center justify-center min-h-[calc(100vh-200px)]">
-            <div className="bg-white p-8 rounded-2xl shadow-lg border border-gray-100 max-w-sm w-full text-center">
+        <div className="flex flex-col items-center justify-center min-h-[calc(100vh-200px)] relative">
+            {/* Logo Watermark */}
+            <img
+                src="/logo.png"
+                alt=""
+                className="absolute inset-0 w-full h-full object-contain opacity-[0.04] pointer-events-none"
+                style={{ maxWidth: '700px', maxHeight: '700px', margin: 'auto' }}
+            />
+
+            <div className="bg-white p-8 rounded-2xl shadow-lg border border-gray-100 max-w-sm w-full text-center relative z-10">
                 <div className="w-16 h-16 bg-red-100 rounded-full flex items-center justify-center mx-auto mb-4 text-red-500 text-2xl">
                     <FaLock />
                 </div>
@@ -52,10 +65,11 @@ const AdminGuard = ({ children }) => {
 
                     <button
                         type="submit"
-                        className="w-full bg-red-600 hover:bg-red-700 text-white font-bold py-3 px-4 rounded-lg transition-colors flex items-center justify-center gap-2"
+                        disabled={verifying}
+                        className="w-full bg-red-600 hover:bg-red-700 disabled:bg-red-400 text-white font-bold py-3 px-4 rounded-lg transition-colors flex items-center justify-center gap-2"
                     >
-                        <FaUnlock />
-                        ปลดล็อก
+                        {verifying ? <FaSpinner className="animate-spin" /> : <FaUnlock />}
+                        {verifying ? 'กำลังตรวจสอบ...' : 'ปลดล็อก'}
                     </button>
                 </form>
             </div>

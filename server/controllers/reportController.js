@@ -86,6 +86,7 @@ const updateReportStatus = async (req, res) => {
         }
 
         report.status = status;
+        report.updatedAt = Date.now();
         await report.save();
 
         res.status(200).json({
@@ -97,9 +98,51 @@ const updateReportStatus = async (req, res) => {
     }
 };
 
+// @desc    Set room maintenance status (disable/enable room)
+// @route   PUT /api/reports/:id/maintenance
+// @access  Private (Admin)
+const setRoomMaintenance = async (req, res) => {
+    try {
+        const { isActive } = req.body;
+
+        let report = await Report.findById(req.params.id).populate('room');
+
+        if (!report) {
+            return res.status(404).json({ success: false, error: 'Report not found' });
+        }
+
+        if (!report.room) {
+            return res.status(400).json({ success: false, error: 'ไม่มีห้องที่เกี่ยวข้องกับรายงานนี้' });
+        }
+
+        // Update room status
+        await Room.findByIdAndUpdate(report.room._id, { isActive });
+
+        // Update report status
+        report.status = isActive ? 'resolved' : 'in_progress';
+        report.updatedAt = Date.now();
+        await report.save();
+
+        // Re-fetch to get updated data
+        report = await Report.findById(req.params.id)
+            .populate('reporter', 'name email picture studentId phone')
+            .populate('room', 'name isActive');
+
+        res.status(200).json({
+            success: true,
+            data: report,
+            message: isActive ? 'เปิดใช้งานห้องแล้ว' : 'ปิดห้องเพื่อซ่อมบำรุง'
+        });
+    } catch (error) {
+        console.error('Set Maintenance Error:', error);
+        res.status(500).json({ success: false, error: error.message });
+    }
+};
+
 module.exports = {
     createReport,
     getMyReports,
     getAllReports,
-    updateReportStatus
+    updateReportStatus,
+    setRoomMaintenance
 };

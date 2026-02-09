@@ -1,15 +1,24 @@
 const nodemailer = require('nodemailer');
 
-// Configure Transporter (User needs to fill in credentials)
+// Validate email config
+if (!process.env.EMAIL_USER || !process.env.EMAIL_PASS) {
+    console.warn('[EMAIL] Warning: EMAIL_USER or EMAIL_PASS not set in .env - emails will not be sent');
+}
+
+// Configure Transporter
 const transporter = nodemailer.createTransport({
-    service: 'gmail', // or your SMTP provider
+    service: 'gmail',
     auth: {
-        user: process.env.EMAIL_USER || 'Comedu.trainingroom@gmail.com',
-        pass: process.env.EMAIL_PASS || 'xjecwkevkblviikf'
+        user: process.env.EMAIL_USER,
+        pass: process.env.EMAIL_PASS
     }
 });
 
 const sendEmail = async (to, subject, html) => {
+    if (!process.env.EMAIL_USER || !process.env.EMAIL_PASS) {
+        console.warn(`[EMAIL] Skipped: Email not configured`);
+        return;
+    }
     try {
         await transporter.sendMail({
             from: `"Meeting Room Booking" <${process.env.EMAIL_USER}>`,

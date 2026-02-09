@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useMemo } from 'react';
 import api from '../services/api';
 import { useAuth } from '../contexts/AuthContext';
 import { useSettings } from '../contexts/SettingsContext';
@@ -21,9 +21,10 @@ const History = () => {
 
     const fetchMyBookings = async () => {
         try {
-            const res = await api.get('/bookings');
-            // Filter only my bookings
-            const myBookings = res.data.data.filter(b => b.user.email === currentUser.email);
+            // Optimization: Filter at server side instead of fetching all
+            const res = await api.get(`/bookings?email=${currentUser.email}`);
+            const myBookings = res.data.data;
+
             // Sort by createdAt desc (newest first)
             myBookings.sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt));
             setBookings(myBookings);
@@ -74,7 +75,9 @@ const History = () => {
         }
     };
 
-    const filteredBookings = bookings.filter(b => filter === 'all' || b.status === filter);
+    const filteredBookings = useMemo(() => {
+        return bookings.filter(b => filter === 'all' || b.status === filter);
+    }, [bookings, filter]);
 
     if (loading) return <div className="p-8 text-center text-gray-500">กำลังโหลดประวัติ...</div>;
 

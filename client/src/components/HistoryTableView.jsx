@@ -1,31 +1,6 @@
 import { FaCheckCircle, FaTimesCircle, FaHourglassHalf, FaBan, FaEnvelope } from 'react-icons/fa';
 
 const HistoryTableView = ({ bookings, onCancel, settings, isAdmin }) => {
-    const getStatusBadge = (status) => {
-        const styles = {
-            approved: 'bg-green-100 text-green-700',
-            pending: 'bg-yellow-100 text-yellow-700',
-            cancelled: 'bg-red-100 text-red-700',
-            rejected: 'bg-red-100 text-red-700'
-        };
-        const icons = {
-            approved: <FaCheckCircle />,
-            pending: <FaHourglassHalf />,
-            cancelled: <FaBan />,
-            rejected: <FaTimesCircle />
-        };
-        const labels = {
-            approved: 'อนุมัติ',
-            pending: 'รออนุมัติ',
-            cancelled: 'ยกเลิก',
-            rejected: 'ปฏิเสธ'
-        };
-        return (
-            <span className={`inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-bold ${styles[status] || 'bg-gray-100 text-gray-700'}`}>
-                {icons[status]} {labels[status] || status}
-            </span>
-        );
-    };
 
     return (
         <div className="bg-white rounded-2xl shadow-sm border border-gray-100 overflow-hidden">
@@ -136,6 +111,32 @@ const HistoryTableView = ({ bookings, onCancel, settings, isAdmin }) => {
                 </div>
             )}
         </div>
+    );
+};
+
+const getStatusBadge = (status) => {
+    const styles = {
+        approved: 'bg-green-100 text-green-700',
+        pending: 'bg-yellow-100 text-yellow-700',
+        cancelled: 'bg-red-100 text-red-700',
+        rejected: 'bg-red-100 text-red-700'
+    };
+    const icons = {
+        approved: <FaCheckCircle />,
+        pending: <FaHourglassHalf />,
+        cancelled: <FaBan />,
+        rejected: <FaTimesCircle />
+    };
+    const labels = {
+        approved: 'อนุมัติ',
+        pending: 'รออนุมัติ',
+        cancelled: 'ยกเลิก',
+        rejected: 'ปฏิเสธ'
+    };
+    return (
+        <span className={`inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-bold ${styles[status] || 'bg-gray-100 text-gray-700'}`}>
+            {icons[status]} {labels[status] || status}
+        </span>
     );
 };
 

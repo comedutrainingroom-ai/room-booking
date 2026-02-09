@@ -117,8 +117,38 @@ const updateProfile = async (req, res) => {
     }
 };
 
+// @desc    Verify Admin PIN (2nd Factor)
+// @route   POST /api/auth/verify-pin
+// @access  Private (Admin only)
+const verifyAdminPin = async (req, res) => {
+    try {
+        const { pin } = req.body;
+
+        if (!pin) {
+            return res.status(400).json({ success: false, error: 'PIN is required' });
+        }
+
+        // Check if user is admin
+        if (req.user.role !== 'admin') {
+            return res.status(403).json({ success: false, error: 'ไม่มีสิทธิ์เข้าถึง' });
+        }
+
+        // Compare with server-side PIN
+        const adminPin = process.env.ADMIN_PIN || '22885693';
+        if (pin === adminPin) {
+            return res.status(200).json({ success: true, message: 'PIN verified' });
+        } else {
+            return res.status(401).json({ success: false, error: 'PIN ไม่ถูกต้อง' });
+        }
+    } catch (error) {
+        console.error('Verify PIN Error:', error);
+        res.status(500).json({ success: false, error: error.message });
+    }
+};
+
 module.exports = {
     googleLogin,
     getCurrentUser,
-    updateProfile
+    updateProfile,
+    verifyAdminPin
 };

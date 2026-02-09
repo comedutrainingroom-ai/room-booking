@@ -1,5 +1,8 @@
 import { useMemo } from 'react';
 import { FaCalendarAlt } from 'react-icons/fa';
+import { PieChart, Pie, Cell, ResponsiveContainer, Tooltip, Legend } from 'recharts';
+
+const COLORS = ['#10b981', '#ef4444', '#6b7280'];
 
 const MonthlyStats = ({ bookings }) => {
     const today = new Date();
@@ -30,11 +33,17 @@ const MonthlyStats = ({ bookings }) => {
 
         const maxDaily = Math.max(...dailyCount, 1);
 
+        // Status counts
+        const approved = thisMonthBookings.filter(b => b.status === 'approved').length;
+        const rejected = thisMonthBookings.filter(b => b.status === 'rejected').length;
+        const cancelled = thisMonthBookings.filter(b => b.status === 'cancelled').length;
+
         return {
             thisMonth: thisMonthBookings.length,
             lastMonth: lastMonthBookings.length,
-            approved: thisMonthBookings.filter(b => b.status === 'approved').length,
-            pending: thisMonthBookings.filter(b => b.status === 'pending').length,
+            approved,
+            rejected,
+            cancelled,
             dailyCount,
             maxDaily
         };
@@ -45,6 +54,13 @@ const MonthlyStats = ({ bookings }) => {
         : monthlyData.thisMonth > 0 ? 100 : 0;
 
     const thaiMonths = ['มกราคม', 'กุมภาพันธ์', 'มีนาคม', 'เมษายน', 'พฤษภาคม', 'มิถุนายน', 'กรกฎาคม', 'สิงหาคม', 'กันยายน', 'ตุลาคม', 'พฤศจิกายน', 'ธันวาคม'];
+
+    // Pie chart data
+    const statusData = [
+        { name: 'อนุมัติ', value: monthlyData.approved },
+        { name: 'ปฏิเสธ', value: monthlyData.rejected },
+        { name: 'ยกเลิก', value: monthlyData.cancelled }
+    ].filter(item => item.value > 0);
 
     return (
         <div className="bg-white rounded-2xl p-6 shadow-sm border border-gray-100">
@@ -87,17 +103,43 @@ const MonthlyStats = ({ bookings }) => {
                 </div>
             </div>
 
-            {/* Status Breakdown */}
-            <div className="flex gap-4 mt-4 text-sm">
-                <div className="flex items-center gap-2">
-                    <span className="w-3 h-3 rounded-full bg-green-500" />
-                    <span className="text-gray-600">อนุมัติ {monthlyData.approved}</span>
+            {/* Status Pie Chart */}
+            {statusData.length > 0 && (
+                <div className="mt-4 border-t border-gray-100 pt-4">
+                    <div className="text-sm font-medium text-gray-600 mb-2">สถานะการจอง</div>
+                    <ResponsiveContainer width="100%" height={150}>
+                        <PieChart>
+                            <Pie
+                                data={statusData}
+                                cx="50%"
+                                cy="50%"
+                                innerRadius={35}
+                                outerRadius={55}
+                                paddingAngle={3}
+                                dataKey="value"
+                                nameKey="name"
+                            >
+                                {statusData.map((entry, index) => (
+                                    <Cell key={`cell-${index}`} fill={COLORS[index % COLORS.length]} />
+                                ))}
+                            </Pie>
+                            <Tooltip formatter={(value) => [`${value} รายการ`, '']} />
+                            <Legend
+                                iconSize={10}
+                                wrapperStyle={{ fontSize: '12px' }}
+                                formatter={(value, entry) => `${value} (${entry.payload.value})`}
+                            />
+                        </PieChart>
+                    </ResponsiveContainer>
                 </div>
-                <div className="flex items-center gap-2">
-                    <span className="w-3 h-3 rounded-full bg-yellow-500" />
-                    <span className="text-gray-600">รอ {monthlyData.pending}</span>
+            )}
+
+            {/* No data state */}
+            {statusData.length === 0 && monthlyData.thisMonth === 0 && (
+                <div className="mt-4 bg-gray-50 rounded-xl p-4 text-center text-gray-400 text-sm">
+                    ยังไม่มีข้อมูลการจองในเดือนนี้
                 </div>
-            </div>
+            )}
         </div>
     );
 };

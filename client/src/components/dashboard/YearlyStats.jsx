@@ -1,5 +1,8 @@
 import { useMemo } from 'react';
 import { FaChartBar } from 'react-icons/fa';
+import { PieChart, Pie, Cell, ResponsiveContainer, Tooltip, Legend } from 'recharts';
+
+const COLORS = ['#10b981', '#ef4444', '#6b7280'];
 
 const YearlyStats = ({ bookings }) => {
     const currentYear = new Date().getFullYear();
@@ -18,11 +21,17 @@ const YearlyStats = ({ bookings }) => {
 
         const maxMonthly = Math.max(...monthlyCount, 1);
 
+        // Status counts
+        const approved = thisYearBookings.filter(b => b.status === 'approved').length;
+        const rejected = thisYearBookings.filter(b => b.status === 'rejected').length;
+        const cancelled = thisYearBookings.filter(b => b.status === 'cancelled').length;
+
         return {
             thisYear: thisYearBookings.length,
             lastYear: lastYearBookings.length,
-            approved: thisYearBookings.filter(b => b.status === 'approved').length,
-            rejected: thisYearBookings.filter(b => b.status === 'rejected').length,
+            approved,
+            rejected,
+            cancelled,
             monthlyCount,
             maxMonthly
         };
@@ -33,6 +42,13 @@ const YearlyStats = ({ bookings }) => {
         : yearlyData.thisYear > 0 ? 100 : 0;
 
     const thaiMonthsShort = ['ม.ค.', 'ก.พ.', 'มี.ค.', 'เม.ย.', 'พ.ค.', 'มิ.ย.', 'ก.ค.', 'ส.ค.', 'ก.ย.', 'ต.ค.', 'พ.ย.', 'ธ.ค.'];
+
+    // Pie chart data
+    const statusData = [
+        { name: 'อนุมัติ', value: yearlyData.approved },
+        { name: 'ปฏิเสธ', value: yearlyData.rejected },
+        { name: 'ยกเลิก', value: yearlyData.cancelled }
+    ].filter(item => item.value > 0);
 
     return (
         <div className="bg-white rounded-2xl p-6 shadow-sm border border-gray-100">
@@ -82,21 +98,43 @@ const YearlyStats = ({ bookings }) => {
                 </div>
             </div>
 
-            {/* Approval Rate */}
-            <div className="mt-4 bg-gray-50 rounded-xl p-3">
-                <div className="flex justify-between text-sm mb-2">
-                    <span className="text-gray-600">อัตราอนุมัติ</span>
-                    <span className="font-bold text-gray-800">
-                        {yearlyData.thisYear > 0 ? Math.round((yearlyData.approved / yearlyData.thisYear) * 100) : 0}%
-                    </span>
+            {/* Status Pie Chart */}
+            {statusData.length > 0 && (
+                <div className="mt-4 border-t border-gray-100 pt-4">
+                    <div className="text-sm font-medium text-gray-600 mb-2">สถานะการจอง</div>
+                    <ResponsiveContainer width="100%" height={150}>
+                        <PieChart>
+                            <Pie
+                                data={statusData}
+                                cx="50%"
+                                cy="50%"
+                                innerRadius={35}
+                                outerRadius={55}
+                                paddingAngle={3}
+                                dataKey="value"
+                                nameKey="name"
+                            >
+                                {statusData.map((entry, index) => (
+                                    <Cell key={`cell-${index}`} fill={COLORS[index % COLORS.length]} />
+                                ))}
+                            </Pie>
+                            <Tooltip formatter={(value) => [`${value} รายการ`, '']} />
+                            <Legend
+                                iconSize={10}
+                                wrapperStyle={{ fontSize: '12px' }}
+                                formatter={(value, entry) => `${value} (${entry.payload.value})`}
+                            />
+                        </PieChart>
+                    </ResponsiveContainer>
                 </div>
-                <div className="h-2 bg-gray-200 rounded-full overflow-hidden">
-                    <div
-                        className="h-full bg-gradient-to-r from-green-400 to-green-600 rounded-full transition-all duration-500"
-                        style={{ width: `${yearlyData.thisYear > 0 ? (yearlyData.approved / yearlyData.thisYear) * 100 : 0}%` }}
-                    />
+            )}
+
+            {/* No data state */}
+            {statusData.length === 0 && yearlyData.thisYear === 0 && (
+                <div className="mt-4 bg-gray-50 rounded-xl p-4 text-center text-gray-400 text-sm">
+                    ยังไม่มีข้อมูลการจองในปีนี้
                 </div>
-            </div>
+            )}
         </div>
     );
 };

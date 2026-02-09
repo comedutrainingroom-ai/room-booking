@@ -93,6 +93,7 @@ const Dashboard = () => {
                                         }`}></div>
                                     <div>
                                         <p className="text-sm font-medium text-gray-800 line-clamp-1">{booking.topic}</p>
+                                        <p className="text-xs text-gray-600 mt-0.5">{booking.user?.name || 'ไม่ทราบชื่อ'}</p>
                                         <p className="text-xs text-gray-500 flex items-center gap-1 mt-0.5">
                                             <FaBuilding size={10} /> {booking.room?.name || 'Unknown Room'}
                                         </p>

@@ -1,11 +1,14 @@
 import { useState, useEffect } from 'react';
 import api from '../services/api';
-import { FaExclamationTriangle, FaTools, FaBuilding, FaClock, FaCheckCircle, FaSearch } from 'react-icons/fa';
+import { FaExclamationTriangle, FaTools, FaBuilding, FaClock, FaCheckCircle, FaSearch, FaWrench, FaCheck } from 'react-icons/fa';
+import { useToast } from '../contexts/ToastContext';
 
 const AdminReports = () => {
     const [reports, setReports] = useState([]);
     const [loading, setLoading] = useState(true);
     const [searchTerm, setSearchTerm] = useState('');
+    const [actionLoading, setActionLoading] = useState(null);
+    const toast = useToast();
 
     useEffect(() => {
         fetchReports();
@@ -23,6 +26,20 @@ const AdminReports = () => {
         setLoading(false);
     };
 
+    const handleMaintenance = async (reportId, isActive) => {
+        setActionLoading(reportId);
+        try {
+            const res = await api.put(`/reports/${reportId}/maintenance`, { isActive });
+            if (res.data.success) {
+                toast.success(res.data.message);
+                fetchReports(); // Refresh list
+            }
+        } catch (error) {
+            toast.error(error.response?.data?.error || 'เกิดข้อผิดพลาด');
+        }
+        setActionLoading(null);
+    };
+
     const getUrgencyBadge = (urgency) => {
         switch (urgency) {
             case 'emergency':
@@ -31,6 +48,19 @@ const AdminReports = () => {
                 return <span className="px-2 py-1 rounded-full text-xs font-bold bg-orange-100 text-orange-700 border border-orange-200 flex items-center gap-1 w-fit"><FaExclamationTriangle /> ด่วน</span>;
             default:
                 return <span className="px-2 py-1 rounded-full text-xs font-bold bg-blue-100 text-blue-700 border border-blue-200 flex items-center gap-1 w-fit"><FaTools /> ปกติ</span>;
+        }
+    };
+
+    const getStatusBadge = (status) => {
+        switch (status) {
+            case 'in_progress':
+                return <span className="px-2 py-1 rounded-full text-xs font-bold bg-yellow-100 text-yellow-700 border border-yellow-200">🔧 กำลังซ่อม</span>;
+            case 'resolved':
+                return <span className="px-2 py-1 rounded-full text-xs font-bold bg-green-100 text-green-700 border border-green-200">✅ ซ่อมเสร็จ</span>;
+            case 'rejected':
+                return <span className="px-2 py-1 rounded-full text-xs font-bold bg-gray-100 text-gray-700 border border-gray-200">❌ ปฏิเสธ</span>;
+            default:
+                return <span className="px-2 py-1 rounded-full text-xs font-bold bg-blue-100 text-blue-700 border border-blue-200">⏳ รอดำเนินการ</span>;
         }
     };
 
@@ -85,37 +115,44 @@ const AdminReports = () => {
                         <table className="w-full text-left">
                             <thead className="bg-gray-50 border-b border-gray-100">
                                 <tr>
-                                    <th className="px-6 py-4 text-xs font-bold text-gray-500 uppercase tracking-wider">วันที่แจ้ง</th>
-                                    <th className="px-6 py-4 text-xs font-bold text-gray-500 uppercase tracking-wider">ความเร่งด่วน</th>
-                                    <th className="px-6 py-4 text-xs font-bold text-gray-500 uppercase tracking-wider">ห้อง/สถานที่</th>
-                                    <th className="px-6 py-4 text-xs font-bold text-gray-500 uppercase tracking-wider">หัวข้อปัญหา</th>
-                                    <th className="px-6 py-4 text-xs font-bold text-gray-500 uppercase tracking-wider">ผู้แจ้ง</th>
+                                    <th className="px-4 py-4 text-xs font-bold text-gray-500 uppercase tracking-wider">วันที่แจ้ง</th>
+                                    <th className="px-4 py-4 text-xs font-bold text-gray-500 uppercase tracking-wider">ความเร่งด่วน</th>
+                                    <th className="px-4 py-4 text-xs font-bold text-gray-500 uppercase tracking-wider">ห้อง/สถานที่</th>
+                                    <th className="px-4 py-4 text-xs font-bold text-gray-500 uppercase tracking-wider">หัวข้อปัญหา</th>
+                                    <th className="px-4 py-4 text-xs font-bold text-gray-500 uppercase tracking-wider">ผู้แจ้ง</th>
+                                    <th className="px-4 py-4 text-xs font-bold text-gray-500 uppercase tracking-wider">สถานะ</th>
+                                    <th className="px-4 py-4 text-xs font-bold text-gray-500 uppercase tracking-wider text-center">จัดการ</th>
                                 </tr>
                             </thead>
                             <tbody className="divide-y divide-gray-100">
                                 {filteredReports.length > 0 ? (
                                     filteredReports.map((report) => (
                                         <tr key={report._id} className="hover:bg-gray-50/50 transition-colors">
-                                            <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
+                                            <td className="px-4 py-4 whitespace-nowrap text-sm text-gray-500">
                                                 <div className="flex items-center gap-2">
                                                     <FaClock className="text-gray-400" />
                                                     {formatDate(report.createdAt)}
                                                 </div>
                                             </td>
-                                            <td className="px-6 py-4 whitespace-nowrap">
+                                            <td className="px-4 py-4 whitespace-nowrap">
                                                 {getUrgencyBadge(report.urgency)}
                                             </td>
-                                            <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-700">
+                                            <td className="px-4 py-4 whitespace-nowrap text-sm font-medium text-gray-700">
                                                 <div className="flex items-center gap-2">
                                                     <FaBuilding className="text-gray-400" />
-                                                    {report.room ? report.room.name : <span className="text-gray-400 italic">พื้นที่ส่วนกลาง</span>}
+                                                    <div>
+                                                        {report.room ? report.room.name : <span className="text-gray-400 italic">พื้นที่ส่วนกลาง</span>}
+                                                        {report.room && report.room.isActive === false && (
+                                                            <span className="ml-2 text-xs text-red-500 font-bold">🔒 ปิดซ่อม</span>
+                                                        )}
+                                                    </div>
                                                 </div>
                                             </td>
-                                            <td className="px-6 py-4 text-sm text-gray-800">
+                                            <td className="px-4 py-4 text-sm text-gray-800">
                                                 <div className="font-bold mb-0.5">{report.topic}</div>
                                                 <div className="text-gray-500 text-xs truncate max-w-xs">{report.description}</div>
                                             </td>
-                                            <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-600">
+                                            <td className="px-4 py-4 whitespace-nowrap text-sm text-gray-600">
                                                 <div className="flex items-center gap-2">
                                                     <div className="h-6 w-6 rounded-full bg-gray-200 overflow-hidden">
                                                         <img
@@ -130,11 +167,47 @@ const AdminReports = () => {
                                                     </div>
                                                 </div>
                                             </td>
+                                            <td className="px-4 py-4 whitespace-nowrap">
+                                                {getStatusBadge(report.status)}
+                                            </td>
+                                            <td className="px-4 py-4 whitespace-nowrap text-center">
+                                                {report.room ? (
+                                                    <div className="flex gap-2 justify-center">
+                                                        {report.status !== 'in_progress' ? (
+                                                            <button
+                                                                onClick={() => handleMaintenance(report._id, false)}
+                                                                disabled={actionLoading === report._id}
+                                                                className="px-3 py-1.5 bg-yellow-500 text-white text-xs font-bold rounded-lg hover:bg-yellow-600 transition-colors flex items-center gap-1 disabled:opacity-50"
+                                                            >
+                                                                {actionLoading === report._id ? (
+                                                                    <div className="animate-spin h-3 w-3 border-2 border-white border-t-transparent rounded-full" />
+                                                                ) : (
+                                                                    <><FaWrench /> กำลังซ่อม</>
+                                                                )}
+                                                            </button>
+                                                        ) : (
+                                                            <button
+                                                                onClick={() => handleMaintenance(report._id, true)}
+                                                                disabled={actionLoading === report._id}
+                                                                className="px-3 py-1.5 bg-green-500 text-white text-xs font-bold rounded-lg hover:bg-green-600 transition-colors flex items-center gap-1 disabled:opacity-50"
+                                                            >
+                                                                {actionLoading === report._id ? (
+                                                                    <div className="animate-spin h-3 w-3 border-2 border-white border-t-transparent rounded-full" />
+                                                                ) : (
+                                                                    <><FaCheck /> ซ่อมเสร็จ</>
+                                                                )}
+                                                            </button>
+                                                        )}
+                                                    </div>
+                                                ) : (
+                                                    <span className="text-xs text-gray-400">-</span>
+                                                )}
+                                            </td>
                                         </tr>
                                     ))
                                 ) : (
                                     <tr>
-                                        <td colSpan="5" className="px-6 py-12 text-center text-gray-400">
+                                        <td colSpan="7" className="px-6 py-12 text-center text-gray-400">
                                             <div className="flex flex-col items-center gap-3">
                                                 <FaCheckCircle className="text-4xl text-green-100" />
                                                 <p>ยังไม่มีรายการแจ้งซ่อม</p>

@@ -24,6 +24,10 @@ const roomSchema = mongoose.Schema({
         type: String,
         maxlength: [500, 'Description can not be more than 500 characters']
     },
+    isActive: {
+        type: Boolean,
+        default: true
+    },
     createdAt: {
         type: Date,
         default: Date.now
