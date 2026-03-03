@@ -53,6 +53,26 @@ const RoomManagement = () => {
     const [selectedImages, setSelectedImages] = useState([]);
     const [existingImages, setExistingImages] = useState([]); // State for images currently in DB
 
+    const [isCustomOpen, setIsCustomOpen] = useState(false);
+
+    const PRESET_EQUIPMENT = [
+        'โปรเจคเตอร์', 'กระดานไวท์บอร์ด', 'จอทีวี', 'ไมโครโฟน',
+        'เครื่องเสียง', 'กล้องวิดีโอ', 'คอมพิวเตอร์', 'เครื่องปรับอากาศ'
+    ];
+
+    const currentEquipmentItems = formData.equipment
+        ? formData.equipment.split(',').map(s => s.trim()).filter(Boolean)
+        : [];
+
+    const presetSelected = currentEquipmentItems.filter(item => PRESET_EQUIPMENT.includes(item));
+    const customItems = currentEquipmentItems.filter(item => !PRESET_EQUIPMENT.includes(item));
+    const hasCustom = customItems.length > 0;
+
+    // Sync custom open state when editing a room
+    useEffect(() => {
+        setIsCustomOpen(customItems.length > 0);
+    }, [editingRoom, formData.equipment]);
+
     const handleEdit = (room) => {
         setEditingRoom(room);
         setFormData({
@@ -71,6 +91,7 @@ const RoomManagement = () => {
         setFormData({ name: '', capacity: '', description: '', equipment: '' });
         setSelectedImages([]);
         setExistingImages([]); // Reset existing images
+        setIsCustomOpen(false); // Reset custom toggle
         setIsModalOpen(true);
     };
 
@@ -118,6 +139,24 @@ const RoomManagement = () => {
             console.error("Error saving room", error);
             const errorMessage = error.response?.data?.error || 'เกิดข้อผิดพลาดในการบันทึกข้อมูล';
             toast.error(errorMessage);
+        }
+    };
+
+    const toggleEquipment = (item) => {
+        let updated;
+        if (presetSelected.includes(item)) {
+            updated = [...presetSelected.filter(i => i !== item), ...customItems];
+        } else {
+            updated = [...presetSelected, item, ...customItems];
+        }
+        setFormData({ ...formData, equipment: updated.filter(Boolean).join(', ') });
+    };
+
+    const handleCustomToggle = (e) => {
+        const checked = e.target.checked;
+        setIsCustomOpen(checked);
+        if (!checked) {
+            setFormData({ ...formData, equipment: presetSelected.join(', ') });
         }
     };
 
@@ -196,14 +235,72 @@ const RoomManagement = () => {
                             </div>
 
                             <div>
-                                <label className="block text-sm font-medium text-gray-700 mb-1">อุปกรณ์ (คั่นด้วยจุลภาค)</label>
-                                <input
-                                    type="text"
-                                    value={formData.equipment}
-                                    onChange={(e) => setFormData({ ...formData, equipment: e.target.value })}
-                                    className="w-full px-4 py-2 rounded-lg border border-gray-300 focus:outline-none focus:ring-2 focus:ring-primary/50"
-                                    placeholder="เช่น โปรเจคเตอร์, กระดานไวท์บอร์ด"
-                                />
+                                <label className="block text-sm font-medium text-gray-700 mb-2">อุปกรณ์ในห้อง</label>
+                                <>
+                                    <div className="grid grid-cols-2 sm:grid-cols-3 gap-2">
+                                        {PRESET_EQUIPMENT.map(item => {
+                                            const isChecked = presetSelected.includes(item);
+                                            return (
+                                                <label
+                                                    key={item}
+                                                    className={`flex items-center gap-2 px-3 py-2 rounded-lg border cursor-pointer transition-all duration-200
+                                                        ${isChecked
+                                                            ? 'bg-primary/5 border-primary/40 text-primary ring-1 ring-primary/20'
+                                                            : 'bg-white border-gray-200 text-gray-600 hover:border-gray-300 hover:bg-gray-50'
+                                                        }`}
+                                                >
+                                                    <input
+                                                        type="checkbox"
+                                                        checked={isChecked}
+                                                        onChange={() => toggleEquipment(item)}
+                                                        className="w-3.5 h-3.5 rounded border-gray-300 text-primary focus:ring-primary/30 accent-emerald-600"
+                                                    />
+                                                    <span className="text-xs font-medium truncate">{item}</span>
+                                                </label>
+                                            );
+                                        })}
+                                    </div>
+
+                                    {/* อื่นๆ (Other) */}
+                                    <div className="mt-3">
+                                        <label className={`inline-flex items-center gap-2 px-3 py-2 rounded-lg border cursor-pointer transition-all duration-200
+                                                    ${isCustomOpen
+                                                ? 'bg-amber-50 border-amber-300 text-amber-700 ring-1 ring-amber-200'
+                                                : 'bg-white border-gray-200 text-gray-600 hover:border-gray-300'
+                                            }`}>
+                                            <input
+                                                type="checkbox"
+                                                checked={isCustomOpen}
+                                                onChange={handleCustomToggle}
+                                                className="w-3.5 h-3.5 rounded border-gray-300 text-amber-600 focus:ring-amber-300 accent-amber-600"
+                                            />
+                                            <span className="text-xs font-medium">อื่นๆ</span>
+                                        </label>
+
+                                        {isCustomOpen && (
+                                            <input
+                                                type="text"
+                                                value={customItems.join(', ')}
+                                                onChange={(e) => {
+                                                    const newCustomText = e.target.value;
+                                                    // We construct the custom array based strictly on commas
+                                                    const newCustomArray = newCustomText.split(',').map(s => s.trim()).filter(Boolean);
+                                                    // We want to allow trailing commas and spaces while typing otherwise it's jarring,
+                                                    // so it's better to store just the raw string or manage via form state.
+                                                    // To preserve empty spaces/commas while typing, we just append exactly what they typed to presets
+                                                    const presetsStr = presetSelected.join(', ');
+                                                    setFormData({
+                                                        ...formData,
+                                                        equipment: presetsStr ? `${presetsStr}, ${newCustomText}` : newCustomText
+                                                    });
+                                                }}
+                                                className="mt-2 w-full px-3 py-2 rounded-lg border border-amber-200 bg-amber-50/50 focus:outline-none focus:ring-2 focus:ring-amber-300/50 text-sm"
+                                                placeholder="พิมพ์อุปกรณ์เพิ่มเติม คั่นด้วย ,"
+                                            />
+                                        )}
+                                    </div>
+
+                                </>
                             </div>
 
                             <div>

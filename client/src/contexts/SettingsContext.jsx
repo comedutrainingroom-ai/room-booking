@@ -1,4 +1,4 @@
-import { createContext, useContext, useState, useEffect } from 'react';
+import { createContext, useContext, useState, useEffect, useMemo, useCallback } from 'react';
 import api from '../services/api';
 
 const SettingsContext = createContext();
@@ -14,7 +14,7 @@ export const SettingsProvider = ({ children }) => {
     });
     const [loading, setLoading] = useState(true);
 
-    const fetchSettings = async () => {
+    const fetchSettings = useCallback(async () => {
         try {
             const res = await api.get('/settings');
             if (res.data.success) {
@@ -26,7 +26,7 @@ export const SettingsProvider = ({ children }) => {
         } finally {
             setLoading(false);
         }
-    };
+    }, []);
 
     const applyTheme = (color) => {
         if (color) {
@@ -41,15 +41,19 @@ export const SettingsProvider = ({ children }) => {
 
     useEffect(() => {
         fetchSettings();
-    }, []);
+    }, [fetchSettings]);
 
     // Refresh function to be called after updating settings
-    const refreshSettings = () => {
+    const refreshSettings = useCallback(() => {
         fetchSettings();
-    };
+    }, [fetchSettings]);
+
+    const value = useMemo(() => ({
+        settings, loading, refreshSettings
+    }), [settings, loading, refreshSettings]);
 
     return (
-        <SettingsContext.Provider value={{ settings, loading, refreshSettings }}>
+        <SettingsContext.Provider value={value}>
             {children}
         </SettingsContext.Provider>
     );

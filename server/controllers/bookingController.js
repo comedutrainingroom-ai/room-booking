@@ -1,6 +1,7 @@
 const Booking = require('../models/Booking');
 const { sendBookingCreated, sendBookingApproved, sendBookingModified, sendBookingReminder, sendBookingCancelled } = require('../services/emailService');
 const { checkRoomAvailability, validateBookingTime, isUrgentBooking } = require('../services/bookingService');
+const { logAction } = require('../services/auditService');
 
 // @desc    Get all bookings
 // @route   GET /api/bookings
@@ -86,6 +87,14 @@ const createBooking = async (req, res) => {
             success: true,
             data: booking
         });
+
+        // Audit log
+        logAction({ action: 'booking:create', performedBy: req.user._id, targetType: 'booking', targetId: booking._id, details: `สร้างการจอง: ${booking.topic}`, req });
+
+        // Emit real-time notification to admin room
+        const io = req.app.get('io');
+        if (io) io.to('admin-room').emit('booking:created', { bookingId: booking._id, topic: booking.topic });
+
     } catch (error) {
         res.status(500).json({ success: false, error: error.message });
     }
@@ -174,6 +183,16 @@ const updateBooking = async (req, res) => {
         }
 
         res.status(200).json({ success: true, data: booking });
+
+        // Audit log
+        const actionMap = { approved: 'booking:approve', rejected: 'booking:reject', cancelled: 'booking:cancel' };
+        const auditAction = actionMap[req.body.status] || (timeChanged ? 'booking:modify' : 'booking:approve');
+        logAction({ action: auditAction, performedBy: req.user._id, targetType: 'booking', targetId: booking._id, details: `${req.body.status || 'modified'}: ${booking.topic}`, req });
+
+        // Emit real-time notification to admin room
+        const io = req.app.get('io');
+        if (io) io.to('admin-room').emit('booking:updated', { bookingId: booking._id, status: booking.status });
+
     } catch (error) {
         res.status(500).json({ success: false, error: error.message });
     }
@@ -193,6 +212,14 @@ const deleteBooking = async (req, res) => {
         await booking.deleteOne();
 
         res.status(200).json({ success: true, data: {} });
+
+        // Audit log
+        logAction({ action: 'booking:delete', performedBy: req.user._id, targetType: 'booking', targetId: req.params.id, details: `ลบการจอง: ${booking.topic}`, req });
+
+        // Emit real-time notification
+        const io = req.app.get('io');
+        if (io) io.to('admin-room').emit('booking:deleted', { bookingId: req.params.id });
+
     } catch (error) {
         res.status(500).json({ success: false, error: error.message });
     }
@@ -379,6 +406,10 @@ const importBookings = async (req, res) => {
             errors: errors,
             message: `Imported ${bookingsToCreate.length} bookings. ${errors.length} errors.`
         });
+
+        // Emit real-time notification
+        const io = req.app.get('io');
+        if (io) io.to('admin-room').emit('booking:imported', { count: bookingsToCreate.length });
 
     } catch (error) {
         console.error('Import Error:', error);

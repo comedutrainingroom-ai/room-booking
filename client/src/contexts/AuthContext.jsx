@@ -1,4 +1,4 @@
-import { createContext, useContext, useEffect, useState } from 'react';
+import { createContext, useContext, useEffect, useState, useMemo, useCallback } from 'react';
 import { auth, googleProvider } from '../services/firebase';
 import { signInWithPopup, signOut, onAuthStateChanged } from 'firebase/auth';
 import api from '../services/api';
@@ -15,7 +15,7 @@ export const AuthProvider = ({ children }) => {
     const [loading, setLoading] = useState(true);
     const [isAdminUnlocked, setIsAdminUnlocked] = useState(false); // 2nd Factor for Admin
 
-    const loginWithGoogle = async () => {
+    const loginWithGoogle = useCallback(async () => {
         try {
             const result = await signInWithPopup(auth, googleProvider);
             // Sync with backend immediately after login
@@ -25,14 +25,14 @@ export const AuthProvider = ({ children }) => {
             console.error("Error signing in with Google", error);
             throw error;
         }
-    };
+    }, []);
 
-    const syncUserWithBackend = async (firebaseUser) => {
+    const syncUserWithBackend = useCallback(async (firebaseUser) => {
         try {
+            // Get Firebase ID Token for server-side verification
+            const idToken = await firebaseUser.getIdToken();
             const res = await api.post('/auth/google', {
-                email: firebaseUser.email,
-                name: firebaseUser.displayName,
-                picture: firebaseUser.photoURL
+                idToken
             });
             if (res.data.success) {
                 setDbUser(res.data.data);
@@ -56,15 +56,15 @@ export const AuthProvider = ({ children }) => {
 
             return { success: false, error: error.message };
         }
-    };
+    }, []);
 
-    const logout = () => {
+    const logout = useCallback(() => {
         setDbUser(null);
         setIsAdminUnlocked(false);
         return signOut(auth);
-    };
+    }, []);
 
-    const unlockAdmin = async (pin) => {
+    const unlockAdmin = useCallback(async (pin) => {
         try {
             const res = await api.post('/auth/verify-pin', { pin });
             if (res.data.success) {
@@ -79,7 +79,7 @@ export const AuthProvider = ({ children }) => {
                 error: error.response?.data?.error || 'เกิดข้อผิดพลาดในการตรวจสอบ PIN'
             };
         }
-    };
+    }, []);
 
     useEffect(() => {
         const unsubscribe = onAuthStateChanged(auth, async (user) => {
@@ -105,16 +105,18 @@ export const AuthProvider = ({ children }) => {
         return unsubscribe;
     }, []);
 
-    const value = {
+    const isAdmin = dbUser?.role === 'admin';
+
+    const value = useMemo(() => ({
         currentUser,
         dbUser,
-        isAdmin: dbUser?.role === 'admin',
+        isAdmin,
         isAdminUnlocked,
         unlockAdmin,
         loginWithGoogle,
         logout,
         syncUserWithBackend
-    };
+    }), [currentUser, dbUser, isAdmin, isAdminUnlocked, unlockAdmin, loginWithGoogle, logout, syncUserWithBackend]);
 
     return (
         <AuthContext.Provider value={value}>

@@ -1,5 +1,6 @@
 const Report = require('../models/Report');
 const Room = require('../models/Room');
+const { logAction } = require('../services/auditService');
 
 // @desc    Create a new report
 // @route   POST /api/reports
@@ -27,6 +28,14 @@ const createReport = async (req, res) => {
             success: true,
             data: report
         });
+
+        // Audit log
+        logAction({ action: 'report:create', performedBy: req.user._id, targetType: 'report', targetId: report._id, details: `แจ้งปัญหา: ${report.topic}`, req });
+
+        // Emit real-time notification to admin room
+        const io = req.app.get('io');
+        if (io) io.to('admin-room').emit('report:created', { reportId: report._id, topic: report.topic });
+
     } catch (error) {
         console.error('Create Report Error:', error);
         res.status(500).json({ success: false, error: error.message });
@@ -93,6 +102,14 @@ const updateReportStatus = async (req, res) => {
             success: true,
             data: report
         });
+
+        // Audit log
+        logAction({ action: 'report:update_status', performedBy: req.user._id, targetType: 'report', targetId: report._id, details: `เปลี่ยนสถานะ: ${status}`, req });
+
+        // Emit real-time notification
+        const io = req.app.get('io');
+        if (io) io.to('admin-room').emit('report:updated', { reportId: report._id, status: report.status });
+
     } catch (error) {
         res.status(500).json({ success: false, error: 'Server Error' });
     }
@@ -133,6 +150,9 @@ const setRoomMaintenance = async (req, res) => {
             data: report,
             message: isActive ? 'เปิดใช้งานห้องแล้ว' : 'ปิดห้องเพื่อซ่อมบำรุง'
         });
+
+        // Audit log
+        logAction({ action: 'report:set_maintenance', performedBy: req.user._id, targetType: 'room', targetId: report.room._id, details: isActive ? 'เปิดใช้งานห้อง' : 'ปิดห้องซ่อมบำรุง', req });
     } catch (error) {
         console.error('Set Maintenance Error:', error);
         res.status(500).json({ success: false, error: error.message });

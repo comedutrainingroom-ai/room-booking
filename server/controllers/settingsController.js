@@ -1,4 +1,5 @@
 const Setting = require('../models/Setting');
+const { logAction } = require('../services/auditService');
 
 // @desc    Get system settings
 // @route   GET /api/settings
@@ -41,6 +42,11 @@ const updateSettings = async (req, res) => {
             success: true,
             data: settings
         });
+
+        // Audit log
+        if (req.user) {
+            logAction({ action: 'settings:update', performedBy: req.user._id, targetType: 'settings', targetId: settings._id, details: `แก้ไขการตั้งค่าระบบ`, req });
+        }
     } catch (error) {
         res.status(500).json({ success: false, error: error.message });
     }

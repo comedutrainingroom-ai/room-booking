@@ -1,4 +1,4 @@
-import { useState, useEffect, useRef } from 'react';
+import { useState, useEffect, useRef, useCallback, useMemo } from 'react';
 import FullCalendar from '@fullcalendar/react';
 import dayGridPlugin from '@fullcalendar/daygrid';
 import timeGridPlugin from '@fullcalendar/timegrid';
@@ -18,6 +18,77 @@ const toLocalISOString = (date) => {
     const day = String(date.getDate()).padStart(2, '0');
     return `${year}-${month}-${day}`;
 };
+
+// Hoisted outside component — pure function, no need to recreate each render
+const generateColorFromString = (str) => {
+    if (!str) return '#6b7280';
+    let hash = 0;
+    for (let i = 0; i < str.length; i++) {
+        hash = str.charCodeAt(i) + ((hash << 5) - hash);
+    }
+    const colors = [
+        '#fca5a5', '#fdba74', '#fcd34d', '#bef264', '#86efac',
+        '#5eead4', '#67e8f9', '#7dd3fc', '#93c5fd', '#a5b4fc',
+        '#c4b5fd', '#d8b4fe', '#f0abfc', '#f9a8d4', '#fda4af',
+    ];
+    return colors[Math.abs(hash) % colors.length];
+};
+
+// Hoisted calendar custom styles — avoids recreating <style> tag each render
+const calendarStyles = `
+    .fc-button-primary {
+        background-color: #16a34a !important;
+        border-color: #16a34a !important;
+    }
+    .fc-button-primary:hover {
+        background-color: #15803d !important;
+        border-color: #15803d !important;
+    }
+    .fc-toolbar-title {
+        font-family: 'Sarabun', sans-serif !important;
+        font-weight: 700 !important;
+        color: #1f2937;
+    }
+    .fc-day-today {
+        background-color: #f0fdf4 !important;
+    }
+    .fc-event {
+        border: none;
+        padding: 2px 6px;
+        font-family: 'Sarabun', sans-serif;
+        border-radius: 4px;
+        cursor: pointer;
+        font-size: 0.75rem;
+        font-weight: 500;
+    }
+    .fc-event:hover {
+        opacity: 0.9;
+    }
+    .fc-col-header-cell-cushion {
+        color: #374151;
+        font-weight: 600;
+        padding: 8px 0;
+    }
+    .fc .fc-button {
+        font-family: 'Sarabun', sans-serif;
+        font-weight: 500;
+        border-radius: 0.5rem;
+        padding: 0.4rem 1rem;
+        text-transform: capitalize;
+    }
+    .fc-scroller::-webkit-scrollbar {
+        display: none;
+    }
+    .fc-scroller {
+        -ms-overflow-style: none;
+        scrollbar-width: none;
+    }
+    .fc-daygrid-event {
+        white-space: nowrap;
+        overflow: hidden;
+        text-overflow: ellipsis;
+    }
+`;
 
 const Calendar = () => {
     const calendarRef = useRef(null);
@@ -103,39 +174,6 @@ const Calendar = () => {
 
     const [events, setEvents] = useState([]);
 
-    // Generate consistent color based on string (topic name)
-    const generateColorFromString = (str) => {
-        if (!str) return '#6b7280'; // Default gray
-
-        // Hash the string
-        let hash = 0;
-        for (let i = 0; i < str.length; i++) {
-            hash = str.charCodeAt(i) + ((hash << 5) - hash);
-        }
-
-        // Define a palette of pastel colors
-        const colors = [
-            '#fca5a5', // Pastel Red
-            '#fdba74', // Pastel Orange
-            '#fcd34d', // Pastel Yellow
-            '#bef264', // Pastel Lime
-            '#86efac', // Pastel Green
-            '#5eead4', // Pastel Teal
-            '#67e8f9', // Pastel Cyan
-            '#7dd3fc', // Pastel Sky
-            '#93c5fd', // Pastel Blue
-            '#a5b4fc', // Pastel Indigo
-            '#c4b5fd', // Pastel Violet
-            '#d8b4fe', // Pastel Purple
-            '#f0abfc', // Pastel Fuchsia
-            '#f9a8d4', // Pastel Pink
-            '#fda4af', // Pastel Rose
-        ];
-
-        // Use hash to pick a color consistently
-        const index = Math.abs(hash) % colors.length;
-        return colors[index];
-    };
 
     const fetchBookings = async () => {
         try {
@@ -612,60 +650,7 @@ const Calendar = () => {
                 </div>
             )}
 
-            <style>{`
-                .fc-button-primary {
-                    background-color: #16a34a !important;
-                    border-color: #16a34a !important;
-                }
-                .fc-button-primary:hover {
-                    background-color: #15803d !important;
-                    border-color: #15803d !important;
-                }
-                .fc-toolbar-title {
-                    font-family: 'Sarabun', sans-serif !important;
-                    font-weight: 700 !important;
-                    color: #1f2937;
-                }
-                .fc-day-today {
-                    background-color: #f0fdf4 !important;
-                }
-                .fc-event {
-                    border: none;
-                    padding: 2px 6px;
-                    font-family: 'Sarabun', sans-serif;
-                    border-radius: 4px;
-                    cursor: pointer;
-                    font-size: 0.75rem;
-                    font-weight: 500;
-                }
-                .fc-event:hover {
-                    opacity: 0.9;
-                }
-                .fc-col-header-cell-cushion {
-                    color: #374151;
-                    font-weight: 600;
-                    padding: 8px 0;
-                }
-                .fc .fc-button {
-                    font-family: 'Sarabun', sans-serif;
-                    font-weight: 500;
-                    border-radius: 0.5rem;
-                    padding: 0.4rem 1rem;
-                    text-transform: capitalize;
-                }
-                .fc-scroller::-webkit-scrollbar {
-                    display: none;
-                }
-                .fc-scroller {
-                    -ms-overflow-style: none;
-                    scrollbar-width: none;
-                }
-                .fc-daygrid-event {
-                    white-space: nowrap;
-                    overflow: hidden;
-                    text-overflow: ellipsis;
-                }
-            `}</style>
+            <style>{calendarStyles}</style>
         </div>
     );
 };

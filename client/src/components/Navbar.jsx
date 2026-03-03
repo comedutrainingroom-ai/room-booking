@@ -1,20 +1,28 @@
 import { Link, useNavigate, useLocation } from 'react-router-dom';
-import { FaBuilding, FaBars, FaSignOutAlt, FaUserCircle, FaExclamationTriangle, FaCaretDown, FaBell } from 'react-icons/fa'; // Add FaBell
+import { FaBuilding, FaBars, FaSignOutAlt, FaUserCircle, FaExclamationTriangle, FaCaretDown, FaBell, FaCalendarPlus, FaCheckCircle, FaTimesCircle, FaCheck } from 'react-icons/fa';
 import { useAuth } from '../contexts/AuthContext';
 import { useSettings } from '../contexts/SettingsContext';
-import { useState, useRef, useEffect } from 'react';
+import { useSocket } from '../contexts/SocketContext';
+import { useToast } from '../contexts/ToastContext';
+import { useState, useRef, useEffect, useCallback } from 'react';
 import api from '../services/api';
 
 const Navbar = ({ toggleSidebar }) => {
     const { currentUser, logout, dbUser } = useAuth();
     const { settings } = useSettings();
+    const { socket } = useSocket();
+    const toast = useToast();
     const navigate = useNavigate();
-    const location = useLocation(); // Add hook to check current page
+    const location = useLocation();
 
     const [notifications, setNotifications] = useState({
         bookings: 0,
         reports: 0
     });
+
+    // Notification history (individual items)
+    const [notiItems, setNotiItems] = useState([]);
+    const [unreadCount, setUnreadCount] = useState(0);
 
     // Track "seen" counts to hide badge after viewing
     const [seenCounts, setSeenCounts] = useState({
@@ -26,6 +34,7 @@ const Navbar = ({ toggleSidebar }) => {
     const notiDropdownRef = useRef(null);
     const [isDropdownOpen, setIsDropdownOpen] = useState(false);
     const dropdownRef = useRef(null);
+    const [bellShake, setBellShake] = useState(false);
 
     const handleLogout = async () => {
         try {
@@ -42,30 +51,43 @@ const Navbar = ({ toggleSidebar }) => {
         setSeenCounts(prev => ({ ...prev, [type]: count }));
     };
 
-    const fetchNotifications = async () => {
+    // Helper: relative time
+    const getRelativeTime = (date) => {
+        const now = new Date();
+        const diff = Math.floor((now - new Date(date)) / 1000);
+        if (diff < 10) return 'เมื่อสักครู่';
+        if (diff < 60) return `${diff} วินาทีที่แล้ว`;
+        if (diff < 3600) return `${Math.floor(diff / 60)} นาทีที่แล้ว`;
+        if (diff < 86400) return `${Math.floor(diff / 3600)} ชั่วโมงที่แล้ว`;
+        return `${Math.floor(diff / 86400)} วันที่แล้ว`;
+    };
+
+    // Add notification item to history
+    const addNotiItem = useCallback((item) => {
+        setNotiItems(prev => [{ ...item, id: Date.now() + Math.random(), time: new Date(), read: false }, ...prev].slice(0, 20));
+        setUnreadCount(prev => prev + 1);
+        setBellShake(true);
+        setTimeout(() => setBellShake(false), 1000);
+    }, []);
+
+    const fetchNotifications = useCallback(async () => {
         if (!dbUser || dbUser.role !== 'admin') return;
 
         try {
             const [bookingsRes, reportsRes] = await Promise.all([
                 api.get('/bookings'),
-                api.get('/reports') // Assumes admin gets all reports
+                api.get('/reports')
             ]);
-
-            // console.log("Fetching notifications...", bookingsRes.data, reportsRes.data);
 
             const pendingBookings = bookingsRes.data.data.filter(b => b.status === 'pending' && !b.isImported).length;
             const pendingReports = reportsRes.data.data.filter(r => r.status === 'pending').length;
-
-            console.log("Pending Bookings (User):", pendingBookings);
-            console.log("Pending Reports:", pendingReports);
 
             setNotifications({
                 bookings: pendingBookings,
                 reports: pendingReports
             });
 
-            // Auto-sync seen counts if items were removed (approved/rejected)
-            // preventing "seen" from staying higher than actual pending
+            // Auto-sync seen counts if items were removed
             setSeenCounts(prev => {
                 const newSeen = { ...prev };
                 let changed = false;
@@ -87,28 +109,97 @@ const Navbar = ({ toggleSidebar }) => {
         } catch (error) {
             console.error("Failed to fetch notifications", error);
         }
-    };
+    }, [dbUser]);
 
-    // Poll notifications
+    // Fetch once on mount
     useEffect(() => {
         if (dbUser?.role === 'admin') {
             fetchNotifications();
-            const interval = setInterval(fetchNotifications, 10000); // Check every 10 seconds for faster feedback
-            return () => clearInterval(interval);
         }
-    }, [dbUser]);
+    }, [dbUser, fetchNotifications]);
+
+    // Socket.io real-time notification listener with toast pop-ups
+    useEffect(() => {
+        if (!socket || dbUser?.role !== 'admin') return;
+
+        const handleBookingCreated = (data) => {
+            fetchNotifications();
+            addNotiItem({
+                type: 'booking:created',
+                title: data?.topic || 'มีคำขอจองห้องใหม่',
+                message: 'กรุณาตรวจสอบและอนุมัติ',
+                link: '/approve'
+            });
+            toast.info(`📅 คำขอจองใหม่: ${data?.topic || 'รายการใหม่'}`);
+        };
+
+        const handleBookingUpdated = (data) => {
+            fetchNotifications();
+            addNotiItem({
+                type: 'booking:updated',
+                title: `อัพเดทการจอง`,
+                message: `สถานะ: ${data?.status || 'มีการเปลี่ยนแปลง'}`,
+                link: '/approve'
+            });
+        };
+
+        const handleBookingDeleted = () => {
+            fetchNotifications();
+            addNotiItem({
+                type: 'booking:deleted',
+                title: 'มีการยกเลิกการจอง',
+                message: 'การจองถูกลบออกจากระบบ',
+                link: '/approve'
+            });
+        };
+
+        const handleReportCreated = (data) => {
+            fetchNotifications();
+            addNotiItem({
+                type: 'report:created',
+                title: data?.topic || 'มีแจ้งซ่อมใหม่',
+                message: 'กรุณาตรวจสอบและดำเนินการ',
+                link: '/admin/reports'
+            });
+            toast.warning(`🔧 แจ้งซ่อมใหม่: ${data?.topic || 'รายการใหม่'}`);
+        };
+
+        const handleReportUpdated = () => {
+            fetchNotifications();
+            addNotiItem({
+                type: 'report:updated',
+                title: 'อัพเดทสถานะแจ้งซ่อม',
+                message: 'มีการเปลี่ยนแปลงสถานะ',
+                link: '/admin/reports'
+            });
+        };
+
+        socket.on('booking:created', handleBookingCreated);
+        socket.on('booking:updated', handleBookingUpdated);
+        socket.on('booking:deleted', handleBookingDeleted);
+        socket.on('booking:imported', () => fetchNotifications());
+        socket.on('report:created', handleReportCreated);
+        socket.on('report:updated', handleReportUpdated);
+
+        return () => {
+            socket.off('booking:created', handleBookingCreated);
+            socket.off('booking:updated', handleBookingUpdated);
+            socket.off('booking:deleted', handleBookingDeleted);
+            socket.off('booking:imported');
+            socket.off('report:created', handleReportCreated);
+            socket.off('report:updated', handleReportUpdated);
+        };
+    }, [socket, dbUser, fetchNotifications, addNotiItem, toast]);
 
     // Clear notifications when visiting pages
     useEffect(() => {
         if (dbUser?.role === 'admin') {
             if (location.pathname === '/approve') {
-                // If on approve page, mark all current pending bookings as seen
                 if (notifications.bookings > seenCounts.bookings) {
                     updateSeenCount('bookings', notifications.bookings);
                 }
             }
             if (location.pathname === '/admin/reports') {
-                // If on reports page, mark all current pending reports as seen
                 if (notifications.reports > seenCounts.reports) {
                     updateSeenCount('reports', notifications.reports);
                 }
@@ -133,10 +224,26 @@ const Navbar = ({ toggleSidebar }) => {
         };
     }, []);
 
+    // Mark all as read
+    const markAllRead = () => {
+        setNotiItems(prev => prev.map(item => ({ ...item, read: true })));
+        setUnreadCount(0);
+    };
+
     // Calculate badges
     const newBookings = Math.max(0, notifications.bookings - seenCounts.bookings);
     const newReports = Math.max(0, notifications.reports - seenCounts.reports);
     const totalNew = newBookings + newReports;
+    const displayBadge = totalNew + unreadCount;
+
+    // Notification item config
+    const notiConfig = {
+        'booking:created': { icon: <FaCalendarPlus />, gradient: 'from-emerald-500 to-teal-600', label: 'การจองใหม่' },
+        'booking:updated': { icon: <FaCheckCircle />, gradient: 'from-blue-500 to-indigo-600', label: 'อัพเดทการจอง' },
+        'booking:deleted': { icon: <FaTimesCircle />, gradient: 'from-gray-400 to-gray-500', label: 'ยกเลิกการจอง' },
+        'report:created': { icon: <FaExclamationTriangle />, gradient: 'from-red-500 to-rose-600', label: 'แจ้งซ่อม' },
+        'report:updated': { icon: <FaCheckCircle />, gradient: 'from-amber-500 to-orange-600', label: 'อัพเดทแจ้งซ่อม' }
+    };
 
     return (
         <nav className="bg-primary/95 backdrop-blur-md shadow-sm z-50 sticky top-0 h-14 transition-all duration-300">
@@ -169,85 +276,130 @@ const Navbar = ({ toggleSidebar }) => {
                                     }}
                                     className="relative p-2 text-white hover:bg-white/10 rounded-full transition-all duration-200 focus:outline-none"
                                 >
-                                    <FaBell className={`text-lg transition-transform duration-300 ${isNotiDropdownOpen ? 'scale-110' : ''}`} />
-                                    {totalNew > 0 && (
-                                        <span className="absolute top-0 right-0 w-5 h-5 bg-red-500 text-white text-[10px] font-bold flex items-center justify-center rounded-full border-2 border-primary shadow-sm animate-pulse-gentle">
-                                            {totalNew > 9 ? '9+' : totalNew}
+                                    <FaBell className={`text-lg transition-transform duration-300 ${bellShake ? 'animate-[bellRing_0.8s_ease-in-out]' : ''} ${isNotiDropdownOpen ? 'scale-110' : ''}`} />
+                                    {displayBadge > 0 && (
+                                        <span className="absolute -top-0.5 -right-0.5 w-5 h-5 bg-gradient-to-r from-red-500 to-rose-600 text-white text-[10px] font-bold flex items-center justify-center rounded-full border-2 border-primary shadow-lg animate-pulse">
+                                            {displayBadge > 9 ? '9+' : displayBadge}
                                         </span>
                                     )}
                                 </button>
 
-                                {/* Notification Dropdown */}
+                                {/* Notification Dropdown — Modern Design */}
                                 {isNotiDropdownOpen && (
-                                    <div className="absolute right-0 mt-3 w-72 bg-white rounded-xl shadow-xl border border-gray-100 py-2 animate-in fade-in slide-in-from-top-2 duration-200 overflow-hidden ring-1 ring-black/5 z-50">
-                                        <div className="px-4 py-2 border-b border-gray-50 flex justify-between items-center">
-                                            <h3 className="font-bold text-gray-800 text-sm">การแจ้งเตือน</h3>
-                                            {totalNew > 0 && (
-                                                <span className="bg-red-100 text-red-600 text-[10px] px-2 py-0.5 rounded-full font-bold">
-                                                    {totalNew} ใหม่
-                                                </span>
+                                    <div className="absolute right-0 mt-3 w-[360px] bg-white/95 backdrop-blur-xl rounded-2xl shadow-2xl border border-gray-100/80 overflow-hidden ring-1 ring-black/5 z-50 animate-scaleIn">
+                                        {/* Header */}
+                                        <div className="px-5 py-3.5 border-b border-gray-100 flex justify-between items-center bg-gradient-to-r from-gray-50 to-white">
+                                            <div className="flex items-center gap-2">
+                                                <h3 className="font-bold text-gray-800">การแจ้งเตือน</h3>
+                                                {displayBadge > 0 && (
+                                                    <span className="bg-gradient-to-r from-red-500 to-rose-600 text-white text-[10px] px-2 py-0.5 rounded-full font-bold shadow-sm">
+                                                        {displayBadge > 9 ? '9+' : displayBadge}
+                                                    </span>
+                                                )}
+                                            </div>
+                                            {unreadCount > 0 && (
+                                                <button
+                                                    onClick={markAllRead}
+                                                    className="text-[11px] text-primary hover:text-primary-dark font-semibold flex items-center gap-1 transition-colors"
+                                                >
+                                                    <FaCheck className="text-[8px]" /> อ่านทั้งหมด
+                                                </button>
                                             )}
                                         </div>
 
-                                        <div className="max-h-[300px] overflow-y-auto">
-                                            {notifications.bookings === 0 && notifications.reports === 0 ? (
-                                                <div className="p-8 text-center text-gray-400 flex flex-col items-center">
-                                                    <div className="w-12 h-12 bg-gray-50 rounded-full flex items-center justify-center mb-2">
-                                                        <FaExclamationTriangle className="text-gray-300" />
-                                                    </div>
-                                                    <p className="text-sm">ไม่มีรายการโต้ตอบ</p>
-                                                </div>
-                                            ) : (
-                                                <div className="p-1 space-y-1">
-                                                    {notifications.bookings > 0 && (
-                                                        <Link
-                                                            to="/approve"
-                                                            onClick={() => setIsNotiDropdownOpen(false)}
-                                                            className={`flex items-center gap-3 p-3 rounded-lg transition-colors group relative
-                                                                ${newBookings > 0 ? 'bg-orange-50 hover:bg-orange-100' : 'hover:bg-gray-50'}`}
-                                                        >
-                                                            <div className={`w-10 h-10 rounded-lg flex items-center justify-center flex-shrink-0 group-hover:scale-110 transition-transform
-                                                                ${newBookings > 0 ? 'bg-orange-200 text-orange-700' : 'bg-gray-100 text-gray-500'}`}>
-                                                                <FaBuilding />
-                                                            </div>
-                                                            <div className="flex-grow">
-                                                                <div className="flex justify-between items-center">
-                                                                    <p className={`text-sm font-bold ${newBookings > 0 ? 'text-gray-900' : 'text-gray-600'}`}>คำขอจองห้อง</p>
-                                                                    {newBookings > 0 && <span className="w-2 h-2 bg-red-500 rounded-full"></span>}
-                                                                </div>
-                                                                <p className={`text-xs ${newBookings > 0 ? 'text-orange-600 font-medium' : 'text-gray-500'}`}>
-                                                                    {newBookings > 0 ? `มี ${newBookings} รายการใหม่` : 'ไม่มีรายการใหม่'}
-                                                                    (รวม {notifications.bookings})
-                                                                </p>
-                                                            </div>
-                                                        </Link>
-                                                    )}
+                                        {/* Pending Summary Cards */}
+                                        {(notifications.bookings > 0 || notifications.reports > 0) && (
+                                            <div className="p-3 border-b border-gray-100 space-y-2">
+                                                {notifications.bookings > 0 && (
+                                                    <Link
+                                                        to="/approve"
+                                                        onClick={() => setIsNotiDropdownOpen(false)}
+                                                        className={`flex items-center gap-3 p-3 rounded-xl transition-all duration-200 group
+                                                            ${newBookings > 0 ? 'bg-gradient-to-r from-emerald-50 to-teal-50 hover:from-emerald-100 hover:to-teal-100 shadow-sm' : 'hover:bg-gray-50'}`}
+                                                    >
+                                                        <div className={`w-10 h-10 rounded-xl flex items-center justify-center flex-shrink-0 group-hover:scale-110 transition-transform shadow-sm
+                                                            ${newBookings > 0 ? 'bg-gradient-to-br from-emerald-500 to-teal-600 text-white' : 'bg-gray-100 text-gray-400'}`}>
+                                                            <FaCalendarPlus className="text-sm" />
+                                                        </div>
+                                                        <div className="flex-grow min-w-0">
+                                                            <p className={`text-sm font-bold ${newBookings > 0 ? 'text-gray-900' : 'text-gray-600'}`}>คำขอจองห้อง</p>
+                                                            <p className={`text-xs ${newBookings > 0 ? 'text-emerald-600 font-medium' : 'text-gray-400'}`}>
+                                                                {newBookings > 0 ? `🔔 ${newBookings} รายการใหม่` : 'ไม่มีรายการใหม่'}
+                                                                <span className="text-gray-400 ml-1">(รวม {notifications.bookings} รอดำเนินการ)</span>
+                                                            </p>
+                                                        </div>
+                                                        {newBookings > 0 && <span className="w-2.5 h-2.5 bg-emerald-500 rounded-full animate-pulse flex-shrink-0" />}
+                                                    </Link>
+                                                )}
 
-                                                    {notifications.reports > 0 && (
-                                                        <Link
-                                                            to="/admin/reports"
-                                                            onClick={() => setIsNotiDropdownOpen(false)}
-                                                            className={`flex items-center gap-3 p-3 rounded-lg transition-colors group relative
-                                                                ${newReports > 0 ? 'bg-red-50 hover:bg-red-100' : 'hover:bg-gray-50'}`}
-                                                        >
-                                                            <div className={`w-10 h-10 rounded-lg flex items-center justify-center flex-shrink-0 group-hover:scale-110 transition-transform
-                                                                ${newReports > 0 ? 'bg-red-200 text-red-700' : 'bg-gray-100 text-gray-500'}`}>
-                                                                <FaExclamationTriangle />
-                                                            </div>
-                                                            <div className="flex-grow">
-                                                                <div className="flex justify-between items-center">
-                                                                    <p className={`text-sm font-bold ${newReports > 0 ? 'text-gray-900' : 'text-gray-600'}`}>แจ้งซ่อม</p>
-                                                                    {newReports > 0 && <span className="w-2 h-2 bg-red-500 rounded-full"></span>}
+                                                {notifications.reports > 0 && (
+                                                    <Link
+                                                        to="/admin/reports"
+                                                        onClick={() => setIsNotiDropdownOpen(false)}
+                                                        className={`flex items-center gap-3 p-3 rounded-xl transition-all duration-200 group
+                                                            ${newReports > 0 ? 'bg-gradient-to-r from-red-50 to-rose-50 hover:from-red-100 hover:to-rose-100 shadow-sm' : 'hover:bg-gray-50'}`}
+                                                    >
+                                                        <div className={`w-10 h-10 rounded-xl flex items-center justify-center flex-shrink-0 group-hover:scale-110 transition-transform shadow-sm
+                                                            ${newReports > 0 ? 'bg-gradient-to-br from-red-500 to-rose-600 text-white' : 'bg-gray-100 text-gray-400'}`}>
+                                                            <FaExclamationTriangle className="text-sm" />
+                                                        </div>
+                                                        <div className="flex-grow min-w-0">
+                                                            <p className={`text-sm font-bold ${newReports > 0 ? 'text-gray-900' : 'text-gray-600'}`}>แจ้งซ่อม</p>
+                                                            <p className={`text-xs ${newReports > 0 ? 'text-red-600 font-medium' : 'text-gray-400'}`}>
+                                                                {newReports > 0 ? `🔔 ${newReports} รายการใหม่` : 'ไม่มีรายการใหม่'}
+                                                                <span className="text-gray-400 ml-1">(รวม {notifications.reports} รอดำเนินการ)</span>
+                                                            </p>
+                                                        </div>
+                                                        {newReports > 0 && <span className="w-2.5 h-2.5 bg-red-500 rounded-full animate-pulse flex-shrink-0" />}
+                                                    </Link>
+                                                )}
+                                            </div>
+                                        )}
+
+                                        {/* Recent Activity Feed */}
+                                        <div className="max-h-[320px] overflow-y-auto">
+                                            {notiItems.length > 0 ? (
+                                                <div className="p-2">
+                                                    <p className="text-[10px] font-bold text-gray-400 uppercase tracking-wider px-3 py-2">กิจกรรมล่าสุด</p>
+                                                    {notiItems.map((item, idx) => {
+                                                        const config = notiConfig[item.type] || notiConfig['booking:created'];
+                                                        return (
+                                                            <Link
+                                                                key={item.id}
+                                                                to={item.link}
+                                                                onClick={() => {
+                                                                    setIsNotiDropdownOpen(false);
+                                                                    setNotiItems(prev => prev.map(n => n.id === item.id ? { ...n, read: true } : n));
+                                                                    setUnreadCount(prev => item.read ? prev : Math.max(0, prev - 1));
+                                                                }}
+                                                                className={`flex items-start gap-3 p-3 rounded-xl transition-all duration-200 group mb-1
+                                                                    ${!item.read ? 'bg-blue-50/50 hover:bg-blue-50' : 'hover:bg-gray-50'}`}
+                                                                style={{ animationDelay: `${idx * 50}ms` }}
+                                                            >
+                                                                <div className={`w-8 h-8 rounded-lg bg-gradient-to-br ${config.gradient} flex items-center justify-center text-white text-xs flex-shrink-0 shadow-sm group-hover:scale-110 transition-transform mt-0.5`}>
+                                                                    {config.icon}
                                                                 </div>
-                                                                <p className={`text-xs ${newReports > 0 ? 'text-red-600 font-medium' : 'text-gray-500'}`}>
-                                                                    {newReports > 0 ? `มี ${newReports} รายการใหม่` : 'ไม่มีรายการใหม่'}
-                                                                    (รวม {notifications.reports})
-                                                                </p>
-                                                            </div>
-                                                        </Link>
-                                                    )}
+                                                                <div className="flex-1 min-w-0">
+                                                                    <div className="flex items-center gap-2">
+                                                                        <span className="text-[10px] font-bold text-gray-400 uppercase tracking-wider">{config.label}</span>
+                                                                        {!item.read && <span className="w-1.5 h-1.5 bg-blue-500 rounded-full" />}
+                                                                    </div>
+                                                                    <p className="text-sm font-semibold text-gray-800 truncate">{item.title}</p>
+                                                                    <p className="text-[11px] text-gray-400 mt-0.5">{getRelativeTime(item.time)}</p>
+                                                                </div>
+                                                            </Link>
+                                                        );
+                                                    })}
                                                 </div>
-                                            )}
+                                            ) : notifications.bookings === 0 && notifications.reports === 0 ? (
+                                                <div className="p-10 text-center flex flex-col items-center">
+                                                    <div className="w-16 h-16 rounded-2xl bg-gradient-to-br from-gray-100 to-gray-50 flex items-center justify-center mb-3">
+                                                        <FaBell className="text-gray-300 text-xl" />
+                                                    </div>
+                                                    <p className="text-sm font-semibold text-gray-400">ไม่มีการแจ้งเตือน</p>
+                                                    <p className="text-xs text-gray-300 mt-1">เมื่อมีคำขอจองหรือแจ้งซ่อมใหม่<br />จะแสดงที่นี่</p>
+                                                </div>
+                                            ) : null}
                                         </div>
                                     </div>
                                 )}

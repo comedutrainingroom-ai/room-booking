@@ -1,0 +1,56 @@
+{
+  "users": [
+    {
+      "_id": "69a7090541399d8c4349fd9d",
+      "email": "s6702041510288@email.kmutnb.ac.th",
+      "__v": 0,
+      "createdAt": "2026-03-03T16:15:01.873Z",
+      "isBanned": false,
+      "lastLogin": "2026-03-03T16:15:01.873Z",
+      "name": "PADJAPHON BOONCHOO",
+      "picture": "https://lh3.googleusercontent.com/a/ACg8ocJFemPW7FHfR6S6bB7ZnoOFE7MwddSTMWE6bdB8Tx9MM3u6Ladb=s96-c",
+      "role": "admin"
+    },
+    {
+      "_id": "69a70ea941399d8c4349fd9e",
+      "email": "s6702041510156@email.kmutnb.ac.th",
+      "__v": 0,
+      "createdAt": "2026-03-03T16:39:05.501Z",
+      "isBanned": false,
+      "lastLogin": "2026-03-03T16:39:05.501Z",
+      "name": "WANWISA PHANSAI",
+      "picture": "https://lh3.googleusercontent.com/a/ACg8ocLIN4gOFuT-m28oh-Bac_IN7oZBgvAjqDe_l513YDb3-C79LQ=s96-c",
+      "role": "admin"
+    },
+    {
+      "_id": "69a71b250db1e6cf6c93e921",
+      "email": "comedu.trainingroom@gmail.com",
+      "name": "Computer Education",
+      "role": "admin",
+      "createdAt": "2026-03-03T17:32:21.650Z",
+      "updatedAt": "2026-03-03T17:32:21.650Z",
+      "picture": "https://lh3.googleusercontent.com/a/ACg8ocLhkmvvzYiiC7MXVUVAm6vn6TEjTVfOOINk5eWkm-bhoJe2TQ=s96-c"
+    }
+  ],
+  "settings": [
+    {
+      "_id": "69a708e96a49b43b4068ae6b",
+      "systemName": "ระบบจองห้องประชุมออนไลน์",
+      "contactEmail": "admin@example.com",
+      "themeColor": "#16a34a",
+      "maxBookingDays": 30,
+      "maxBookingHours": 4,
+      "requireApproval": true,
+      "weekendBooking": false,
+      "maintenanceMode": false,
+      "openTime": "08:00",
+      "closeTime": "21:00",
+      "createdAt": "2026-03-03T16:14:33.604Z",
+      "updatedAt": "2026-03-03T17:37:10.887Z",
+      "__v": 0
+    }
+  ],
+  "reports": [],
+  "rooms": [],
+  "bookings": []
+}

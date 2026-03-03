@@ -188,23 +188,28 @@ const UserManagement = () => {
                                                         value={user.role}
                                                         onChange={(e) => handleRoleChange(user._id, e.target.value)}
                                                         disabled={isCurrentUser || actionLoading === user._id}
-                                                        className={`px-3 py-1.5 rounded-lg border text-sm font-medium ${user.role === 'admin'
-                                                                ? 'bg-purple-50 border-purple-200 text-purple-700'
-                                                                : 'bg-gray-50 border-gray-200 text-gray-700'
-                                                            } disabled:opacity-50 disabled:cursor-not-allowed`}
+                                                        className={`px-3 py-1.5 rounded-lg border text-sm font-semibold cursor-pointer
+                                                            appearance-none pr-8 bg-no-repeat bg-[length:12px] bg-[right_8px_center]
+                                                            ${user.role === 'admin'
+                                                                ? 'bg-gradient-to-r from-amber-50 to-orange-50 border-amber-300 text-amber-800 shadow-sm shadow-amber-100'
+                                                                : 'bg-gradient-to-r from-slate-50 to-gray-50 border-slate-300 text-slate-700 shadow-sm'
+                                                            } disabled:opacity-40 disabled:cursor-not-allowed transition-all duration-200 hover:shadow-md`}
+                                                        style={{ backgroundImage: `url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 20 20' fill='%236b7280'%3E%3Cpath fill-rule='evenodd' d='M5.293 7.293a1 1 0 011.414 0L10 10.586l3.293-3.293a1 1 0 111.414 1.414l-4 4a1 1 0 01-1.414 0l-4-4a1 1 0 010-1.414z'/%3E%3C/svg%3E")` }}
                                                     >
-                                                        <option value="student">👤 Student</option>
-                                                        <option value="admin">👑 Admin</option>
+                                                        <option value="student">นักศึกษา</option>
+                                                        <option value="admin">ผู้ดูแลระบบ</option>
                                                     </select>
                                                 </td>
                                                 <td className="px-4 py-4 whitespace-nowrap">
                                                     {user.isBanned ? (
-                                                        <span className="px-2 py-1 rounded-full text-xs font-bold bg-red-100 text-red-700 border border-red-200">
-                                                            🚫 ถูกแบน
+                                                        <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-md text-xs font-semibold bg-red-50 text-red-700 border border-red-200 ring-1 ring-red-100">
+                                                            <span className="w-1.5 h-1.5 rounded-full bg-red-500" />
+                                                            ถูกระงับ
                                                         </span>
                                                     ) : (
-                                                        <span className="px-2 py-1 rounded-full text-xs font-bold bg-green-100 text-green-700 border border-green-200">
-                                                            ✅ ปกติ
+                                                        <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-md text-xs font-semibold bg-emerald-50 text-emerald-700 border border-emerald-200 ring-1 ring-emerald-100">
+                                                            <span className="w-1.5 h-1.5 rounded-full bg-emerald-500" />
+                                                            ใช้งานปกติ
                                                         </span>
                                                     )}
                                                 </td>
@@ -213,33 +218,33 @@ const UserManagement = () => {
                                                 </td>
                                                 <td className="px-4 py-4 whitespace-nowrap text-center">
                                                     {!isCurrentUser && (
-                                                        <div className="flex gap-2 justify-center">
+                                                        <div className="flex gap-1.5 justify-center">
                                                             {user.isBanned ? (
                                                                 <button
                                                                     onClick={() => handleBanToggle(user._id, false)}
                                                                     disabled={actionLoading === user._id}
-                                                                    className="px-3 py-1.5 bg-green-500 text-white text-xs font-bold rounded-lg hover:bg-green-600 transition-colors flex items-center gap-1 disabled:opacity-50"
-                                                                    title="ปลดแบน"
+                                                                    className="px-3 py-1.5 border border-emerald-300 text-emerald-700 text-xs font-semibold rounded-lg hover:bg-emerald-50 transition-all duration-200 flex items-center gap-1.5 disabled:opacity-40"
+                                                                    title="ปลดระงับ"
                                                                 >
-                                                                    <FaCheck /> ปลดแบน
+                                                                    <FaCheck className="text-[10px]" /> ปลดระงับ
                                                                 </button>
                                                             ) : (
                                                                 <button
                                                                     onClick={() => handleBanToggle(user._id, true)}
                                                                     disabled={actionLoading === user._id}
-                                                                    className="px-3 py-1.5 bg-red-500 text-white text-xs font-bold rounded-lg hover:bg-red-600 transition-colors flex items-center gap-1 disabled:opacity-50"
-                                                                    title="แบน"
+                                                                    className="px-3 py-1.5 border border-red-300 text-red-600 text-xs font-semibold rounded-lg hover:bg-red-50 transition-all duration-200 flex items-center gap-1.5 disabled:opacity-40"
+                                                                    title="ระงับการใช้งาน"
                                                                 >
-                                                                    <FaBan /> แบน
+                                                                    <FaBan className="text-[10px]" /> ระงับ
                                                                 </button>
                                                             )}
                                                             <button
                                                                 onClick={() => setShowConfirm(user._id)}
                                                                 disabled={actionLoading === user._id}
-                                                                className="px-3 py-1.5 bg-gray-200 text-gray-600 text-xs font-bold rounded-lg hover:bg-gray-300 transition-colors flex items-center gap-1 disabled:opacity-50"
-                                                                title="ลบ"
+                                                                className="w-8 h-8 border border-gray-200 text-gray-400 rounded-lg hover:bg-red-50 hover:border-red-200 hover:text-red-500 transition-all duration-200 flex items-center justify-center disabled:opacity-40"
+                                                                title="ลบผู้ใช้"
                                                             >
-                                                                <FaTrash />
+                                                                <FaTrash className="text-[10px]" />
                                                             </button>
                                                         </div>
                                                     )}

@@ -36,10 +36,7 @@ const Profile = () => {
         e.preventDefault();
         setLoading(true);
         try {
-            await api.put('/auth/profile', {
-                email: currentUser.email,
-                ...formData
-            });
+            await api.put('/auth/profile', formData);
 
             // Refresh local user data
             await syncUserWithBackend(currentUser);

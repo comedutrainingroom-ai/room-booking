@@ -1,4 +1,6 @@
 const User = require('../models/User');
+const admin = require('../config/firebaseAdmin');
+const { logAction } = require('../services/auditService');
 
 // Allowed email domains for KMUTNB
 const ALLOWED_DOMAINS = (process.env.ALLOWED_DOMAINS || 'kmutnb.ac.th,email.kmutnb.ac.th').split(',');
@@ -13,10 +15,28 @@ const isAllowedEmail = (email) => {
 // @access  Public
 const googleLogin = async (req, res) => {
     try {
-        let { email, name, picture } = req.body;
+        const { idToken } = req.body;
+
+        // Verify Firebase ID Token (server-side verification)
+        if (!idToken) {
+            return res.status(400).json({ success: false, error: 'ID Token is required' });
+        }
+
+        let decodedToken;
+        try {
+            decodedToken = await admin.auth().verifyIdToken(idToken);
+        } catch (tokenError) {
+            console.error('Token verification failed:', tokenError.message);
+            return res.status(401).json({ success: false, error: 'Invalid or expired token' });
+        }
+
+        // Extract verified user info from token
+        let email = decodedToken.email;
+        const name = decodedToken.name || decodedToken.display_name || '';
+        const picture = decodedToken.picture || '';
 
         if (!email) {
-            return res.status(400).json({ success: false, error: 'Email is required' });
+            return res.status(400).json({ success: false, error: 'Email not found in token' });
         }
 
         // Normalize email to lowercase
@@ -59,6 +79,9 @@ const googleLogin = async (req, res) => {
             data: user
         });
 
+        // Audit log
+        logAction({ action: 'user:login', performedBy: user._id, targetType: 'user', targetId: user._id, details: `เข้าสู่ระบบ: ${email}`, req });
+
     } catch (error) {
         console.error('Auth Error:', error);
         res.status(500).json({ success: false, error: error.message });
@@ -90,23 +113,20 @@ const getCurrentUser = async (req, res) => {
 // @access  Public (Protected by frontend usually)
 const updateProfile = async (req, res) => {
     try {
-        const { email, name, phone, studentId, faculty } = req.body;
+        const { name, phone, studentId, faculty } = req.body;
 
-        if (!email) {
-            return res.status(400).json({ success: false, error: 'Email is required' });
-        }
-
-        const user = await User.findOne({ email: email.toLowerCase().trim() });
+        // Use authenticated user from middleware (not from request body)
+        const user = await User.findById(req.user._id);
 
         if (!user) {
             return res.status(404).json({ success: false, error: 'User not found' });
         }
 
-        // Update fields
-        if (name) user.name = name;
-        if (phone) user.phone = phone;
-        if (studentId) user.studentId = studentId;
-        if (faculty) user.faculty = faculty;
+        // Update fields (only allow specific fields)
+        if (name !== undefined) user.name = name;
+        if (phone !== undefined) user.phone = phone;
+        if (studentId !== undefined) user.studentId = studentId;
+        if (faculty !== undefined) user.faculty = faculty;
 
         await user.save();
 
@@ -134,7 +154,11 @@ const verifyAdminPin = async (req, res) => {
         }
 
         // Compare with server-side PIN
-        const adminPin = process.env.ADMIN_PIN || '22885693';
+        const adminPin = process.env.ADMIN_PIN;
+        if (!adminPin) {
+            console.error('ADMIN_PIN environment variable is not set!');
+            return res.status(500).json({ success: false, error: 'Server configuration error' });
+        }
         if (pin === adminPin) {
             return res.status(200).json({ success: true, message: 'PIN verified' });
         } else {
