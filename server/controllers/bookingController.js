@@ -1,4 +1,5 @@
 const Booking = require('../models/Booking');
+const Setting = require('../models/Setting');
 const { sendBookingCreated, sendBookingApproved, sendBookingModified, sendBookingReminder, sendBookingCancelled } = require('../services/emailService');
 const { checkRoomAvailability, validateBookingTime, isUrgentBooking } = require('../services/bookingService');
 const { logAction } = require('../services/auditService');
@@ -58,6 +59,62 @@ const createBooking = async (req, res) => {
         const timeValidation = validateBookingTime(startTime);
         if (!timeValidation.valid) {
             return res.status(400).json({ success: false, error: timeValidation.error });
+        }
+
+        // --- Enforce system settings ---
+        const settings = await Setting.findOne();
+        if (settings) {
+            const start = new Date(startTime);
+            const end = new Date(endTime);
+
+            // 1. Check maxBookingHours
+            const durationHours = (end - start) / (1000 * 60 * 60);
+            if (settings.maxBookingHours && durationHours > settings.maxBookingHours) {
+                return res.status(400).json({
+                    success: false,
+                    error: `ไม่สามารถจองเกิน ${settings.maxBookingHours} ชั่วโมงต่อครั้ง (คุณเลือก ${durationHours} ชั่วโมง)`
+                });
+            }
+
+            // 2. Check maxBookingDays (advance booking limit)
+            if (settings.maxBookingDays) {
+                const now = new Date();
+                const diffDays = (start - now) / (1000 * 60 * 60 * 24);
+                if (diffDays > settings.maxBookingDays) {
+                    return res.status(400).json({
+                        success: false,
+                        error: `ไม่สามารถจองล่วงหน้าเกิน ${settings.maxBookingDays} วัน`
+                    });
+                }
+            }
+
+            // 3. Check weekendBooking
+            if (!settings.weekendBooking) {
+                const dayOfWeek = start.getDay(); // 0=Sun, 6=Sat
+                if (dayOfWeek === 0 || dayOfWeek === 6) {
+                    return res.status(400).json({
+                        success: false,
+                        error: 'ไม่อนุญาตให้จองในวันเสาร์-อาทิตย์'
+                    });
+                }
+            }
+
+            // 4. Check openTime/closeTime
+            if (settings.openTime && settings.closeTime) {
+                const [openH, openM] = settings.openTime.split(':').map(Number);
+                const [closeH, closeM] = settings.closeTime.split(':').map(Number);
+                const startMinutes = start.getHours() * 60 + start.getMinutes();
+                const endMinutes = end.getHours() * 60 + end.getMinutes();
+                const openMinutes = openH * 60 + (openM || 0);
+                const closeMinutes = closeH * 60 + (closeM || 0);
+
+                if (startMinutes < openMinutes || endMinutes > closeMinutes) {
+                    return res.status(400).json({
+                        success: false,
+                        error: `สามารถจองได้เฉพาะช่วงเวลา ${settings.openTime} - ${settings.closeTime} เท่านั้น`
+                    });
+                }
+            }
         }
 
         // Check for availability
@@ -144,6 +201,50 @@ const updateBooking = async (req, res) => {
                 }
             }
 
+            // --- Enforce system settings on time modification ---
+            const settings = await Setting.findOne();
+            if (settings) {
+                const start = new Date(newStartTime);
+                const end = new Date(newEndTime);
+
+                // Check maxBookingHours
+                const durationHours = (end - start) / (1000 * 60 * 60);
+                if (settings.maxBookingHours && durationHours > settings.maxBookingHours) {
+                    return res.status(400).json({
+                        success: false,
+                        error: `ไม่สามารถจองเกิน ${settings.maxBookingHours} ชั่วโมงต่อครั้ง (เลือก ${durationHours} ชั่วโมง)`
+                    });
+                }
+
+                // Check weekendBooking
+                if (!settings.weekendBooking) {
+                    const dayOfWeek = start.getDay();
+                    if (dayOfWeek === 0 || dayOfWeek === 6) {
+                        return res.status(400).json({
+                            success: false,
+                            error: 'ไม่อนุญาตให้จองในวันเสาร์-อาทิตย์'
+                        });
+                    }
+                }
+
+                // Check openTime/closeTime
+                if (settings.openTime && settings.closeTime) {
+                    const [openH, openM] = settings.openTime.split(':').map(Number);
+                    const [closeH, closeM] = settings.closeTime.split(':').map(Number);
+                    const startMinutes = start.getHours() * 60 + start.getMinutes();
+                    const endMinutes = end.getHours() * 60 + end.getMinutes();
+                    const openMinutes = openH * 60 + (openM || 0);
+                    const closeMinutes = closeH * 60 + (closeM || 0);
+
+                    if (startMinutes < openMinutes || endMinutes > closeMinutes) {
+                        return res.status(400).json({
+                            success: false,
+                            error: `สามารถจองได้เฉพาะช่วงเวลา ${settings.openTime} - ${settings.closeTime} เท่านั้น`
+                        });
+                    }
+                }
+            }
+
             // Check availability (exclude current booking)
             const isAvailable = await checkRoomAvailability(
                 req.body.room || originalBooking.room,
@@ -200,7 +301,7 @@ const updateBooking = async (req, res) => {
 
 // @desc    Delete a booking
 // @route   DELETE /api/bookings/:id
-// @access  Public
+// @access  Private/Admin
 const deleteBooking = async (req, res) => {
     try {
         const booking = await Booking.findById(req.params.id);

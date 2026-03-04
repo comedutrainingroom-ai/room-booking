@@ -70,7 +70,7 @@ const Profile = () => {
                     <span className="text-sm text-gray-500">{currentUser?.email}</span>
                     <span className={`mt-2 px-3 py-1 rounded-full text-xs font-bold uppercase tracking-wider
                         ${dbUser?.role === 'admin' ? 'bg-yellow-100 text-yellow-700' : 'bg-green-100 text-green-700'}`}>
-                        {dbUser?.role === 'admin' ? '👑 Administrator' : '🎓 Student'}
+                        {dbUser?.role === 'admin' ? '👑 ผู้ดูแลระบบ' : '🎓 นักศึกษา'}
                     </span>
                 </div>
 

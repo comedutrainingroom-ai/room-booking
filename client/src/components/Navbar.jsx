@@ -429,7 +429,7 @@ const Navbar = ({ toggleSidebar }) => {
                                                 ${dbUser?.role === 'admin'
                                                     ? 'bg-yellow-400 text-yellow-900 shadow-[0_0_10px_rgba(250,204,21,0.4)] border border-yellow-300'
                                                     : 'bg-white/20 text-white/90 border border-white/10'}`}>
-                                                {dbUser?.role === 'admin' ? '👑 Admin' : '🎓 Student'}
+                                                {dbUser?.role === 'admin' ? '👑 ผู้ดูแลระบบ' : '🎓 นักศึกษา'}
                                             </span>
                                         </div>
                                     </div>

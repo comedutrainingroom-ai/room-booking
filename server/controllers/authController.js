@@ -90,13 +90,11 @@ const googleLogin = async (req, res) => {
 
 // @desc    Get current user info
 // @route   GET /api/auth/me
-// @access  Public (Protected by frontend usually)
+// @access  Private (Protected by auth middleware)
 const getCurrentUser = async (req, res) => {
     try {
-        const { email } = req.query;
-        if (!email) return res.status(400).json({ success: false, error: 'Email required' });
-
-        const user = await User.findOne({ email: email.toLowerCase().trim() });
+        // Use authenticated user from middleware
+        const user = req.user;
 
         if (!user) {
             return res.status(404).json({ success: false, error: 'User not found' });

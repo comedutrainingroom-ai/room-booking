@@ -1,10 +1,10 @@
 import { useState, useEffect, useRef, useCallback, useMemo } from 'react';
+import { useNavigate } from 'react-router-dom';
 import FullCalendar from '@fullcalendar/react';
 import dayGridPlugin from '@fullcalendar/daygrid';
 import timeGridPlugin from '@fullcalendar/timegrid';
 import interactionPlugin from '@fullcalendar/interaction';
 import listPlugin from '@fullcalendar/list';
-import BookingModal from '../components/BookingModal';
 import { useAuth } from '../contexts/AuthContext';
 import { useSettings } from '../contexts/SettingsContext';
 import { useToast } from '../contexts/ToastContext';
@@ -96,10 +96,7 @@ const Calendar = () => {
     const { currentUser, isAdmin } = useAuth();
     const { settings } = useSettings();
     const toast = useToast();
-
-    // Modal State
-    const [isModalOpen, setIsModalOpen] = useState(false);
-    const [selectedDate, setSelectedDate] = useState(null);
+    const navigate = useNavigate();
 
     // Event Detail Modal State
     const [selectedEvent, setSelectedEvent] = useState(null);
@@ -279,8 +276,8 @@ const Calendar = () => {
             return;
         }
 
-        setSelectedDate(arg.dateStr);
-        setIsModalOpen(true);
+        // Navigate to room selection page
+        navigate('/rooms');
     };
 
     const handleEventClick = (arg) => {
@@ -329,10 +326,7 @@ const Calendar = () => {
         }
     };
 
-    const handleBookingSuccess = () => {
-        toast.success('ส่งคำขอจองเรียบร้อยแล้ว');
-        fetchBookings();
-    };
+
 
     const formatTime = (date) => {
         return new Date(date).toLocaleTimeString('th-TH', { hour: '2-digit', minute: '2-digit' });
@@ -407,14 +401,7 @@ const Calendar = () => {
                 />
             </div>
 
-            <BookingModal
-                isOpen={isModalOpen}
-                onClose={() => setIsModalOpen(false)}
-                selectedDate={selectedDate}
-                onSuccess={handleBookingSuccess}
-                user={currentUser}
-                settings={settings}
-            />
+
 
             {/* Import Modal */}
             {isImportModalOpen && (

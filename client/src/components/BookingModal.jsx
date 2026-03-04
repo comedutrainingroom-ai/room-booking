@@ -54,11 +54,24 @@ const BookingModal = ({ room, onClose, step, setStep, toast, initialData }) => {
             return;
         }
 
+        // Validate duration against maxBookingHours
+        const startDateTime = new Date(`${formData.date}T${formData.startTime}`);
+        const endDateTime = new Date(`${formData.date}T${formData.endTime}`);
+
+        if (endDateTime <= startDateTime) {
+            toast.error('เวลาสิ้นสุดต้องมากกว่าเวลาเริ่มต้น');
+            return;
+        }
+
+        const durationHours = (endDateTime - startDateTime) / (1000 * 60 * 60);
+        const maxHours = settings?.maxBookingHours;
+        if (maxHours && durationHours > maxHours) {
+            toast.error(`ไม่สามารถจองเกิน ${maxHours} ชั่วโมงต่อครั้ง (คุณเลือก ${durationHours} ชั่วโมง)`);
+            return;
+        }
+
         setSubmitting(true);
         try {
-            const startDateTime = new Date(`${formData.date}T${formData.startTime}`);
-            const endDateTime = new Date(`${formData.date}T${formData.endTime}`);
-
             await api.post('/bookings', {
                 room: room._id,
                 startTime: startDateTime.toISOString(),

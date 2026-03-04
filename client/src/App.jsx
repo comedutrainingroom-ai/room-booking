@@ -25,6 +25,7 @@ const ReportIssue = lazy(() => import('./pages/ReportIssue'));
 const AdminReports = lazy(() => import('./pages/AdminReports'));
 const RoomRules = lazy(() => import('./pages/RoomRules'));
 const UserManagement = lazy(() => import('./pages/UserManagement'));
+const UserGuide = lazy(() => import('./pages/UserGuide'));
 
 const LoadingFallback = () => (
   <div className="flex items-center justify-center min-h-screen">
@@ -66,6 +67,7 @@ function App() {
                     <Route path="/profile" element={<ProtectedRoute><Layout><Profile /></Layout></ProtectedRoute>} />
                     <Route path="/report-issue" element={<ProtectedRoute><Layout><ReportIssue /></Layout></ProtectedRoute>} />
                     <Route path="/room-rules" element={<ProtectedRoute><Layout><RoomRules /></Layout></ProtectedRoute>} />
+                    <Route path="/guide" element={<ProtectedRoute><Layout><UserGuide /></Layout></ProtectedRoute>} />
 
                     {/* Admin Routes */}
                     <Route path="/approve" element={<ProtectedRoute><Layout><AdminGuard><AdminApprove /></AdminGuard></Layout></ProtectedRoute>} />

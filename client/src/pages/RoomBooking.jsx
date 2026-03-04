@@ -141,6 +141,16 @@ const RoomBooking = () => {
                 return;
             }
 
+            // Check maxBookingHours from settings
+            const selectedHours = endIdx - startIdx + 1;
+            const maxHours = settings?.maxBookingHours;
+            if (maxHours && selectedHours > maxHours) {
+                toast.error(`ไม่สามารถจองเกิน ${maxHours} ชั่วโมงต่อครั้ง (คุณเลือก ${selectedHours} ชั่วโมง)`);
+                setSelectionStart(null);
+                setSelectionEnd(null);
+                return;
+            }
+
             const dateStr = toLocalISOString(selectedDate);
             setInitialBookingData({
                 date: dateStr,

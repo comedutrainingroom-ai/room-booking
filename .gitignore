@@ -1,0 +1,35 @@
+# Dependencies
+node_modules/
+
+# Environment variables (IMPORTANT: contains secrets!)
+.env
+.env.local
+.env.*.local
+
+# Firebase service account key
+server/config/serviceAccountKey.json
+
+# Uploads (room images - use export/import scripts instead)
+server/uploads/
+
+# Backup data
+server/backup/
+
+# Build output
+client/dist/
+client/build/
+
+# OS files
+.DS_Store
+Thumbs.db
+
+# IDE
+.vscode/
+.idea/
+
+# Logs
+*.log
+npm-debug.log*
+
+# Misc
+.gemini/

@@ -21,8 +21,9 @@ const History = () => {
 
     const fetchMyBookings = async () => {
         try {
-            // Optimization: Filter at server side instead of fetching all
-            const res = await api.get(`/bookings?email=${currentUser.email}`);
+            // Admin sees all bookings, students see only their own
+            const url = isAdmin ? '/bookings' : `/bookings?email=${currentUser.email}`;
+            const res = await api.get(url);
             const myBookings = res.data.data;
 
             // Sort by createdAt desc (newest first)
@@ -91,7 +92,7 @@ const History = () => {
                             <span className="bg-primary/10 p-3 rounded-2xl text-primary"><FaHistory /></span>
                             ประวัติการจอง
                         </h1>
-                        <p className="text-gray-500 mt-2 ml-1">รายการจองห้องทั้งหมดของคุณ</p>
+                        <p className="text-gray-500 mt-2 ml-1">{isAdmin ? 'รายการจองห้องทั้งหมดในระบบ' : 'รายการจองห้องทั้งหมดของคุณ'}</p>
                     </div>
 
                     {/* View Mode Toggle */}

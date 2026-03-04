@@ -129,7 +129,7 @@ const UserManagement = () => {
                 </div>
                 <div className="bg-white rounded-xl p-4 border border-gray-100 shadow-sm">
                     <div className="text-2xl font-bold text-primary">{stats.admins}</div>
-                    <div className="text-sm text-gray-500">Admin</div>
+                    <div className="text-sm text-gray-500">ผู้ดูแลระบบ</div>
                 </div>
                 <div className="bg-white rounded-xl p-4 border border-gray-100 shadow-sm">
                     <div className="text-2xl font-bold text-red-500">{stats.banned}</div>
@@ -149,7 +149,7 @@ const UserManagement = () => {
                                 <tr>
                                     <th className="px-4 py-4 text-xs font-bold text-gray-500 uppercase tracking-wider">สมาชิก</th>
                                     <th className="px-4 py-4 text-xs font-bold text-gray-500 uppercase tracking-wider">รหัส/อีเมล</th>
-                                    <th className="px-4 py-4 text-xs font-bold text-gray-500 uppercase tracking-wider">Role</th>
+                                    <th className="px-4 py-4 text-xs font-bold text-gray-500 uppercase tracking-wider">บทบาท</th>
                                     <th className="px-4 py-4 text-xs font-bold text-gray-500 uppercase tracking-wider">สถานะ</th>
                                     <th className="px-4 py-4 text-xs font-bold text-gray-500 uppercase tracking-wider">เข้าล่าสุด</th>
                                     <th className="px-4 py-4 text-xs font-bold text-gray-500 uppercase tracking-wider text-center">จัดการ</th>

@@ -1,5 +1,5 @@
 import { Link, useLocation } from 'react-router-dom';
-import { FaCalendarAlt, FaClipboardCheck, FaHistory, FaChartLine, FaCog, FaBuilding, FaExclamationTriangle, FaTools, FaBook, FaDoorOpen, FaUsers } from 'react-icons/fa';
+import { FaCalendarAlt, FaClipboardCheck, FaHistory, FaChartLine, FaCog, FaBuilding, FaExclamationTriangle, FaTools, FaBook, FaDoorOpen, FaUsers, FaQuestionCircle } from 'react-icons/fa';
 
 import { useAuth } from '../contexts/AuthContext';
 
@@ -17,6 +17,7 @@ const Sidebar = ({ isOpen }) => {
         { path: '/history', name: 'ประวัติการจอง', icon: <FaHistory /> },
         { path: '/room-rules', name: 'กฎระเบียบการใช้ห้อง', icon: <FaBook /> },
         { path: '/report-issue', name: 'แจ้งปัญหา', icon: <FaExclamationTriangle /> },
+        { path: '/guide', name: 'คู่มือการใช้งาน', icon: <FaQuestionCircle /> },
     ];
 
     const adminItems = [
