@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import { useAuth } from '../contexts/AuthContext';
 import api from '../services/api';
 import { FaUser, FaIdCard, FaPhone, FaUniversity, FaSave } from 'react-icons/fa';
@@ -27,12 +27,12 @@ const Profile = () => {
         }
     }, [dbUser]);
 
-    const handleChange = (e) => {
+    const handleChange = useCallback((e) => {
         setFormData({ ...formData, [e.target.name]: e.target.value });
         setSuccess(false);
-    };
+    }, []);
 
-    const handleSubmit = async (e) => {
+    const handleSubmit = useCallback(async (e) => {
         e.preventDefault();
         setLoading(true);
         try {
@@ -48,19 +48,19 @@ const Profile = () => {
             toast.error('เกิดข้อผิดพลาดในการบันทึกข้อมูล');
         }
         setLoading(false);
-    };
+    }, [formData, currentUser, syncUserWithBackend, toast]);
 
     return (
-        <div className="w-full h-full px-4 py-8">
-            <h1 className="text-3xl font-bold text-gray-800 mb-2">ข้อมูลส่วนตัว</h1>
-            <p className="text-gray-500 mb-8">จัดการข้อมูลของคุณเพื่อให้ผู้ดูแลระบบติดต่อได้สะดวก</p>
+        <div className="w-full h-full px-0 sm:px-4 py-6 sm:py-8">
+            <h1 className="text-2xl md:text-3xl font-bold text-gray-800 mb-1 md:mb-2">ข้อมูลส่วนตัว</h1>
+            <p className="text-gray-500 text-sm md:text-base mb-6 md:mb-8">จัดการข้อมูลของคุณเพื่อให้ผู้ดูแลระบบติดต่อได้สะดวก</p>
 
             <div className="bg-white rounded-2xl shadow-sm border border-gray-100 overflow-hidden">
-                <div className="bg-green-50/50 p-6 flex flex-col items-center border-b border-gray-100">
+                <div className="bg-green-50/50 p-4 md:p-6 flex flex-col items-center border-b border-gray-100">
                     <img
                         src={currentUser?.photoURL || dbUser?.picture}
                         alt="Profile"
-                        className="w-24 h-24 rounded-full border-4 border-white shadow-md object-cover mb-3"
+                        className="w-20 h-20 md:w-24 md:h-24 rounded-full border-4 border-white shadow-md object-cover mb-3"
                         onError={(e) => {
                             e.target.onerror = null;
                             e.target.src = `https://ui-avatars.com/api/?name=${currentUser?.displayName}&background=random`;
@@ -74,7 +74,7 @@ const Profile = () => {
                     </span>
                 </div>
 
-                <form onSubmit={handleSubmit} className="p-8 space-y-6">
+                <form onSubmit={handleSubmit} className="p-4 sm:p-6 md:p-8 space-y-5 md:space-y-6">
                     {/* Name */}
                     <div>
                         <label className="block text-sm font-medium text-gray-700 mb-2">ชื่อ - นามสกุล</label>

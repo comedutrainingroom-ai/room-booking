@@ -1,14 +1,83 @@
-import { useState, useCallback } from 'react';
+import { useState, useCallback, useEffect } from 'react';
+import { useLocation } from 'react-router-dom';
 import Navbar from './Navbar';
 import Footer from './Footer';
 import Sidebar from './Sidebar';
 import LogoWatermark from './LogoWatermark';
 
 const Layout = ({ children }) => {
-    const [isSidebarOpen, setIsSidebarOpen] = useState(true);
+    const [isSidebarOpen, setIsSidebarOpen] = useState(() => {
+        // Default closed on mobile, open on desktop
+        return typeof window !== 'undefined' ? window.innerWidth >= 768 : true;
+    });
+    const location = useLocation();
 
     const toggleSidebar = useCallback(() => {
         setIsSidebarOpen(prev => !prev);
+    }, []);
+
+    // Auto-close sidebar on mobile when route changes
+    useEffect(() => {
+        if (window.innerWidth < 768) {
+            setIsSidebarOpen(false);
+        }
+    }, [location.pathname]);
+
+    // Listen for window resize to auto-close sidebar when going mobile
+    useEffect(() => {
+        const mq = window.matchMedia('(min-width: 768px)');
+        const handleChange = (e) => {
+            if (!e.matches) {
+                setIsSidebarOpen(false);
+            }
+        };
+        mq.addEventListener('change', handleChange);
+        return () => mq.removeEventListener('change', handleChange);
+    }, []);
+
+    // Global listener: Auto-close sidebar when ANY modal is opened
+    // We detect modals by their common overlay classes
+    useEffect(() => {
+        const observer = new MutationObserver((mutations) => {
+            let shouldCloseSidebar = false;
+
+            for (let m of mutations) {
+                if (m.addedNodes.length) {
+                    m.addedNodes.forEach(node => {
+                        if (node.nodeType === 1 && typeof node.className === 'string') {
+                            const cn = node.className;
+                            // Check for standard modal overlay classes
+                            if (cn.includes('fixed') && cn.includes('inset-0') && 
+                                (cn.includes('z-50') || cn.includes('z-[100]') || cn.includes('z-[110]') || cn.includes('z-[120]'))) {
+                                shouldCloseSidebar = true;
+                            }
+                            
+                            // Also check inside the added node
+                            if (node.querySelectorAll) {
+                                const modals = node.querySelectorAll('[class*="fixed"][class*="inset-0"][class*="z-"]');
+                                modals.forEach(modal => {
+                                    const mcn = modal.className;
+                                    if (typeof mcn === 'string' && 
+                                        !mcn.includes('z-20') && // Ignore sidebar backdrop
+                                        !mcn.includes('-z-10') && // Ignore shapes
+                                        !mcn.includes('pointer-events-none') // Ignore watermark
+                                    ) {
+                                        shouldCloseSidebar = true;
+                                    }
+                                });
+                            }
+                        }
+                    });
+                }
+            }
+
+            if (shouldCloseSidebar) {
+                setIsSidebarOpen(false);
+            }
+        });
+
+        observer.observe(document.body, { childList: true, subtree: true });
+        return () => observer.disconnect();
     }, []);
 
     return (
@@ -16,31 +85,29 @@ const Layout = ({ children }) => {
             <Navbar toggleSidebar={toggleSidebar} />
 
             <div className="flex flex-grow relative">
-                {/* Sidebar: Fixed/Absolute on mobile (overlay), Sticky on desktop */}
+                {/* Sidebar: Fixed on mobile (overlay), Sticky on desktop */}
                 <div className={`
-                    absolute md:sticky md:top-14 z-20 
-                    h-full md:h-[calc(100vh-3.5rem)]
-                    transition-smooth overflow-hidden
-                    ${isSidebarOpen ? 'translate-x-0 w-64' : '-translate-x-full md:translate-x-0 md:w-0'}
-                    md:translate-x-0
-                    ${isSidebarOpen ? 'md:w-64' : 'md:w-0'}
-                    border-r border-gray-100 bg-white
+                    fixed md:sticky top-14 z-30 
+                    h-[calc(100vh-3.5rem)]
+                    transition-all duration-500 ease-[cubic-bezier(0.16,1,0.3,1)]
+                    overflow-hidden bg-white
+                    ${isSidebarOpen 
+                        ? 'translate-x-0 w-64 shadow-2xl md:shadow-none bg-white/95 backdrop-blur-md border-r border-gray-100/50 md:min-w-[16rem] opacity-100' 
+                        : '-translate-x-full w-64 md:translate-x-0 md:w-0 md:min-w-0 border-none opacity-0'}
                 `}>
-                    <div className="h-full overflow-y-auto custom-scrollbar">
-                        <Sidebar isOpen={true} />
+                    <div className="h-full w-64 overflow-y-auto custom-scrollbar">
+                        <Sidebar isOpen={isSidebarOpen} />
                     </div>
                 </div>
 
                 {/* Overlay for mobile when sidebar is open */}
-                {isSidebarOpen && (
-                    <div
-                        className="fixed inset-0 bg-black/50 z-10 md:hidden transition-opacity"
-                        onClick={toggleSidebar}
-                        style={{ top: '3.5rem' }} // Below navbar
-                    ></div>
-                )}
+                <div
+                    className={`fixed inset-0 bg-black/40 backdrop-blur-[2px] z-20 md:hidden transition-all duration-500 ease-[cubic-bezier(0.16,1,0.3,1)] ${isSidebarOpen ? 'opacity-100 pointer-events-auto' : 'opacity-0 pointer-events-none'}`}
+                    onClick={toggleSidebar}
+                    style={{ top: '3.5rem' }} // Below navbar
+                ></div>
 
-                <main className={`flex-grow bg-gray-50 transition-smooth w-full relative flex flex-col overflow-hidden`}>
+                <main className={`flex-grow bg-gray-50 transition-all duration-500 ease-[cubic-bezier(0.16,1,0.3,1)] w-full relative flex flex-col overflow-hidden`}>
                     {/* Logo Watermark - conditional based on route */}
                     <LogoWatermark />
 

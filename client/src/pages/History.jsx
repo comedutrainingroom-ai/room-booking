@@ -84,28 +84,28 @@ const History = () => {
 
     return (
         <div className="p-4 md:p-8 w-full h-full animate-fade-in">
-            <div className="flex flex-col gap-4 mb-8">
+            <div className="flex flex-col gap-3 md:gap-4 mb-4 md:mb-8">
                 {/* Header Row */}
-                <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
+                <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-3 md:gap-4">
                     <div>
-                        <h1 className="text-3xl font-bold text-gray-800 flex items-center gap-3">
-                            <span className="bg-primary/10 p-3 rounded-2xl text-primary"><FaHistory /></span>
+                        <h1 className="text-xl md:text-3xl font-bold text-gray-800 flex items-center gap-2 md:gap-3">
+                            <span className="bg-primary/10 p-2 md:p-3 rounded-xl md:rounded-2xl text-primary text-sm md:text-base"><FaHistory /></span>
                             ประวัติการจอง
                         </h1>
-                        <p className="text-gray-500 mt-2 ml-1">{isAdmin ? 'รายการจองห้องทั้งหมดในระบบ' : 'รายการจองห้องทั้งหมดของคุณ'}</p>
+                        <p className="text-gray-500 mt-1 md:mt-2 ml-1 text-xs md:text-base">{isAdmin ? 'รายการจองห้องทั้งหมดในระบบ' : 'รายการจองห้องทั้งหมดของคุณ'}</p>
                     </div>
 
                     {/* View Mode Toggle */}
                     <div className="flex items-center gap-2 bg-white p-1 rounded-xl shadow-sm border border-gray-100">
                         <button
                             onClick={() => setViewMode('timeline')}
-                            className={`flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-medium transition-all ${viewMode === 'timeline' ? 'bg-primary text-white shadow-md' : 'text-gray-500 hover:bg-gray-50'}`}
+                            className={`flex items-center gap-1.5 md:gap-2 px-3 md:px-4 py-1.5 md:py-2 rounded-lg text-xs md:text-sm font-medium transition-all ${viewMode === 'timeline' ? 'bg-primary text-white shadow-md' : 'text-gray-500 hover:bg-gray-50'}`}
                         >
                             <FaStream /> ไทม์ไลน์
                         </button>
                         <button
                             onClick={() => setViewMode('table')}
-                            className={`flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-medium transition-all ${viewMode === 'table' ? 'bg-primary text-white shadow-md' : 'text-gray-500 hover:bg-gray-50'}`}
+                            className={`flex items-center gap-1.5 md:gap-2 px-3 md:px-4 py-1.5 md:py-2 rounded-lg text-xs md:text-sm font-medium transition-all ${viewMode === 'table' ? 'bg-primary text-white shadow-md' : 'text-gray-500 hover:bg-gray-50'}`}
                         >
                             <FaThList /> ตาราง
                         </button>
@@ -125,7 +125,7 @@ const History = () => {
                             <button
                                 key={f.key}
                                 onClick={() => setFilter(f.key)}
-                                className={`flex-1 px-4 py-2 rounded-lg text-sm font-medium transition-all duration-200 whitespace-nowrap ${filter === f.key ? 'bg-primary text-white shadow-md' : 'text-gray-500 hover:text-gray-700 hover:bg-gray-50'}`}
+                                className={`flex-1 px-2 md:px-4 py-1.5 md:py-2 rounded-lg text-xs md:text-sm font-medium transition-all duration-200 whitespace-nowrap ${filter === f.key ? 'bg-primary text-white shadow-md' : 'text-gray-500 hover:text-gray-700 hover:bg-gray-50'}`}
                             >
                                 {f.label}
                             </button>
@@ -146,30 +146,30 @@ const History = () => {
                 /* Timeline View */
                 <div className="max-w-6xl mx-auto">
                     {filteredBookings.length === 0 ? (
-                        <div className="p-16 text-center max-w-2xl mx-auto opacity-50">
-                            <div className="text-gray-200 text-7xl mb-4 flex justify-center"><FaSearch /></div>
-                            <h3 className="text-xl font-bold text-gray-400">ไม่พบประวัติการจอง</h3>
-                            <p className="text-gray-400 mt-2">คุณยังไม่มีการจองในสถานะนี้</p>
+                        <div className="p-8 md:p-16 text-center max-w-2xl mx-auto opacity-50">
+                            <div className="text-gray-200 text-4xl md:text-7xl mb-4 flex justify-center"><FaSearch /></div>
+                            <h3 className="text-base md:text-xl font-bold text-gray-400">ไม่พบประวัติการจอง</h3>
+                            <p className="text-gray-400 mt-2 text-sm md:text-base">คุณยังไม่มีการจองในสถานะนี้</p>
                         </div>
                     ) : (
                         <div className="relative">
                             {/* Center Line */}
                             <div className="absolute left-1/2 transform -translate-x-1/2 h-full w-0.5 bg-gray-200 hidden md:block"></div>
 
-                            <div className="space-y-12">
+                            <div className="space-y-6 md:space-y-12">
                                 {filteredBookings.map((booking, index) => (
                                     <div key={booking._id} className="relative flex flex-col md:flex-row items-center justify-between md:odd:flex-row-reverse group">
 
                                         {/* Date/Time Side (Opposite Content) */}
-                                        <div className="w-full md:w-[calc(50%-2.5rem)] mb-4 md:mb-0 text-center md:text-right md:group-odd:text-left opacity-60 group-hover:opacity-100 transition-opacity">
+                                        <div className="w-full md:w-[calc(50%-2.5rem)] mb-2 md:mb-0 text-center md:text-right md:group-odd:text-left opacity-60 group-hover:opacity-100 transition-opacity">
                                             <div className="inline-block">
-                                                <div className="text-4xl font-bold text-gray-300 group-hover:text-primary transition-colors">
+                                                <div className="text-2xl md:text-4xl font-bold text-gray-300 group-hover:text-primary transition-colors">
                                                     {new Date(booking.startTime).getDate()}
                                                 </div>
-                                                <div className="text-gray-500 font-medium uppercase tracking-wider text-sm">
+                                                <div className="text-gray-500 font-medium uppercase tracking-wider text-xs md:text-sm">
                                                     {new Date(booking.startTime).toLocaleDateString('th-TH', { month: 'long', year: 'numeric' })}
                                                 </div>
-                                                <div className="text-xl font-medium text-gray-400 mt-1">
+                                                <div className="text-base md:text-xl font-medium text-gray-400 mt-0.5 md:mt-1">
                                                     {new Date(booking.startTime).toLocaleTimeString('th-TH', { hour: '2-digit', minute: '2-digit' })}
                                                 </div>
                                             </div>
@@ -181,33 +181,33 @@ const History = () => {
                                         </div>
 
                                         {/* Card Content */}
-                                        <div className="w-full md:w-[calc(50%-2.5rem)] bg-white p-6 rounded-2xl shadow-sm border border-gray-100 hover:shadow-lg transition-all duration-300 hover:-translate-y-1 group-hover:border-primary/20 relative">
+                                        <div className="w-full md:w-[calc(50%-2.5rem)] bg-white p-3 md:p-6 rounded-xl md:rounded-2xl shadow-sm border border-gray-100 hover:shadow-lg transition-all duration-300 hover:-translate-y-1 group-hover:border-primary/20 relative">
                                             {/* Mobile Dot */}
                                             <div className="absolute -left-3 top-6 w-6 h-6 rounded-full bg-gray-200 border-4 border-white md:hidden flex items-center justify-center text-[10px]">
                                                 {index + 1}
                                             </div>
 
-                                            <div className="flex justify-between items-start mb-4">
+                                            <div className="flex justify-between items-start mb-2 md:mb-4">
                                                 <div>
                                                     <span className={`inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-bold border ${getStatusColor(booking.status)} mb-2`}>
                                                         {getStatusIcon(booking.status)} {booking.status.toUpperCase()}
                                                     </span>
-                                                    <h3 className="font-bold text-gray-800 text-lg leading-tight">{booking.topic}</h3>
+                                                        <h3 className="font-bold text-gray-800 text-sm md:text-lg leading-tight">{booking.topic}</h3>
                                                 </div>
                                             </div>
 
-                                            <div className="space-y-3">
-                                                <div className="flex items-center gap-3 text-gray-600 bg-gray-50 p-3 rounded-xl">
-                                                    <div className="bg-white p-2 rounded-lg shadow-sm text-primary"><FaBuilding /></div>
+                                            <div className="space-y-2 md:space-y-3">
+                                                <div className="flex items-center gap-2 md:gap-3 text-gray-600 bg-gray-50 p-1.5 md:p-3 rounded-lg md:rounded-xl">
+                                                    <div className="bg-white p-1 md:p-2 rounded-lg shadow-sm text-primary text-xs md:text-sm"><FaBuilding /></div>
                                                     <div>
-                                                        <div className="text-xs text-gray-400 font-bold uppercase">Room</div>
-                                                        <div className="font-medium">{booking.room?.name || 'Unknown Room'}</div>
+                                                        <div className="text-[10px] md:text-xs text-gray-400 font-bold uppercase">Room</div>
+                                                        <div className="font-medium text-sm md:text-base">{booking.room?.name || 'Unknown Room'}</div>
                                                     </div>
                                                 </div>
 
                                                 {/* Booker Info - Show for Admin */}
                                                 {isAdmin && (
-                                                    <div className="flex items-center gap-3 text-gray-600 bg-blue-50 p-3 rounded-xl">
+                                                    <div className="flex items-center gap-2 md:gap-3 text-gray-600 bg-blue-50 p-2 md:p-3 rounded-lg md:rounded-xl">
                                                         <div className="bg-white p-2 rounded-lg shadow-sm text-blue-500">
                                                             <svg className="w-4 h-4" fill="currentColor" viewBox="0 0 20 20">
                                                                 <path d="M10 9a3 3 0 100-6 3 3 0 000 6zm-7 9a7 7 0 1114 0H3z" />
@@ -223,7 +223,7 @@ const History = () => {
                                                     </div>
                                                 )}
 
-                                                <div className="flex items-center gap-3 text-gray-600 bg-gray-50 p-3 rounded-xl md:hidden"> {/* Show time inline ONLY on mobile since desktop has side date */}
+                                                <div className="flex items-center gap-2 md:gap-3 text-gray-600 bg-gray-50 p-2 md:p-3 rounded-lg md:rounded-xl md:hidden"> {/* Show time inline ONLY on mobile since desktop has side date */}
                                                     <div className="bg-white p-2 rounded-lg shadow-sm text-indigo-500"><FaClock /></div>
                                                     <div>
                                                         <div className="text-xs text-gray-400 font-bold uppercase">Time</div>
@@ -235,14 +235,14 @@ const History = () => {
                                             </div>
 
                                             {booking.note && (
-                                                <div className="mt-4 pt-4 border-t border-gray-100 text-sm italic text-gray-500">
+                                                <div className="mt-2 md:mt-4 pt-2 md:pt-4 border-t border-gray-100 text-xs md:text-sm italic text-gray-500">
                                                     "{booking.note}"
                                                 </div>
                                             )}
 
                                             {/* Action Buttons for Students */}
                                             {!isAdmin && (
-                                                <div className="mt-4 pt-4 border-t border-gray-100">
+                                                <div className="mt-2 md:mt-4 pt-2 md:pt-4 border-t border-gray-100">
                                                     {booking.status === 'pending' && (
                                                         <button
                                                             onClick={() => handleCancelBooking(booking._id)}

@@ -112,7 +112,7 @@ const BookingModal = ({ room, onClose, step, setStep, toast, initialData }) => {
     if (!room) return null;
 
     return (
-        <div className="fixed inset-0 z-[100] flex items-center justify-center p-4">
+        <div className="fixed inset-0 z-[100] flex items-center justify-center p-2 md:p-4">
             {/* Backdrop */}
             <div
                 className="absolute inset-0 bg-black/50 backdrop-blur-sm"
@@ -120,9 +120,9 @@ const BookingModal = ({ room, onClose, step, setStep, toast, initialData }) => {
             />
 
             {/* Modal */}
-            <div className="relative bg-white rounded-2xl shadow-2xl w-full max-w-2xl max-h-[90vh] overflow-hidden flex flex-col">
+            <div className="relative bg-white rounded-2xl shadow-2xl w-full max-w-2xl max-h-[92vh] md:max-h-[90vh] overflow-hidden flex flex-col">
                 {/* Header with Image */}
-                <div className="relative h-40 bg-gradient-to-br from-primary to-green-600 flex-shrink-0 overflow-hidden">
+                <div className="relative h-28 md:h-40 bg-gradient-to-br from-primary to-green-600 flex-shrink-0 overflow-hidden">
                     {room.images && room.images.length > 0 && (
                         <img
                             src={`/uploads/${room.images[currentImageIndex]}`}
@@ -141,9 +141,9 @@ const BookingModal = ({ room, onClose, step, setStep, toast, initialData }) => {
                     </button>
 
                     {/* Room Info */}
-                    <div className="absolute bottom-3 left-4 right-4">
-                        <h2 className="text-xl font-bold text-white">{room.name}</h2>
-                        <div className="flex items-center gap-3 text-white/90 text-sm mt-1">
+                    <div className="absolute bottom-2 md:bottom-3 left-3 md:left-4 right-3 md:right-4">
+                        <h2 className="text-base md:text-xl font-bold text-white">{room.name}</h2>
+                        <div className="flex items-center gap-2 md:gap-3 text-white/90 text-xs md:text-sm mt-0.5 md:mt-1">
                             <span className="flex items-center gap-1">
                                 <FaUsers /> {room.capacity} คน
                             </span>
@@ -156,15 +156,8 @@ const BookingModal = ({ room, onClose, step, setStep, toast, initialData }) => {
                     </div>
                 </div>
 
-                {/* Step Indicator */}
-                <div className="absolute bottom-3 right-4 flex gap-1">
-                    {[1, 2, 3].map(s => (
-                        <div key={s} className={`w-2 h-2 rounded-full transition-all ${s === step ? 'bg-white w-4' : s < step ? 'bg-white/80' : 'bg-white/40'}`} />
-                    ))}
-                </div>
-
                 {/* Content */}
-                <div className="flex-1 overflow-y-auto p-5">
+                <div className="flex-1 overflow-y-auto p-3 md:p-5">
                     {step === 1 && (
                         <div className="space-y-4">
                             <div>
@@ -188,7 +181,7 @@ const BookingModal = ({ room, onClose, step, setStep, toast, initialData }) => {
                             {room.images && room.images.length > 1 && (
                                 <div>
                                     <h3 className="font-bold text-gray-800 mb-2">รูปภาพ</h3>
-                                    <div className="grid grid-cols-4 gap-2">
+                                    <div className="grid grid-cols-2 sm:grid-cols-4 gap-2">
                                         {room.images.map((img, idx) => (
                                             <img
                                                 key={idx}
@@ -205,7 +198,7 @@ const BookingModal = ({ room, onClose, step, setStep, toast, initialData }) => {
                     )}
 
                     {step === 2 && (
-                        <div className="space-y-4">
+                        <div className="space-y-3 md:space-y-4">
                             {/* Date */}
                             <div>
                                 <label className="block text-sm font-medium text-gray-700 mb-1">
@@ -223,12 +216,12 @@ const BookingModal = ({ room, onClose, step, setStep, toast, initialData }) => {
                                         const day = String(today.getDate()).padStart(2, '0');
                                         return `${year}-${month}-${day}`;
                                     })()}
-                                    className="w-full px-3 py-2.5 border border-gray-200 rounded-lg focus:ring-2 focus:ring-primary/20 focus:border-primary outline-none text-sm"
+                                    className="w-full px-3 py-2 md:py-2.5 border border-gray-200 rounded-lg focus:ring-2 focus:ring-primary/20 focus:border-primary outline-none text-sm"
                                 />
                             </div>
 
                             {/* Time */}
-                            <div className="grid grid-cols-2 gap-3">
+                            <div className="grid grid-cols-2 gap-2 md:gap-3">
                                 <div>
                                     <label className="block text-sm font-medium text-gray-700 mb-1">
                                         <FaClock className="inline mr-1.5 text-primary text-xs" />
@@ -237,7 +230,7 @@ const BookingModal = ({ room, onClose, step, setStep, toast, initialData }) => {
                                     <select
                                         value={formData.startTime}
                                         onChange={handleChange('startTime')}
-                                        className="w-full px-3 py-2.5 border border-gray-200 rounded-lg focus:ring-2 focus:ring-primary/20 focus:border-primary outline-none bg-white text-sm"
+                                        className="w-full px-2 md:px-3 py-2 md:py-2.5 border border-gray-200 rounded-lg focus:ring-2 focus:ring-primary/20 focus:border-primary outline-none bg-white text-sm"
                                     >
                                         {timeOptions.map(time => (
                                             <option key={time} value={time}>{time}</option>
@@ -252,7 +245,7 @@ const BookingModal = ({ room, onClose, step, setStep, toast, initialData }) => {
                                     <select
                                         value={formData.endTime}
                                         onChange={handleChange('endTime')}
-                                        className="w-full px-3 py-2.5 border border-gray-200 rounded-lg focus:ring-2 focus:ring-primary/20 focus:border-primary outline-none bg-white text-sm"
+                                        className="w-full px-2 md:px-3 py-2 md:py-2.5 border border-gray-200 rounded-lg focus:ring-2 focus:ring-primary/20 focus:border-primary outline-none bg-white text-sm"
                                     >
                                         {timeOptions.map(time => (
                                             <option key={time} value={time}>{time}</option>
@@ -272,12 +265,12 @@ const BookingModal = ({ room, onClose, step, setStep, toast, initialData }) => {
                                     value={formData.topic}
                                     onChange={handleChange('topic')}
                                     placeholder="เช่น ประชุมทีม, อบรมเชิงปฏิบัติการ"
-                                    className="w-full px-3 py-2.5 border border-gray-200 rounded-lg focus:ring-2 focus:ring-primary/20 focus:border-primary outline-none text-sm"
+                                    className="w-full px-3 py-2 md:py-2.5 border border-gray-200 rounded-lg focus:ring-2 focus:ring-primary/20 focus:border-primary outline-none text-sm"
                                 />
                             </div>
 
                             {/* Name & Department */}
-                            <div className="grid grid-cols-2 gap-3">
+                            <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 md:gap-3">
                                 <div>
                                     <label className="block text-sm font-medium text-gray-700 mb-1">
                                         <FaUser className="inline mr-1.5 text-primary text-xs" />
@@ -288,7 +281,7 @@ const BookingModal = ({ room, onClose, step, setStep, toast, initialData }) => {
                                         value={formData.name}
                                         onChange={handleChange('name')}
                                         placeholder="ชื่อ-นามสกุล"
-                                        className="w-full px-3 py-2.5 border border-gray-200 rounded-lg focus:ring-2 focus:ring-primary/20 focus:border-primary outline-none text-sm bg-gray-50"
+                                        className="w-full px-3 py-2 md:py-2.5 border border-gray-200 rounded-lg focus:ring-2 focus:ring-primary/20 focus:border-primary outline-none text-sm bg-gray-50"
                                         disabled
                                     />
                                 </div>
@@ -302,7 +295,7 @@ const BookingModal = ({ room, onClose, step, setStep, toast, initialData }) => {
                                         value={formData.department}
                                         onChange={handleChange('department')}
                                         placeholder="สาขาวิชา หรือ คณะ"
-                                        className="w-full px-3 py-2.5 border border-gray-200 rounded-lg focus:ring-2 focus:ring-primary/20 focus:border-primary outline-none text-sm"
+                                        className="w-full px-3 py-2 md:py-2.5 border border-gray-200 rounded-lg focus:ring-2 focus:ring-primary/20 focus:border-primary outline-none text-sm"
                                     />
                                 </div>
                             </div>
@@ -318,7 +311,7 @@ const BookingModal = ({ room, onClose, step, setStep, toast, initialData }) => {
                                     value={formData.phone}
                                     onChange={handleChange('phone')}
                                     placeholder="08X-XXX-XXXX"
-                                    className="w-full px-3 py-2.5 border border-gray-200 rounded-lg focus:ring-2 focus:ring-primary/20 focus:border-primary outline-none text-sm"
+                                    className="w-full px-3 py-2 md:py-2.5 border border-gray-200 rounded-lg focus:ring-2 focus:ring-primary/20 focus:border-primary outline-none text-sm"
                                 />
                             </div>
 
@@ -333,7 +326,7 @@ const BookingModal = ({ room, onClose, step, setStep, toast, initialData }) => {
                                     onChange={handleChange('note')}
                                     rows={2}
                                     placeholder="ข้อมูลเพิ่มเติม (ถ้ามี)"
-                                    className="w-full px-3 py-2.5 border border-gray-200 rounded-lg focus:ring-2 focus:ring-primary/20 focus:border-primary outline-none resize-none text-sm"
+                                    className="w-full px-3 py-2 md:py-2.5 border border-gray-200 rounded-lg focus:ring-2 focus:ring-primary/20 focus:border-primary outline-none resize-none text-sm"
                                 />
                             </div>
                         </div>
@@ -351,11 +344,11 @@ const BookingModal = ({ room, onClose, step, setStep, toast, initialData }) => {
                 </div>
 
                 {/* Footer */}
-                <div className="p-4 border-t border-gray-100 bg-gray-50 flex-shrink-0">
+                <div className="p-3 md:p-4 border-t border-gray-100 bg-gray-50 flex-shrink-0">
                     {step === 1 && (
                         <button
                             onClick={() => setStep(2)}
-                            className="w-full py-3 bg-gradient-to-r from-primary to-green-600 hover:from-green-600 hover:to-primary text-white font-bold rounded-xl flex items-center justify-center gap-2 transition-all"
+                            className="w-full py-2.5 md:py-3 bg-gradient-to-r from-primary to-green-600 hover:from-green-600 hover:to-primary text-white font-bold rounded-xl flex items-center justify-center gap-2 transition-all text-sm md:text-base"
                         >
                             <FaCalendarPlus />
                             ดำเนินการจอง
@@ -367,14 +360,14 @@ const BookingModal = ({ room, onClose, step, setStep, toast, initialData }) => {
                         <div className="flex gap-3">
                             <button
                                 onClick={() => setStep(1)}
-                                className="px-5 py-3 bg-gray-200 hover:bg-gray-300 text-gray-700 font-bold rounded-xl transition-all"
+                                className="px-4 md:px-5 py-2.5 md:py-3 bg-gray-200 hover:bg-gray-300 text-gray-700 font-bold rounded-xl transition-all"
                             >
                                 <FaChevronLeft />
                             </button>
                             <button
                                 onClick={handleSubmit}
                                 disabled={submitting}
-                                className="flex-1 py-3 bg-gradient-to-r from-primary to-green-600 hover:from-green-600 hover:to-primary text-white font-bold rounded-xl flex items-center justify-center gap-2 transition-all disabled:opacity-50"
+                                className="flex-1 py-2.5 md:py-3 bg-gradient-to-r from-primary to-green-600 hover:from-green-600 hover:to-primary text-white font-bold rounded-xl flex items-center justify-center gap-2 transition-all disabled:opacity-50 text-sm md:text-base"
                             >
                                 {submitting ? (
                                     <div className="w-5 h-5 border-2 border-white border-t-transparent rounded-full animate-spin" />
@@ -391,7 +384,7 @@ const BookingModal = ({ room, onClose, step, setStep, toast, initialData }) => {
                     {step === 3 && (
                         <button
                             onClick={onClose}
-                            className="w-full py-3 bg-primary hover:bg-green-600 text-white font-bold rounded-xl transition-all"
+                            className="w-full py-2.5 md:py-3 bg-primary hover:bg-green-600 text-white font-bold rounded-xl transition-all text-sm md:text-base"
                         >
                             เสร็จสิ้น
                         </button>

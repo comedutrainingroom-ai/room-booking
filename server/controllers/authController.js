@@ -74,6 +74,15 @@ const googleLogin = async (req, res) => {
             { new: true, upsert: true, setDefaultsOnInsert: true }
         );
 
+        // Check if user is banned
+        if (user.isBanned) {
+            return res.status(403).json({
+                success: false,
+                error: 'บัญชีของคุณถูกระงับการใช้งาน กรุณาติดต่อผู้ดูแลระบบ',
+                code: 'BANNED_USER'
+            });
+        }
+
         res.status(200).json({
             success: true,
             data: user

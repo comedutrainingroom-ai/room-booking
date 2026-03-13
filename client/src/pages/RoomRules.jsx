@@ -42,28 +42,28 @@ const RoomRules = () => {
     return (
         <div className="p-4 md:p-8 max-w-4xl mx-auto animate-fade-in">
             {/* Header */}
-            <div className="text-center mb-12">
-                <div className="inline-flex items-center justify-center w-20 h-20 rounded-full bg-primary/10 text-primary text-3xl mb-4">
+            <div className="text-center mb-6 md:mb-12">
+                <div className="inline-flex items-center justify-center w-16 h-16 md:w-20 md:h-20 rounded-full bg-primary/10 text-primary text-2xl md:text-3xl mb-4">
                     <FaBook />
                 </div>
-                <h1 className="text-3xl font-bold text-gray-800 mb-2">กฎระเบียบการใช้ห้อง</h1>
-                <p className="text-gray-500">ข้อควรปฏิบัติในการจองและใช้งานห้องประชุม</p>
+                <h1 className="text-2xl md:text-3xl font-bold text-gray-800 mb-2">กฎระเบียบการใช้ห้อง</h1>
+                <p className="text-gray-500 text-sm md:text-base">ข้อควรปฏิบัติในการจองและใช้งานห้องประชุม</p>
             </div>
 
             {/* Rules Cards */}
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mb-12">
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-3 md:gap-6 mb-6 md:mb-12">
                 {rules.map((rule, index) => (
                     <div
                         key={index}
-                        className={`${rule.bgColor} ${rule.borderColor} border rounded-2xl p-6 transition-transform hover:-translate-y-1 hover:shadow-lg`}
+                        className={`${rule.bgColor} ${rule.borderColor} border rounded-xl md:rounded-2xl p-3 md:p-6 transition-transform hover:-translate-y-1 hover:shadow-lg`}
                     >
-                        <div className="flex items-start gap-4">
-                            <div className="p-3 rounded-xl bg-white shadow-sm text-2xl">
+                        <div className="flex items-start gap-2.5 md:gap-4">
+                            <div className="p-2 md:p-3 rounded-lg md:rounded-xl bg-white shadow-sm text-lg md:text-2xl">
                                 {rule.icon}
                             </div>
                             <div>
-                                <h3 className="font-bold text-gray-800 text-lg mb-1">{rule.title}</h3>
-                                <p className="text-gray-600">{rule.description}</p>
+                                <h3 className="font-bold text-gray-800 text-sm md:text-lg mb-0.5 md:mb-1">{rule.title}</h3>
+                                <p className="text-gray-600 text-xs md:text-base">{rule.description}</p>
                             </div>
                         </div>
                     </div>
@@ -71,14 +71,14 @@ const RoomRules = () => {
             </div>
 
             {/* Additional Info */}
-            <div className="bg-gradient-to-r from-primary/5 to-primary/10 rounded-2xl p-8 border border-primary/20">
-                <div className="flex items-start gap-4">
-                    <div className="p-3 rounded-xl bg-primary/10 text-primary text-xl">
+            <div className="bg-gradient-to-r from-primary/5 to-primary/10 rounded-xl md:rounded-2xl p-3 md:p-8 border border-primary/20">
+                <div className="flex items-start gap-2.5 md:gap-4">
+                    <div className="p-2 md:p-3 rounded-lg md:rounded-xl bg-primary/10 text-primary text-base md:text-xl">
                         <FaInfoCircle />
                     </div>
                     <div>
-                        <h3 className="font-bold text-gray-800 text-lg mb-3">ข้อปฏิบัติทั่วไป</h3>
-                        <ul className="space-y-2 text-gray-600">
+                        <h3 className="font-bold text-gray-800 text-sm md:text-lg mb-2 md:mb-3">ข้อปฏิบัติทั่วไป</h3>
+                        <ul className="space-y-1.5 md:space-y-2 text-gray-600 text-xs md:text-base">
                             <li className="flex items-center gap-2">
                                 <span className="text-primary">•</span>
                                 กรุณามาถึงก่อนเวลาจองอย่างน้อย 5 นาที
@@ -106,7 +106,7 @@ const RoomRules = () => {
 
             {/* Contact Info */}
             {settings.contactEmail && (
-                <div className="mt-8 text-center text-gray-500 text-sm">
+                <div className="mt-4 md:mt-8 text-center text-gray-500 text-xs md:text-sm">
                     <p>หากมีข้อสงสัย ติดต่อ: <a href={`mailto:${settings.contactEmail}`} className="text-primary hover:underline">{settings.contactEmail}</a></p>
                 </div>
             )}

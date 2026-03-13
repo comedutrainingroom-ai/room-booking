@@ -25,38 +25,38 @@ const DailyStats = ({ bookings }) => {
     });
 
     return (
-        <div className="bg-white rounded-2xl p-6 shadow-sm border border-gray-100">
+        <div className="bg-white rounded-xl p-5 md:p-6 shadow-sm border border-gray-200 flex flex-col h-full">
             <div className="flex items-center gap-2 mb-4">
-                <div className="p-2 rounded-lg bg-orange-50 text-orange-500">
+                <div className="p-2 rounded-md bg-blue-50 text-blue-600">
                     <FaSun />
                 </div>
                 <h3 className="font-bold text-gray-800">สรุปวันนี้</h3>
-                <span className="text-xs text-gray-400 ml-auto">
+                <span className="text-xs text-gray-500 ml-auto font-medium">
                     {today.toLocaleDateString('th-TH', { day: 'numeric', month: 'short', year: 'numeric' })}
                 </span>
             </div>
 
             {/* Summary Stats */}
-            <div className="grid grid-cols-4 gap-2 mb-4">
-                <div className="bg-green-50 rounded-xl p-2 text-center">
-                    <FaCheckCircle className="text-green-500 mx-auto mb-1 text-sm" />
-                    <div className="text-xl font-bold text-green-700">{approved}</div>
-                    <div className="text-xs text-green-600">อนุมัติ</div>
+            <div className="grid grid-cols-2 sm:grid-cols-4 gap-2 mb-4">
+                <div className="bg-white border border-gray-200 rounded-lg p-2 text-center shadow-sm">
+                    <FaCheckCircle className="text-green-600 mx-auto mb-1 text-sm" />
+                    <div className="text-xl font-bold text-gray-800">{approved}</div>
+                    <div className="text-[10px] md:text-xs text-gray-500">อนุมัติ</div>
                 </div>
-                <div className="bg-yellow-50 rounded-xl p-2 text-center">
-                    <FaHourglassHalf className="text-yellow-500 mx-auto mb-1 text-sm" />
-                    <div className="text-xl font-bold text-yellow-700">{pending}</div>
-                    <div className="text-xs text-yellow-600">รอ</div>
+                <div className="bg-white border border-gray-200 rounded-lg p-2 text-center shadow-sm">
+                    <FaHourglassHalf className="text-yellow-600 mx-auto mb-1 text-sm" />
+                    <div className="text-xl font-bold text-gray-800">{pending}</div>
+                    <div className="text-[10px] md:text-xs text-gray-500">รอ</div>
                 </div>
-                <div className="bg-gray-100 rounded-xl p-2 text-center">
-                    <FaBan className="text-gray-500 mx-auto mb-1 text-sm" />
-                    <div className="text-xl font-bold text-gray-700">{cancelled}</div>
-                    <div className="text-xs text-gray-600">ยกเลิก</div>
+                <div className="bg-white border border-gray-200 rounded-lg p-2 text-center shadow-sm">
+                    <FaBan className="text-slate-400 mx-auto mb-1 text-sm" />
+                    <div className="text-xl font-bold text-gray-800">{cancelled}</div>
+                    <div className="text-[10px] md:text-xs text-gray-500">ยกเลิก</div>
                 </div>
-                <div className="bg-red-50 rounded-xl p-2 text-center">
-                    <FaTimesCircle className="text-red-500 mx-auto mb-1 text-sm" />
-                    <div className="text-xl font-bold text-red-700">{rejected}</div>
-                    <div className="text-xs text-red-600">ปฏิเสธ</div>
+                <div className="bg-white border border-gray-200 rounded-lg p-2 text-center shadow-sm">
+                    <FaTimesCircle className="text-red-600 mx-auto mb-1 text-sm" />
+                    <div className="text-xl font-bold text-gray-800">{rejected}</div>
+                    <div className="text-[10px] md:text-xs text-gray-500">ปฏิเสธ</div>
                 </div>
             </div>
 

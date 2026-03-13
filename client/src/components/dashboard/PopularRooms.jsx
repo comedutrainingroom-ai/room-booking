@@ -35,20 +35,20 @@ const PopularRooms = ({ bookings }) => {
     };
 
     const getBarColor = (index) => {
-        if (index === 0) return 'bg-gradient-to-r from-yellow-400 to-yellow-500';
-        if (index === 1) return 'bg-gradient-to-r from-gray-300 to-gray-400';
-        if (index === 2) return 'bg-gradient-to-r from-amber-400 to-amber-500';
-        return 'bg-gray-200';
+        if (index === 0) return 'bg-emerald-600';
+        if (index === 1) return 'bg-emerald-500';
+        if (index === 2) return 'bg-emerald-400';
+        return 'bg-gray-300';
     };
 
     return (
-        <div className="bg-white rounded-2xl p-6 shadow-sm border border-gray-100">
+        <div className="bg-white rounded-xl p-5 md:p-6 shadow-sm border border-gray-200">
             <div className="flex items-center gap-2 mb-4">
-                <div className="p-2 rounded-lg bg-yellow-50 text-yellow-500">
+                <div className="p-2 rounded-md bg-gray-100 text-gray-600">
                     <FaTrophy />
                 </div>
                 <h3 className="font-bold text-gray-800">ห้องยอดนิยม</h3>
-                <span className="text-xs bg-yellow-100 text-yellow-700 px-2 py-0.5 rounded-full ml-auto">
+                <span className="text-xs bg-gray-100 border border-gray-200 text-gray-600 px-2 py-0.5 rounded-full ml-auto font-medium">
                     Top {roomStats.length}
                 </span>
             </div>
@@ -87,11 +87,11 @@ const PopularRooms = ({ bookings }) => {
             {/* Summary */}
             {roomStats.length > 0 && (
                 <div className="mt-4 pt-4 border-t border-gray-100 text-center">
-                    <div className="text-3xl mb-1">🏆</div>
+                    <FaTrophy className="text-2xl mb-2 text-gray-400 mx-auto" />
                     <p className="text-sm text-gray-600">
-                        <span className="font-bold text-primary">{roomStats[0]?.name}</span>
+                        <span className="font-bold text-emerald-700">{roomStats[0]?.name}</span>
                     </p>
-                    <p className="text-xs text-gray-400">ห้องที่ถูกจองมากที่สุด</p>
+                    <p className="text-xs text-gray-400 mt-0.5">ห้องที่ถูกจองมากที่สุด</p>
                 </div>
             )}
         </div>

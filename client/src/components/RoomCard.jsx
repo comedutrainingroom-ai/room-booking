@@ -1,7 +1,7 @@
 import { useState } from 'react';
-import { FaBuilding, FaChevronLeft, FaChevronRight, FaUsers, FaCalendarPlus, FaEdit, FaTrash } from 'react-icons/fa';
+import { FaBuilding, FaChevronLeft, FaChevronRight, FaUsers, FaCalendarPlus, FaEdit, FaTrash, FaLock, FaRegImage } from 'react-icons/fa';
 
-const RoomCard = ({ room, onBook, onEdit, onDelete }) => {
+const RoomCard = ({ room, onBook, onEdit, onDelete, onViewDetails }) => {
     const [currentImageIndex, setCurrentImageIndex] = useState(0);
 
     const nextImage = (e) => {
@@ -23,7 +23,10 @@ const RoomCard = ({ room, onBook, onEdit, onDelete }) => {
     return (
         <div
             className="bg-white rounded-xl shadow-sm border border-gray-200 overflow-hidden hover:shadow-lg hover:-translate-y-1 transition-all duration-300 ease-out flex flex-col group cursor-pointer animate-fadeIn"
-            onClick={() => onBook && onBook(room)}
+            onClick={() => {
+                if (onViewDetails) onViewDetails(room);
+                else if (onBook) onBook(room);
+            }}
         >
             {/* Image */}
             <div className="relative aspect-[2/1] bg-gray-100 overflow-hidden group/image">
@@ -36,8 +39,8 @@ const RoomCard = ({ room, onBook, onEdit, onDelete }) => {
                         className="w-full h-full object-cover transition-transform duration-500 group-hover:scale-105"
                     />
                 ) : (
-                    <div className="w-full h-full flex items-center justify-center text-gray-300 bg-gradient-to-br from-gray-50 to-gray-100">
-                        <FaBuilding className="text-4xl" />
+                    <div className="w-full h-full flex items-center justify-center text-gray-300 bg-gray-50">
+                        <FaRegImage className="text-4xl text-gray-300" />
                     </div>
                 )}
 
@@ -57,9 +60,16 @@ const RoomCard = ({ room, onBook, onEdit, onDelete }) => {
                     </>
                 )}
 
-                {/* Capacity Badge */}
-                <div className="absolute top-2 left-2 bg-white/90 backdrop-blur-sm px-2 py-1 rounded-md text-xs font-semibold text-gray-700 flex items-center gap-1">
-                    <FaUsers className="text-primary text-[10px]" /> {room.capacity}
+                {/* Status/Capacity Badges */}
+                <div className="absolute top-2 left-2 flex flex-col gap-1.5">
+                    <div className="bg-white/90 backdrop-blur-sm px-2 py-1 rounded-md text-xs font-semibold text-gray-700 flex items-center gap-1 shadow-sm border border-gray-100 w-fit">
+                        <FaUsers className="text-primary text-[10px]" /> {room.capacity}
+                    </div>
+                    {room.isActive === false && (
+                        <div className="bg-red-50 text-red-700 px-2 py-1 rounded-md text-xs font-bold shadow-sm border border-red-200 w-fit flex items-center gap-1">
+                            <FaLock /> ปิดซ่อมบำรุง
+                        </div>
+                    )}
                 </div>
 
                 {/* Admin Actions Overlay (if onEdit/onDelete provided) */}
@@ -88,22 +98,22 @@ const RoomCard = ({ room, onBook, onEdit, onDelete }) => {
             </div>
 
             {/* Content */}
-            <div className="p-3 flex-grow flex flex-col">
-                <h3 className="text-sm font-bold text-gray-800 mb-1 line-clamp-1">{room.name}</h3>
-                <p className="text-gray-500 text-xs mb-2 line-clamp-2 flex-grow">
+            <div className="p-3 md:p-4 flex-grow flex flex-col">
+                <h3 className="text-sm md:text-base font-bold text-gray-800 mb-1 md:mb-2 line-clamp-1">{room.name}</h3>
+                <p className="text-gray-500 text-xs md:text-sm mb-2 line-clamp-2 flex-grow">
                     {room.description || 'ห้องอบรมพร้อมอุปกรณ์ครบครัน'}
                 </p>
 
                 {/* Equipment Tags */}
                 {room.equipment && room.equipment.length > 0 && (
-                    <div className="flex flex-wrap gap-1 mb-2">
+                    <div className="flex flex-wrap gap-1 md:gap-1.5 mb-2 md:mb-3">
                         {room.equipment.slice(0, 2).map((eq, i) => (
-                            <span key={i} className="px-1.5 py-0.5 bg-green-50 text-green-700 text-[10px] rounded font-medium">
+                            <span key={i} className="px-1.5 md:px-2 py-0.5 bg-green-50 text-green-700 text-[10px] md:text-xs rounded font-medium">
                                 {eq}
                             </span>
                         ))}
                         {room.equipment.length > 2 && (
-                            <span className="px-1.5 py-0.5 bg-gray-50 text-gray-500 text-[10px] rounded">
+                            <span className="px-1.5 md:px-2 py-0.5 bg-gray-50 text-gray-500 text-[10px] md:text-xs rounded">
                                 +{room.equipment.length - 2}
                             </span>
                         )}
@@ -115,12 +125,24 @@ const RoomCard = ({ room, onBook, onEdit, onDelete }) => {
                     <button
                         onClick={(e) => {
                             e.stopPropagation();
-                            onBook(room);
+                            if (room.isActive !== false) {
+                                onBook(room);
+                            }
                         }}
-                        className="w-full py-2 bg-gradient-to-r from-primary to-green-600 hover:from-green-600 hover:to-primary text-white font-semibold rounded-lg flex items-center justify-center gap-1.5 transition-all text-xs"
+                        disabled={room.isActive === false}
+                        className={`w-full py-2 md:py-2.5 ${room.isActive !== false ? 'bg-green-700 text-white hover:bg-green-800 shadow-sm' : 'bg-gray-100 text-gray-500 cursor-not-allowed border border-gray-200'} font-semibold rounded-lg flex items-center justify-center gap-1.5 transition-colors text-xs md:text-sm`}
                     >
-                        <FaCalendarPlus className="text-[10px]" />
-                        จองห้องนี้
+                        {room.isActive !== false ? (
+                            <>
+                                <FaCalendarPlus className="text-[10px] md:text-xs" />
+                                จองห้องนี้
+                            </>
+                        ) : (
+                            <>
+                                <FaLock className="text-[10px] md:text-xs" />
+                                ไม่พร้อมให้บริการ
+                            </>
+                        )}
                     </button>
                 )}
             </div>

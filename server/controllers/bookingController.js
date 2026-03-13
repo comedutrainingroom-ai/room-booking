@@ -1,4 +1,5 @@
 const Booking = require('../models/Booking');
+const Room = require('../models/Room');
 const Setting = require('../models/Setting');
 const { sendBookingCreated, sendBookingApproved, sendBookingModified, sendBookingReminder, sendBookingCancelled } = require('../services/emailService');
 const { checkRoomAvailability, validateBookingTime, isUrgentBooking } = require('../services/bookingService');
@@ -59,6 +60,15 @@ const createBooking = async (req, res) => {
         const timeValidation = validateBookingTime(startTime);
         if (!timeValidation.valid) {
             return res.status(400).json({ success: false, error: timeValidation.error });
+        }
+
+        // Check if room exists and is active
+        const targetRoom = await Room.findById(room);
+        if (!targetRoom) {
+            return res.status(404).json({ success: false, error: 'ไม่พบห้องที่ต้องการจอง' });
+        }
+        if (!targetRoom.isActive) {
+            return res.status(400).json({ success: false, error: 'ห้องนี้กำลังปิดซ่อมบำรุง ไม่สามารถจองได้ในขณะนี้' });
         }
 
         // --- Enforce system settings ---
@@ -128,15 +138,16 @@ const createBooking = async (req, res) => {
         // Populate room details for email
         booking = await booking.populate('room');
 
-        // Send Email Notification
-        await sendBookingCreated(booking);
+        // Send Email Notification (Async without waiting)
+        sendBookingCreated(booking).catch(err => console.error('Failed to send creation email:', err));
 
         // Check for urgent booking (starts within 1 hour)
         if (isUrgentBooking(startTime)) {
             console.log(`Urgent booking detected: ${booking._id}. Sending immediate reminder.`);
-            await sendBookingReminder(booking);
+            sendBookingReminder(booking).catch(err => console.error('Failed to send reminder email:', err));
             // Mark as reminded so cron doesn't send duplicate
             booking.reminderSent = true;
+            // Awaiting this because we want to save the state
             await booking.save();
         }
 
@@ -267,12 +278,12 @@ const updateBooking = async (req, res) => {
 
         // Send Email if Cancelled
         if (req.body.status === 'cancelled' && originalBooking.status !== 'cancelled') {
-            await sendBookingCancelled(booking);
+            sendBookingCancelled(booking).catch(err => console.error('Failed to send cancellation email:', err));
         }
 
         // Send Email if Approved
         if (req.body.status === 'approved' && originalBooking.status !== 'approved') {
-            await sendBookingApproved(booking);
+            sendBookingApproved(booking).catch(err => console.error('Failed to send approval email:', err));
         }
 
         // Send Email if Time was Modified (and not just status change)
@@ -280,7 +291,7 @@ const updateBooking = async (req, res) => {
             (req.body.endTime && new Date(req.body.endTime).getTime() !== new Date(oldEndTime).getTime());
 
         if (timeChanged) {
-            await sendBookingModified(booking, oldStartTime, oldEndTime);
+            sendBookingModified(booking, oldStartTime, oldEndTime).catch(err => console.error('Failed to send modification email:', err));
         }
 
         res.status(200).json({ success: true, data: booking });
@@ -399,10 +410,21 @@ const importBookings = async (req, res) => {
                 continue;
             }
 
-            const room = await Room.findOne({ name: roomName });
+            let room = await Room.findOne({ name: roomName });
             if (!room) {
-                errors.push(`Row ${rowNum}: Room '${roomName}' not found`);
-                continue;
+                // Auto-create room if it doesn't exist
+                try {
+                    room = await Room.create({
+                        name: roomName,
+                        capacity: 30, // Default capacity
+                        equipment: ['Computer', 'Projector'], // Default equipment
+                        description: 'Auto-created from Schedule Import'
+                    });
+                    console.log(`Auto-created missing room: ${roomName}`);
+                } catch (err) {
+                    errors.push(`Row ${rowNum}: Failed to auto-create room '${roomName}'`);
+                    continue;
+                }
             }
 
             // Helper to parse time from Excel (handle both "09:00" string and 0.375 number)

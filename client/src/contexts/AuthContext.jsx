@@ -43,7 +43,6 @@ export const AuthProvider = ({ children }) => {
 
             // Handle invalid email domain
             if (error.response?.data?.code === 'INVALID_EMAIL_DOMAIN') {
-                // Sign out the user from Firebase
                 await signOut(auth);
                 setCurrentUser(null);
                 setDbUser(null);
@@ -51,6 +50,18 @@ export const AuthProvider = ({ children }) => {
                     success: false,
                     error: error.response.data.error,
                     code: 'INVALID_EMAIL_DOMAIN'
+                };
+            }
+
+            // Handle banned user
+            if (error.response?.data?.code === 'BANNED_USER') {
+                await signOut(auth);
+                setCurrentUser(null);
+                setDbUser(null);
+                return {
+                    success: false,
+                    error: error.response.data.error,
+                    code: 'BANNED_USER'
                 };
             }
 

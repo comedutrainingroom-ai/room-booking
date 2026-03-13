@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import api from '../services/api';
 import { FaCheck, FaTimes, FaCalendarAlt, FaClock, FaUser, FaBuilding, FaEdit, FaSave, FaBan, FaFilter } from 'react-icons/fa';
 import { useToast } from '../contexts/ToastContext';
@@ -11,7 +11,7 @@ const AdminApprove = () => {
     const [editForm, setEditForm] = useState({ startTime: '', endTime: '' });
     const [filter, setFilter] = useState('pending'); // 'pending', 'approved', 'all'
 
-    const fetchBookings = async () => {
+    const fetchBookings = useCallback(async () => {
         try {
             const res = await api.get('/bookings');
             let filteredBookings = res.data.data;
@@ -36,13 +36,13 @@ const AdminApprove = () => {
             console.error("Error fetching bookings", error);
             setLoading(false);
         }
-    };
+    }, [filter]);
 
     useEffect(() => {
         fetchBookings();
-    }, [filter]);
+    }, [fetchBookings]);
 
-    const handleApprove = async (id) => {
+    const handleApprove = useCallback(async (id) => {
         const confirmed = await toast.confirm({
             title: 'ยืนยันการอนุมัติ',
             message: 'ยืนยันการอนุมัติการจองนี้?',
@@ -66,9 +66,9 @@ const AdminApprove = () => {
             toast.error('เกิดข้อผิดพลาดในการอนุมัติ');
             fetchBookings(); // Revert
         }
-    };
+    }, [toast, filter, fetchBookings]);
 
-    const handleReject = async (id) => {
+    const handleReject = useCallback(async (id) => {
         const confirmed = await toast.confirm({
             title: 'ยืนยันการไม่อนุมัติ',
             message: 'ยืนยันการไม่อนุมัติการจองนี้?',
@@ -87,9 +87,9 @@ const AdminApprove = () => {
             toast.error('เกิดข้อผิดพลาดในการไม่อนุมัติ');
             fetchBookings(); // Revert
         }
-    };
+    }, [toast, fetchBookings]);
 
-    const handleCancel = async (id) => {
+    const handleCancel = useCallback(async (id) => {
         const confirmed = await toast.confirm({
             title: 'ยืนยันการยกเลิก',
             message: 'การจองที่ถูกยกเลิกจะหายไปจากปฏิทิน',
@@ -113,9 +113,9 @@ const AdminApprove = () => {
             toast.error('เกิดข้อผิดพลาดในการยกเลิก');
             fetchBookings(); // Revert
         }
-    };
+    }, [toast, filter, fetchBookings]);
 
-    const openEditModal = (booking) => {
+    const openEditModal = useCallback((booking) => {
         setEditingBooking(booking);
         const formatForInput = (dateStr) => {
             const d = new Date(dateStr);
@@ -125,9 +125,9 @@ const AdminApprove = () => {
             startTime: formatForInput(booking.startTime),
             endTime: formatForInput(booking.endTime)
         });
-    };
+    }, []);
 
-    const handleEditSave = async () => {
+    const handleEditSave = useCallback(async () => {
         if (!editingBooking) return;
         try {
             await api.put(`/bookings/${editingBooking._id}`, {
@@ -141,7 +141,7 @@ const AdminApprove = () => {
             console.error("Error updating booking time", error);
             toast.error('เกิดข้อผิดพลาด: ' + (error.response?.data?.error || error.message));
         }
-    };
+    }, [editingBooking, editForm, toast, fetchBookings]);
 
     const getStatusBadge = (status) => {
         switch (status) {
@@ -161,7 +161,7 @@ const AdminApprove = () => {
     return (
         <div className="p-4 md:p-8">
             <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4 mb-6">
-                <h1 className="text-2xl font-bold text-gray-800 flex items-center gap-2">
+                <h1 className="text-xl md:text-2xl font-bold text-gray-800 flex items-center gap-2">
                     <FaCalendarAlt className="text-primary" /> จัดการคำขอจอง
                 </h1>
 

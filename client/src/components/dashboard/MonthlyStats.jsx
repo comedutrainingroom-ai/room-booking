@@ -63,13 +63,13 @@ const MonthlyStats = ({ bookings }) => {
     ].filter(item => item.value > 0);
 
     return (
-        <div className="bg-white rounded-2xl p-6 shadow-sm border border-gray-100">
+        <div className="bg-white rounded-xl p-5 md:p-6 shadow-sm border border-gray-200">
             <div className="flex items-center gap-2 mb-4">
-                <div className="p-2 rounded-lg bg-blue-50 text-blue-500">
+                <div className="p-2 rounded-md bg-indigo-50 text-indigo-600">
                     <FaCalendarAlt />
                 </div>
                 <h3 className="font-bold text-gray-800">สรุปรายเดือน</h3>
-                <span className="text-xs text-gray-400 ml-auto">
+                <span className="text-xs text-gray-500 ml-auto font-medium">
                     {thaiMonths[currentMonth]} {currentYear + 543}
                 </span>
             </div>

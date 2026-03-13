@@ -34,6 +34,7 @@ const Navbar = ({ toggleSidebar }) => {
     const notiDropdownRef = useRef(null);
     const [isDropdownOpen, setIsDropdownOpen] = useState(false);
     const dropdownRef = useRef(null);
+    const dropdownTimeoutRef = useRef(null);
     const [bellShake, setBellShake] = useState(false);
 
     const handleLogout = async () => {
@@ -253,12 +254,9 @@ const Navbar = ({ toggleSidebar }) => {
                         <button onClick={toggleSidebar} className="text-white hover:bg-white/10 p-2 rounded-full transition focus:outline-none active:scale-95">
                             <FaBars className="text-lg" />
                         </button>
-                        <Link to="/" className="text-white text-lg font-bold flex items-center gap-2 hover:opacity-90 transition">
-                            <div className="bg-white/20 p-1.5 rounded-lg backdrop-blur-sm">
-                                <FaBuilding className="text-base" />
-                            </div>
-                            <span className="tracking-tight hidden md:inline">{settings?.systemName || 'ระบบจองห้องประชุม'}</span>
-                            <span className="tracking-tight md:hidden">Booking</span>
+                        <Link to="/" className="text-white text-xl font-bold font-display hover:opacity-90 transition">
+                            <span className="tracking-tight hidden md:inline">{settings?.systemName || 'CED-BOOKING'}</span>
+                            <span className="tracking-tight md:hidden">CED-BOOKING</span>
                         </Link>
                     </div>
 
@@ -286,7 +284,7 @@ const Navbar = ({ toggleSidebar }) => {
 
                                 {/* Notification Dropdown — Modern Design */}
                                 {isNotiDropdownOpen && (
-                                    <div className="absolute right-0 mt-3 w-[360px] bg-white/95 backdrop-blur-xl rounded-2xl shadow-2xl border border-gray-100/80 overflow-hidden ring-1 ring-black/5 z-50 animate-scaleIn">
+                                    <div className="absolute right-0 sm:right-0 mt-3 w-[calc(100vw-2rem)] sm:w-[360px] bg-white/95 backdrop-blur-xl rounded-2xl shadow-2xl border border-gray-100/80 overflow-hidden ring-1 ring-black/5 z-50 animate-scaleIn -right-2">
                                         {/* Header */}
                                         <div className="px-5 py-3.5 border-b border-gray-100 flex justify-between items-center bg-gradient-to-r from-gray-50 to-white">
                                             <div className="flex items-center gap-2">
@@ -408,9 +406,29 @@ const Navbar = ({ toggleSidebar }) => {
 
                         {/* User Profile Dropdown */}
                         {currentUser ? (
-                            <div className="relative" ref={dropdownRef}>
+                            <div 
+                                className="relative" 
+                                ref={dropdownRef}
+                                onMouseEnter={() => {
+                                    if (window.innerWidth >= 768) {
+                                        if (dropdownTimeoutRef.current) clearTimeout(dropdownTimeoutRef.current);
+                                        setIsDropdownOpen(true);
+                                    }
+                                }}
+                                onMouseLeave={() => {
+                                    if (window.innerWidth >= 768) {
+                                        dropdownTimeoutRef.current = setTimeout(() => {
+                                            setIsDropdownOpen(false);
+                                        }, 300); // 300ms delay
+                                    }
+                                }}
+                            >
                                 <button
-                                    onClick={() => setIsDropdownOpen(!isDropdownOpen)}
+                                    onClick={() => {
+                                        if (window.innerWidth < 768) {
+                                            setIsDropdownOpen(!isDropdownOpen);
+                                        }
+                                    }}
                                     className="flex items-center gap-3 text-white hover:bg-white/10 py-1 px-2 pr-3 rounded-full transition-all duration-200 focus:outline-none border border-transparent hover:border-white/20"
                                 >
                                     <img
@@ -423,13 +441,13 @@ const Navbar = ({ toggleSidebar }) => {
                                         }}
                                     />
                                     <div className="hidden md:block text-left mr-2">
-                                        <p className="text-sm font-bold truncate max-w-[120px] leading-tight text-white">{currentUser.displayName || "ผู้ใช้งาน"}</p>
-                                        <div className="flex justify-start mt-0.5">
-                                            <span className={`text-[10px] px-2 py-0.5 rounded-full font-bold uppercase tracking-wider flex items-center gap-1 w-fit
+                                        <p className="text-sm font-medium max-w-[250px] whitespace-nowrap overflow-hidden text-ellipsis leading-tight text-white">{currentUser.displayName || "ผู้ใช้งาน"}</p>
+                                        <div className="flex justify-start mt-1">
+                                            <span className={`text-[11px] px-2 py-0.5 rounded-sm font-medium tracking-wide flex items-center gap-1 w-fit
                                                 ${dbUser?.role === 'admin'
-                                                    ? 'bg-yellow-400 text-yellow-900 shadow-[0_0_10px_rgba(250,204,21,0.4)] border border-yellow-300'
-                                                    : 'bg-white/20 text-white/90 border border-white/10'}`}>
-                                                {dbUser?.role === 'admin' ? '👑 ผู้ดูแลระบบ' : '🎓 นักศึกษา'}
+                                                    ? 'bg-white text-emerald-800 shadow-sm border border-emerald-100/20'
+                                                    : 'bg-white text-gray-700 shadow-sm border border-gray-200/50'}`}>
+                                                {dbUser?.role === 'admin' ? 'ผู้ดูแลระบบ' : 'นักศึกษา'}
                                             </span>
                                         </div>
                                     </div>
@@ -438,7 +456,7 @@ const Navbar = ({ toggleSidebar }) => {
 
                                 {/* Dropdown Menu */}
                                 {isDropdownOpen && (
-                                    <div className="absolute right-0 mt-2 w-56 bg-white rounded-xl shadow-xl border border-gray-100 py-1 animate-in fade-in slide-in-from-top-2 duration-200 overflow-hidden ring-1 ring-black/5">
+                                    <div className="absolute right-0 mt-2 w-56 bg-white rounded-xl shadow-xl border border-gray-100 py-1 origin-top-right transition-all duration-300 ease-out animate-in fade-in slide-in-from-top-2 overflow-hidden ring-1 ring-black/5 z-50">
                                         <div className="px-4 py-3 border-b border-gray-50 bg-gray-50/50 md:hidden">
                                             <p className="text-sm font-bold text-gray-800">{currentUser.displayName}</p>
                                             <p className="text-xs text-gray-500 truncate">{currentUser.email}</p>

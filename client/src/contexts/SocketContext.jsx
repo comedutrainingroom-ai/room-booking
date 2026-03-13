@@ -23,7 +23,7 @@ export const SocketProvider = ({ children }) => {
         });
 
         socketInstance.on('connect', () => {
-            console.log('[Socket.io] Connected:', socketInstance.id);
+            console.log('[Socket.io] Connected successfully');
         });
 
         socketInstance.on('disconnect', () => {
@@ -33,7 +33,11 @@ export const SocketProvider = ({ children }) => {
         setSocket(socketInstance);
 
         return () => {
-            socketInstance.disconnect();
+            // Delay the disconnect slightly to avoid WebSocket closing errors
+            // during React 18 Strict Mode's fast unmount/remount cycle
+            setTimeout(() => {
+                if (socketInstance) socketInstance.disconnect();
+            }, 100);
         };
     }, []);
 

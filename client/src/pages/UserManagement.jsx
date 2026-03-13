@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback, useMemo } from 'react';
 import api from '../services/api';
 import { FaUsers, FaSearch, FaUserShield, FaUser, FaBan, FaCheck, FaTrash, FaCrown } from 'react-icons/fa';
 import { useToast } from '../contexts/ToastContext';
@@ -10,6 +10,7 @@ const UserManagement = () => {
     const [searchTerm, setSearchTerm] = useState('');
     const [actionLoading, setActionLoading] = useState(null);
     const [showConfirm, setShowConfirm] = useState(null);
+    const [showBanConfirm, setShowBanConfirm] = useState(null);
     const toast = useToast();
     const { user: currentUser } = useAuth();
 
@@ -17,7 +18,7 @@ const UserManagement = () => {
         fetchUsers();
     }, []);
 
-    const fetchUsers = async () => {
+    const fetchUsers = useCallback(async () => {
         try {
             const res = await api.get('/users');
             if (res.data.success) {
@@ -28,9 +29,9 @@ const UserManagement = () => {
             toast.error('ไม่สามารถโหลดข้อมูลผู้ใช้ได้');
         }
         setLoading(false);
-    };
+    }, [toast]);
 
-    const handleRoleChange = async (userId, newRole) => {
+    const handleRoleChange = useCallback(async (userId, newRole) => {
         setActionLoading(userId);
         try {
             const res = await api.put(`/users/${userId}/role`, { role: newRole });
@@ -42,9 +43,9 @@ const UserManagement = () => {
             toast.error(error.response?.data?.error || 'เกิดข้อผิดพลาด');
         }
         setActionLoading(null);
-    };
+    }, [toast, fetchUsers]);
 
-    const handleBanToggle = async (userId, isBanned) => {
+    const handleBanToggle = useCallback(async (userId, isBanned) => {
         setActionLoading(userId);
         try {
             const res = await api.put(`/users/${userId}/ban`, { isBanned });
@@ -56,9 +57,9 @@ const UserManagement = () => {
             toast.error(error.response?.data?.error || 'เกิดข้อผิดพลาด');
         }
         setActionLoading(null);
-    };
+    }, [toast, fetchUsers]);
 
-    const handleDelete = async (userId) => {
+    const handleDelete = useCallback(async (userId) => {
         setActionLoading(userId);
         try {
             const res = await api.delete(`/users/${userId}`);
@@ -71,7 +72,7 @@ const UserManagement = () => {
             toast.error(error.response?.data?.error || 'เกิดข้อผิดพลาด');
         }
         setActionLoading(null);
-    };
+    }, [toast, fetchUsers]);
 
     const formatDate = (dateString) => {
         if (!dateString) return '-';
@@ -84,11 +85,11 @@ const UserManagement = () => {
         });
     };
 
-    const filteredUsers = users.filter(user =>
+    const filteredUsers = useMemo(() => users.filter(user =>
         user.name?.toLowerCase().includes(searchTerm.toLowerCase()) ||
         user.email?.toLowerCase().includes(searchTerm.toLowerCase()) ||
         user.studentId?.toLowerCase().includes(searchTerm.toLowerCase())
-    );
+    ), [users, searchTerm]);
 
     const stats = {
         total: users.length,
@@ -97,7 +98,7 @@ const UserManagement = () => {
     };
 
     return (
-        <div className="w-full h-full px-4 py-8">
+        <div className="w-full h-full px-0 sm:px-4 py-6 sm:py-8">
             {/* Header */}
             <div className="flex flex-col md:flex-row justify-between items-start md:items-center mb-8 gap-4">
                 <div>
@@ -122,7 +123,7 @@ const UserManagement = () => {
             </div>
 
             {/* Stats */}
-            <div className="grid grid-cols-3 gap-4 mb-6">
+            <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 mb-6">
                 <div className="bg-white rounded-xl p-4 border border-gray-100 shadow-sm">
                     <div className="text-2xl font-bold text-gray-800">{stats.total}</div>
                     <div className="text-sm text-gray-500">สมาชิกทั้งหมด</div>
@@ -142,7 +143,9 @@ const UserManagement = () => {
                     <div className="animate-spin rounded-full h-10 w-10 border-b-2 border-primary"></div>
                 </div>
             ) : (
-                <div className="bg-white rounded-xl shadow-sm border border-gray-200 overflow-hidden">
+                <>
+                {/* Desktop Table View */}
+                <div className="hidden md:block bg-white rounded-xl shadow-sm border border-gray-200 overflow-hidden">
                     <div className="overflow-x-auto">
                         <table className="w-full text-left">
                             <thead className="bg-gray-50 border-b border-gray-100">
@@ -221,7 +224,7 @@ const UserManagement = () => {
                                                         <div className="flex gap-1.5 justify-center">
                                                             {user.isBanned ? (
                                                                 <button
-                                                                    onClick={() => handleBanToggle(user._id, false)}
+                                                                    onClick={() => setShowBanConfirm({ userId: user._id, isBanned: false, userName: user.name })}
                                                                     disabled={actionLoading === user._id}
                                                                     className="px-3 py-1.5 border border-emerald-300 text-emerald-700 text-xs font-semibold rounded-lg hover:bg-emerald-50 transition-all duration-200 flex items-center gap-1.5 disabled:opacity-40"
                                                                     title="ปลดระงับ"
@@ -230,7 +233,7 @@ const UserManagement = () => {
                                                                 </button>
                                                             ) : (
                                                                 <button
-                                                                    onClick={() => handleBanToggle(user._id, true)}
+                                                                    onClick={() => setShowBanConfirm({ userId: user._id, isBanned: true, userName: user.name })}
                                                                     disabled={actionLoading === user._id}
                                                                     className="px-3 py-1.5 border border-red-300 text-red-600 text-xs font-semibold rounded-lg hover:bg-red-50 transition-all duration-200 flex items-center gap-1.5 disabled:opacity-40"
                                                                     title="ระงับการใช้งาน"
@@ -266,6 +269,95 @@ const UserManagement = () => {
                         </table>
                     </div>
                 </div>
+
+                {/* Mobile Card View */}
+                <div className="md:hidden space-y-3">
+                    {filteredUsers.length > 0 ? (
+                        filteredUsers.map((user) => {
+                            const isCurrentUser = currentUser?.email === user.email;
+                            return (
+                                <div key={user._id} className={`bg-white rounded-xl border shadow-sm p-4 ${user.isBanned ? 'border-red-200 bg-red-50/30' : 'border-gray-100'}`}>
+                                    <div className="flex items-start gap-3">
+                                        <div className="h-12 w-12 rounded-full bg-gray-200 overflow-hidden flex-shrink-0">
+                                            <img
+                                                src={user.picture || `https://ui-avatars.com/api/?name=${user.name || 'U'}`}
+                                                alt=""
+                                                className="h-full w-full object-cover"
+                                            />
+                                        </div>
+                                        <div className="flex-1 min-w-0">
+                                            <div className="flex items-center gap-2 flex-wrap">
+                                                <span className="font-bold text-gray-800 truncate">{user.name || 'ไม่ระบุชื่อ'}</span>
+                                                {isCurrentUser && <span className="text-xs text-primary font-medium">(คุณ)</span>}
+                                                {user.isBanned ? (
+                                                    <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-md text-[10px] font-bold bg-red-100 text-red-700">ถูกระงับ</span>
+                                                ) : (
+                                                    <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-md text-[10px] font-bold bg-emerald-100 text-emerald-700">ปกติ</span>
+                                                )}
+                                            </div>
+                                            <div className="text-xs text-gray-400 mt-0.5">{user.faculty || '-'}</div>
+                                            <div className="text-xs text-gray-500 mt-1">{user.studentId || '-'} · {user.email}</div>
+                                        </div>
+                                    </div>
+
+                                    <div className="flex items-center justify-between mt-3 pt-3 border-t border-gray-100">
+                                        <div className="flex items-center gap-2">
+                                            <select
+                                                value={user.role}
+                                                onChange={(e) => handleRoleChange(user._id, e.target.value)}
+                                                disabled={isCurrentUser || actionLoading === user._id}
+                                                className={`px-2 py-1 rounded-lg border text-xs font-semibold
+                                                    ${user.role === 'admin'
+                                                        ? 'bg-amber-50 border-amber-300 text-amber-800'
+                                                        : 'bg-gray-50 border-gray-300 text-gray-700'
+                                                    } disabled:opacity-40`}
+                                            >
+                                                <option value="student">นักศึกษา</option>
+                                                <option value="admin">ผู้ดูแลระบบ</option>
+                                            </select>
+                                            <span className="text-[10px] text-gray-400">{formatDate(user.lastLogin)}</span>
+                                        </div>
+
+                                        {!isCurrentUser && (
+                                            <div className="flex gap-1.5">
+                                                {user.isBanned ? (
+                                                    <button
+                                                        onClick={() => setShowBanConfirm({ userId: user._id, isBanned: false, userName: user.name })}
+                                                        disabled={actionLoading === user._id}
+                                                        className="px-2.5 py-1 border border-emerald-300 text-emerald-700 text-xs font-semibold rounded-lg disabled:opacity-40"
+                                                    >
+                                                        <FaCheck className="text-[10px]" />
+                                                    </button>
+                                                ) : (
+                                                    <button
+                                                        onClick={() => setShowBanConfirm({ userId: user._id, isBanned: true, userName: user.name })}
+                                                        disabled={actionLoading === user._id}
+                                                        className="px-2.5 py-1 border border-red-300 text-red-600 text-xs font-semibold rounded-lg disabled:opacity-40"
+                                                    >
+                                                        <FaBan className="text-[10px]" />
+                                                    </button>
+                                                )}
+                                                <button
+                                                    onClick={() => setShowConfirm(user._id)}
+                                                    disabled={actionLoading === user._id}
+                                                    className="w-7 h-7 border border-gray-200 text-gray-400 rounded-lg flex items-center justify-center disabled:opacity-40"
+                                                >
+                                                    <FaTrash className="text-[10px]" />
+                                                </button>
+                                            </div>
+                                        )}
+                                    </div>
+                                </div>
+                            );
+                        })
+                    ) : (
+                        <div className="py-12 text-center text-gray-400">
+                            <FaUsers className="text-4xl text-gray-200 mx-auto mb-3" />
+                            <p>ไม่พบสมาชิก</p>
+                        </div>
+                    )}
+                </div>
+                </>
             )}
 
             {/* Confirm Delete Modal */}
@@ -288,6 +380,55 @@ const UserManagement = () => {
                             >
                                 {actionLoading === showConfirm ? 'กำลังลบ...' : 'ลบ'}
                             </button>
+                        </div>
+                    </div>
+                </div>
+            )}
+
+            {/* Confirm Ban/Unban Modal */}
+            {showBanConfirm && (
+                <div className="fixed inset-0 bg-black/40 backdrop-blur-sm flex items-center justify-center z-50 p-4" onClick={() => setShowBanConfirm(null)}>
+                    <div className="bg-white rounded-2xl shadow-xl max-w-sm w-full p-6" onClick={e => e.stopPropagation()}>
+                        <div className="flex flex-col items-center text-center">
+                            <div className={`w-14 h-14 rounded-full flex items-center justify-center mb-4 ${showBanConfirm.isBanned ? 'bg-red-100' : 'bg-emerald-100'}`}>
+                                {showBanConfirm.isBanned
+                                    ? <FaBan className="text-red-500 text-2xl" />
+                                    : <FaCheck className="text-emerald-500 text-2xl" />
+                                }
+                            </div>
+                            <h3 className="text-lg font-bold text-gray-800 mb-2">
+                                {showBanConfirm.isBanned ? 'ยืนยันระงับการใช้งาน?' : 'ยืนยันปลดระงับ?'}
+                            </h3>
+                            <p className="text-sm text-gray-500 mb-6">
+                                {showBanConfirm.isBanned
+                                    ? <>คุณต้องการระงับการใช้งาน <span className="font-semibold text-gray-700">{showBanConfirm.userName || 'ผู้ใช้นี้'}</span> ใช่หรือไม่? ผู้ใช้จะไม่สามารถเข้าสู่ระบบได้</>
+                                    : <>คุณต้องการปลดระงับ <span className="font-semibold text-gray-700">{showBanConfirm.userName || 'ผู้ใช้นี้'}</span> ใช่หรือไม่? ผู้ใช้จะสามารถเข้าสู่ระบบได้ตามปกติ</>
+                                }
+                            </p>
+                            <div className="flex gap-3 w-full">
+                                <button
+                                    onClick={() => setShowBanConfirm(null)}
+                                    className="flex-1 px-4 py-2.5 border border-gray-200 text-gray-600 text-sm font-semibold rounded-xl hover:bg-gray-50 transition-colors"
+                                >
+                                    ยกเลิก
+                                </button>
+                                <button
+                                    onClick={() => {
+                                        handleBanToggle(showBanConfirm.userId, showBanConfirm.isBanned);
+                                        setShowBanConfirm(null);
+                                    }}
+                                    className={`flex-1 px-4 py-2.5 text-white text-sm font-semibold rounded-xl transition-colors flex items-center justify-center gap-2 ${
+                                        showBanConfirm.isBanned
+                                            ? 'bg-red-500 hover:bg-red-600'
+                                            : 'bg-emerald-500 hover:bg-emerald-600'
+                                    }`}
+                                >
+                                    {showBanConfirm.isBanned
+                                        ? <><FaBan className="text-xs" /> ระงับ</>
+                                        : <><FaCheck className="text-xs" /> ปลดระงับ</>
+                                    }
+                                </button>
+                            </div>
                         </div>
                     </div>
                 </div>

@@ -32,6 +32,8 @@ const Login = () => {
                 navigate('/');
             } else if (result && result.code === 'INVALID_EMAIL_DOMAIN') {
                 toast.error('กรุณาใช้อีเมลมหาวิทยาลัย (@kmutnb.ac.th) เท่านั้น');
+            } else if (result && result.code === 'BANNED_USER') {
+                toast.error('บัญชีของคุณถูกระงับการใช้งาน กรุณาติดต่อเจ้าหน้าที่ภาควิชา');
             }
         } catch (error) {
             console.error('Login Failed', error);
@@ -53,7 +55,7 @@ const Login = () => {
             </div>
 
             {/* 2. Main Container */}
-            <div className="relative w-full max-w-[1600px] h-[85vh] md:h-[90vh] bg-white/80 backdrop-blur-2xl rounded-[3rem] shadow-2xl flex overflow-hidden border border-white/50 z-10 animate-scale-in">
+            <div className="relative w-full max-w-[1600px] h-auto min-h-[85vh] md:h-[90vh] bg-white/80 backdrop-blur-2xl rounded-2xl md:rounded-[3rem] shadow-2xl flex flex-col md:flex-row overflow-hidden border border-white/50 z-10 animate-scale-in">
 
                 {/* LEFT SIDE (60%) - Hero Image & Branding (Matches Navbar/Home style) */}
                 <div className="hidden lg:flex w-[60%] relative flex-col justify-between p-16 overflow-hidden bg-gradient-to-br from-emerald-600 to-teal-800 text-white group">
@@ -108,16 +110,16 @@ const Login = () => {
                 </div>
 
                 {/* RIGHT SIDE (40%) - Login Interface */}
-                <div className="w-full lg:w-[40%] flex items-center justify-center p-8 md:p-16 relative bg-white/60 backdrop-blur-xl">
+                <div className="w-full lg:w-[40%] flex items-center justify-center p-4 sm:p-8 md:p-16 relative bg-white/60 backdrop-blur-xl">
                     <div className="w-full max-w-md relative z-10">
 
                         {/* Header Section */}
-                        <div className="mb-10 text-center lg:text-left">
+                        <div className="mb-6 md:mb-10 text-center lg:text-left">
                             <div className="inline-block p-4 bg-white rounded-2xl shadow-premium mb-6 hover:scale-105 transition-transform duration-300">
                                 <FaLaptopCode className="text-4xl text-emerald-600" />
                             </div>
 
-                            <h1 className="text-4xl font-bold text-gray-800 mb-2 tracking-tight font-display">
+                            <h1 className="text-2xl sm:text-3xl md:text-4xl font-bold text-gray-800 mb-2 tracking-tight font-display">
                                 ยินดีต้อนรับ
                             </h1>
                             <div className="flex items-center justify-center lg:justify-start gap-2 text-gray-500 font-mono text-sm">

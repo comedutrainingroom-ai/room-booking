@@ -1,5 +1,5 @@
 import { useState, useEffect, useMemo } from 'react';
-import { FaBuilding, FaSearch, FaFilter } from 'react-icons/fa';
+import { FaBuilding, FaSearch, FaFilter, FaTimes, FaUsers, FaCalendarPlus } from 'react-icons/fa';
 import api from '../services/api';
 import { useToast } from '../contexts/ToastContext';
 import RoomCard from '../components/RoomCard';
@@ -10,6 +10,7 @@ const RoomSelection = () => {
     const [loading, setLoading] = useState(true);
     const [searchTerm, setSearchTerm] = useState('');
     const [capacityFilter, setCapacityFilter] = useState('all');
+    const [selectedRoom, setSelectedRoom] = useState(null);
 
     const navigate = useNavigate();
     const toast = useToast();
@@ -61,7 +62,7 @@ const RoomSelection = () => {
     }
 
     return (
-        <div className="p-4 md:p-6 w-full h-full">
+        <div className="w-full h-full px-0 sm:px-4 py-4 sm:py-8">
             {/* Header */}
             <div className="mb-6">
                 <h1 className="text-2xl md:text-3xl font-bold text-gray-800 mb-2">เลือกห้องอบรม</h1>
@@ -117,8 +118,102 @@ const RoomSelection = () => {
                             key={room._id}
                             room={room}
                             onBook={handleBookRoom}
+                            onViewDetails={setSelectedRoom}
                         />
                     ))}
+                </div>
+            )}
+
+            {/* Room Details Modal */}
+            {selectedRoom && (
+                <div 
+                    className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/50 backdrop-blur-sm animate-fadeIn"
+                    onClick={() => setSelectedRoom(null)}
+                >
+                    <div 
+                        className="bg-white rounded-2xl shadow-xl w-full max-w-3xl max-h-[90vh] overflow-hidden flex flex-col md:flex-row animate-slideUp"
+                        onClick={(e) => e.stopPropagation()}
+                    >
+                        {/* Modal Image Section */}
+                        <div className="md:w-1/2 relative bg-gray-100 min-h-[250px] md:min-h-full flex-shrink-0">
+                            {selectedRoom.images && selectedRoom.images.length > 0 ? (
+                                <img
+                                    src={`/uploads/${selectedRoom.images[0]}`}
+                                    alt={selectedRoom.name}
+                                    className="w-full h-full object-cover absolute inset-0"
+                                />
+                            ) : (
+                                <div className="w-full h-full absolute inset-0 flex items-center justify-center bg-gradient-to-br from-gray-50 to-gray-200">
+                                    <FaBuilding className="text-6xl text-gray-300" />
+                                </div>
+                            )}
+                            
+                            {/* Mobile Close Button (Over Image) */}
+                            <button
+                                onClick={() => setSelectedRoom(null)}
+                                className="absolute top-4 right-4 bg-black/30 hover:bg-black/50 text-white p-2.5 rounded-full backdrop-blur-md transition-colors md:hidden z-10"
+                            >
+                                <FaTimes />
+                            </button>
+                            
+                            {/* Mobile Book Button Sticky Bottom Image */}
+                            <div className="absolute bottom-0 inset-x-0 p-4 bg-gradient-to-t from-black/80 to-transparent md:hidden flex justify-end">
+                                <div className="bg-white/90 backdrop-blur-sm px-3 py-1.5 rounded-lg text-sm font-semibold text-gray-800 flex items-center gap-2 shadow-sm">
+                                    <FaUsers className="text-primary" /> {selectedRoom.capacity} ท่าน
+                                </div>
+                            </div>
+                        </div>
+                        
+                        {/* Modal Content Section */}
+                        <div className="p-6 md:p-8 md:w-1/2 flex flex-col relative overflow-y-auto w-full custom-scrollbar">
+                            {/* Desktop Close Button */}
+                            <button
+                                onClick={() => setSelectedRoom(null)}
+                                className="absolute top-6 right-6 text-gray-400 hover:text-gray-800 bg-gray-50 hover:bg-gray-100 p-2 rounded-full transition-colors hidden md:block"
+                            >
+                                <FaTimes />
+                            </button>
+
+                            <div className="mb-6 pr-8">
+                                <h2 className="text-2xl md:text-3xl font-bold text-gray-800 mb-3">{selectedRoom.name}</h2>
+                                <div className="hidden md:inline-flex items-center gap-2 text-sm text-gray-700 bg-emerald-50 px-3 py-1.5 rounded-lg border border-emerald-100">
+                                    <FaUsers className="text-emerald-600" />
+                                    <span>รองรับผู้เข้าร่วมได้สูงสุด <strong>{selectedRoom.capacity}</strong> ท่าน</span>
+                                </div>
+                            </div>
+
+                            <div className="mb-8">
+                                <h3 className="text-sm font-bold text-gray-800 mb-2 uppercase tracking-wide">รายละเอียดห้อง</h3>
+                                <p className="text-gray-600 text-sm md:text-base leading-relaxed whitespace-pre-wrap bg-gray-50 p-4 rounded-xl border border-gray-100">
+                                    {selectedRoom.description || 'ไม่มีข้อมูลรายละเอียดเพิ่มเติมสำหรับห้องนี้'}
+                                </p>
+                            </div>
+
+                            {selectedRoom.equipment && selectedRoom.equipment.length > 0 && (
+                                <div className="mb-8">
+                                    <h3 className="text-sm font-bold text-gray-800 mb-3 uppercase tracking-wide">อุปกรณ์อำนวยความสะดวก</h3>
+                                    <div className="flex flex-wrap gap-2">
+                                        {selectedRoom.equipment.map((eq, idx) => (
+                                            <span key={idx} className="px-3 py-1.5 bg-white border border-gray-200 shadow-sm text-gray-700 text-xs md:text-sm font-medium rounded-lg flex items-center gap-1.5">
+                                                <span className="w-1.5 h-1.5 rounded-full bg-green-500"></span>
+                                                {eq}
+                                            </span>
+                                        ))}
+                                    </div>
+                                </div>
+                            )}
+
+                            <div className="mt-auto pt-6 border-t border-gray-100">
+                                <button
+                                    onClick={() => handleBookRoom(selectedRoom)}
+                                    className="w-full py-3.5 bg-gradient-to-r from-primary to-emerald-500 hover:from-emerald-500 hover:to-primary text-white font-bold rounded-xl flex items-center justify-center gap-2 transition-all shadow-md hover:shadow-lg hover:-translate-y-0.5 active:translate-y-0"
+                                >
+                                    <FaCalendarPlus className="text-lg" />
+                                    ดำเนินการจองห้องนี้
+                                </button>
+                            </div>
+                        </div>
+                    </div>
                 </div>
             )}
         </div>

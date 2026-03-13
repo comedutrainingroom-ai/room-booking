@@ -30,10 +30,20 @@ const Sidebar = ({ isOpen }) => {
     ];
 
     return (
-        <aside className="bg-white shadow-lg border-r border-gray-100 flex-shrink-0 flex flex-col justify-between w-64 h-full">
-            <div className="w-64">
-                <div className="p-6">
-                    <h2 className="text-xl font-bold text-gray-800">เมนูหลัก</h2>
+        <aside className="bg-white shadow-lg border-r border-gray-100 flex-shrink-0 flex flex-col justify-between w-full h-full">
+            <div className="w-full">
+                <div className="px-6 py-5 border-b border-gray-100/60 mb-2">
+                    <div className="flex items-center justify-center w-full group cursor-pointer relative py-1">
+                        {/* Soft Brand Glow Effect on Hover */}
+                        <div className="absolute inset-0 bg-primary/10 blur-2xl rounded-full scale-125 opacity-0 group-hover:opacity-100 transition-opacity duration-500 pointer-events-none"></div>
+                        
+                        {/* Logo */}
+                        <img 
+                            src="/Comedu.png" 
+                            alt="Comedu Logo" 
+                            className="h-12 md:h-14 w-auto object-contain relative z-10 drop-shadow-sm group-hover:drop-shadow-md group-hover:scale-105 transition-all duration-300"
+                        />
+                    </div>
                 </div>
                 <nav className="mt-2">
                     <ul>

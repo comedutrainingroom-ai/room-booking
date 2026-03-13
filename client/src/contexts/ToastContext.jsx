@@ -11,78 +11,64 @@ export const useToast = () => {
     return context;
 };
 
-// Premium Toast Component
+// Premium Clean Toast Component
 const Toast = ({ id, type, message, onClose }) => {
     const config = {
         success: {
-            gradient: 'from-emerald-500 to-teal-600',
-            glow: 'shadow-emerald-500/25',
-            icon: <FaCheck className="w-5 h-5" />
+            icon: <FaCheck className="w-4 h-4" />,
+            iconBg: 'bg-emerald-100/80 text-emerald-600',
+            borderColor: 'border-emerald-500'
         },
         error: {
-            gradient: 'from-rose-500 to-red-600',
-            glow: 'shadow-rose-500/25',
-            icon: <FaTimes className="w-5 h-5" />
+            icon: <FaTimes className="w-4 h-4" />,
+            iconBg: 'bg-rose-100/80 text-rose-600',
+            borderColor: 'border-rose-500'
         },
         warning: {
-            gradient: 'from-amber-400 to-orange-500',
-            glow: 'shadow-amber-500/25',
-            icon: <FaExclamationTriangle className="w-5 h-5" />
+            icon: <FaExclamationTriangle className="w-4 h-4" />,
+            iconBg: 'bg-amber-100/80 text-amber-600',
+            borderColor: 'border-amber-500'
         },
         info: {
-            gradient: 'from-blue-500 to-indigo-600',
-            glow: 'shadow-blue-500/25',
-            icon: <FaInfoCircle className="w-5 h-5" />
+            icon: <FaInfoCircle className="w-4 h-4" />,
+            iconBg: 'bg-blue-100/80 text-blue-600',
+            borderColor: 'border-blue-500'
         }
     };
 
-    const { gradient, glow, icon } = config[type] || config.info;
+    const { icon, iconBg, borderColor } = config[type] || config.info;
 
     return (
         <div className={`
+            pointer-events-auto
             relative overflow-hidden
-            bg-white/95 backdrop-blur-xl
-            rounded-2xl
-            shadow-2xl ${glow}
-            border border-white/20
-            min-w-[340px] max-w-[440px]
+            bg-white/95 backdrop-blur-md
+            rounded-xl
+            shadow-[0_8px_30px_rgb(0,0,0,0.08)]
+            border border-gray-100
+            border-l-4 ${borderColor}
+            w-full sm:w-auto
+            min-w-[280px] sm:min-w-[320px] max-w-sm
+            flex items-center gap-3 p-3.5
+            animate-slide-in
         `}>
-            {/* Gradient Top Border */}
-            <div className={`absolute top-0 left-0 right-0 h-1 bg-gradient-to-r ${gradient}`}></div>
-
-            {/* Content */}
-            <div className="flex items-center gap-4 p-4">
-                {/* Icon with Gradient Background */}
-                <div className={`
-                    bg-gradient-to-br ${gradient}
-                    p-3 rounded-xl
-                    text-white
-                    shadow-lg ${glow}
-                    flex-shrink-0
-                `}>
-                    {icon}
-                </div>
-
-                {/* Message */}
-                <p className="text-gray-700 font-medium text-sm flex-1 leading-relaxed">
-                    {message}
-                </p>
-
-                {/* Close Button */}
-                <button
-                    onClick={() => onClose(id)}
-                    className="
-                        w-8 h-8 rounded-full
-                        flex items-center justify-center
-                        text-gray-400 hover:text-gray-600
-                        hover:bg-gray-100
-                        transition-all duration-200
-                        flex-shrink-0
-                    "
-                >
-                    <FaTimes className="w-3.5 h-3.5" />
-                </button>
+            {/* Icon */}
+            <div className={`flex-shrink-0 w-8 h-8 rounded-full flex items-center justify-center ${iconBg}`}>
+                {icon}
             </div>
+
+            {/* Message */}
+            <p className="text-gray-700 font-medium text-sm flex-1 leading-snug">
+                {message}
+            </p>
+
+            {/* Close Button */}
+            <button
+                onClick={() => onClose(id)}
+                className="flex-shrink-0 p-1.5 text-gray-400 hover:text-gray-600 hover:bg-gray-100 rounded-lg transition-colors ml-1"
+            >
+                <FaTimes className="w-3.5 h-3.5" />
+            </button>
         </div>
     );
 };
@@ -91,29 +77,23 @@ const Toast = ({ id, type, message, onClose }) => {
 const ConfirmModal = ({ title, message, type, onConfirm, onCancel }) => {
     const config = {
         warning: {
-            gradient: 'from-amber-400 to-orange-500',
-            glow: 'shadow-amber-500/30',
-            iconBg: 'bg-gradient-to-br from-amber-400 to-orange-500',
-            icon: <FaExclamationTriangle className="w-8 h-8 text-white" />,
-            confirmBtn: 'from-amber-500 to-orange-600 hover:from-amber-600 hover:to-orange-700'
+            iconBg: 'bg-amber-100',
+            icon: <FaExclamationTriangle className="w-8 h-8 text-amber-600" />,
+            confirmBtn: 'bg-amber-600 hover:bg-amber-700'
         },
         danger: {
-            gradient: 'from-rose-500 to-red-600',
-            glow: 'shadow-rose-500/30',
-            iconBg: 'bg-gradient-to-br from-rose-500 to-red-600',
-            icon: <FaTimes className="w-8 h-8 text-white" />,
-            confirmBtn: 'from-rose-500 to-red-600 hover:from-rose-600 hover:to-red-700'
+            iconBg: 'bg-red-100',
+            icon: <FaTimes className="w-8 h-8 text-red-600" />,
+            confirmBtn: 'bg-red-600 hover:bg-red-700'
         },
         info: {
-            gradient: 'from-blue-500 to-indigo-600',
-            glow: 'shadow-blue-500/30',
-            iconBg: 'bg-gradient-to-br from-blue-500 to-indigo-600',
-            icon: <FaInfoCircle className="w-8 h-8 text-white" />,
-            confirmBtn: 'from-blue-500 to-indigo-600 hover:from-blue-600 hover:to-indigo-700'
+            iconBg: 'bg-blue-100',
+            icon: <FaInfoCircle className="w-8 h-8 text-blue-600" />,
+            confirmBtn: 'bg-blue-600 hover:bg-blue-700'
         }
     };
 
-    const { gradient, glow, iconBg, icon, confirmBtn } = config[type] || config.warning;
+    const { iconBg, icon, confirmBtn } = config[type] || config.warning;
 
     return (
         <div className="fixed inset-0 z-[9999] flex items-center justify-center p-4">
@@ -127,24 +107,20 @@ const ConfirmModal = ({ title, message, type, onConfirm, onCancel }) => {
             <div className={`
                 relative
                 bg-white
-                rounded-3xl
-                shadow-2xl ${glow}
+                rounded-xl
+                shadow-xl
                 max-w-sm w-full
                 overflow-hidden
+                border border-gray-100
             `}>
-                {/* Decorative Background */}
-                <div className={`absolute top-0 left-0 right-0 h-32 bg-gradient-to-br ${gradient} opacity-10`}></div>
-
                 {/* Content */}
-                <div className="relative p-8">
+                <div className="relative p-6 pt-8">
                     {/* Icon */}
-                    <div className="flex justify-center mb-6">
+                    <div className="flex justify-center mb-5">
                         <div className={`
                             ${iconBg}
-                            w-20 h-20 rounded-2xl
+                            w-16 h-16 rounded-full
                             flex items-center justify-center
-                            shadow-xl ${glow}
-                            rotate-3
                         `}>
                             {icon}
                         </div>
@@ -165,11 +141,12 @@ const ConfirmModal = ({ title, message, type, onConfirm, onCancel }) => {
                         <button
                             onClick={onCancel}
                             className="
-                                flex-1 px-5 py-3
-                                rounded-xl
-                                border-2 border-gray-200
-                                text-gray-600 font-semibold
-                                hover:bg-gray-50 hover:border-gray-300
+                                flex-1 px-4 py-2.5
+                                rounded-lg
+                                border border-gray-300
+                                bg-white
+                                text-gray-700 font-medium
+                                hover:bg-gray-50
                                 transition-all duration-200
                                 text-sm
                             "
@@ -179,11 +156,10 @@ const ConfirmModal = ({ title, message, type, onConfirm, onCancel }) => {
                         <button
                             onClick={onConfirm}
                             className={`
-                                flex-1 px-5 py-3
-                                rounded-xl
-                                bg-gradient-to-r ${confirmBtn}
-                                text-white font-semibold
-                                shadow-lg ${glow}
+                                flex-1 px-4 py-2.5
+                                rounded-lg
+                                ${confirmBtn}
+                                text-white font-medium
                                 transition-all duration-200
                                 text-sm
                             `}
@@ -243,15 +219,16 @@ export const ToastProvider = ({ children }) => {
             {children}
 
             {/* Toast Container */}
-            <div className="fixed bottom-6 right-6 z-[9999] flex flex-col gap-4">
+            <div className="fixed top-16 right-3 sm:right-6 sm:top-20 z-[9999] flex flex-col gap-2.5 items-end pointer-events-none w-auto max-w-[calc(100vw-1.5rem)] sm:max-w-sm">
                 {toasts.map(t => (
-                    <Toast
-                        key={t.id}
-                        id={t.id}
-                        type={t.type}
-                        message={t.message}
-                        onClose={removeToast}
-                    />
+                    <div key={t.id} className="w-auto">
+                        <Toast
+                            id={t.id}
+                            type={t.type}
+                            message={t.message}
+                            onClose={removeToast}
+                        />
+                    </div>
                 ))}
             </div>
 

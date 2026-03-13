@@ -61,9 +61,9 @@ const YearlyStats = ({ bookings }) => {
     const CustomTooltip = ({ active, payload, label }) => {
         if (active && payload && payload.length) {
             return (
-                <div className="bg-white p-3 border border-gray-100 shadow-lg rounded-lg">
+                <div className="bg-white p-3 border border-gray-200 shadow-sm rounded-lg">
                     <p className="text-sm font-bold text-gray-800">{label}</p>
-                    <p className="text-xs text-purple-600 font-medium">
+                    <p className="text-xs text-emerald-600 font-medium">
                         {payload[0].value} การจอง
                     </p>
                 </div>
@@ -73,11 +73,11 @@ const YearlyStats = ({ bookings }) => {
     };
 
     return (
-        <div className="bg-white rounded-2xl p-6 shadow-sm border border-gray-100 h-full flex flex-col">
+        <div className="bg-white rounded-xl p-5 md:p-6 shadow-sm border border-gray-200 h-full flex flex-col">
             {/* Header */}
             <div className="flex items-center justify-between mb-6">
                 <div className="flex items-center gap-3">
-                    <div className="p-2.5 rounded-xl bg-gradient-to-br from-purple-500 to-indigo-600 text-white shadow-sm">
+                    <div className="p-2.5 rounded-md bg-violet-50 text-violet-600 border border-violet-100">
                         <FaChartLine />
                     </div>
                     <div>
@@ -90,8 +90,8 @@ const YearlyStats = ({ bookings }) => {
             {/* Key Metrics Grid */}
             <div className="grid grid-cols-2 gap-4 mb-6">
                 {/* Total Hours */}
-                <div className="p-4 rounded-xl bg-purple-50 border border-purple-100 transition-transform hover:scale-[1.02]">
-                    <div className="flex items-center gap-1.5 text-purple-600 mb-1">
+                <div className="p-4 rounded-lg bg-white border border-gray-200 hover:border-gray-300 transition-colors">
+                    <div className="flex items-center gap-1.5 text-gray-600 mb-1">
                         <FaClock className="text-xs" />
                         <span className="text-[10px] uppercase font-bold tracking-wider">เวลาใช้งานรวม</span>
                     </div>
@@ -102,8 +102,8 @@ const YearlyStats = ({ bookings }) => {
                 </div>
 
                 {/* Peak Month */}
-                <div className="p-4 rounded-xl bg-indigo-50 border border-indigo-100 transition-transform hover:scale-[1.02]">
-                    <div className="flex items-center gap-1.5 text-indigo-600 mb-1">
+                <div className="p-4 rounded-lg bg-white border border-gray-200 hover:border-gray-300 transition-colors">
+                    <div className="flex items-center gap-1.5 text-gray-600 mb-1">
                         <FaCalendarCheck className="text-xs" />
                         <span className="text-[10px] uppercase font-bold tracking-wider">เดือนพีคสุด</span>
                     </div>
@@ -124,8 +124,8 @@ const YearlyStats = ({ bookings }) => {
                     <AreaChart data={yearlyData.chartData} margin={{ top: 10, right: 10, left: -20, bottom: 0 }}>
                         <defs>
                             <linearGradient id="colorBookings" x1="0" y1="0" x2="0" y2="1">
-                                <stop offset="5%" stopColor="#8b5cf6" stopOpacity={0.3} />
-                                <stop offset="95%" stopColor="#8b5cf6" stopOpacity={0} />
+                                <stop offset="5%" stopColor="#059669" stopOpacity={0.2} />
+                                <stop offset="95%" stopColor="#059669" stopOpacity={0} />
                             </linearGradient>
                         </defs>
                         <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#f3f4f6" />
@@ -146,11 +146,11 @@ const YearlyStats = ({ bookings }) => {
                         <Area
                             type="monotone"
                             dataKey="bookings"
-                            stroke="#8b5cf6"
+                            stroke="#059669"
                             strokeWidth={3}
                             fillOpacity={1}
                             fill="url(#colorBookings)"
-                            activeDot={{ r: 6, strokeWidth: 2, stroke: '#fff' }}
+                            activeDot={{ r: 5, strokeWidth: 2, stroke: '#fff' }}
                         />
                     </AreaChart>
                 </ResponsiveContainer>

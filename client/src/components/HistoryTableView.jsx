@@ -4,7 +4,8 @@ const HistoryTableView = ({ bookings, onCancel, settings, isAdmin }) => {
 
     return (
         <div className="bg-white rounded-2xl shadow-sm border border-gray-100 overflow-hidden">
-            <div className="overflow-x-auto">
+            {/* Desktop Table View */}
+            <div className="hidden md:block overflow-x-auto">
                 <table className="w-full">
                     <thead>
                         <tr className="bg-gray-50 border-b border-gray-100">
@@ -95,6 +96,73 @@ const HistoryTableView = ({ bookings, onCancel, settings, isAdmin }) => {
                         ))}
                     </tbody>
                 </table>
+            </div>
+
+            {/* Mobile Card View */}
+            <div className="md:hidden divide-y divide-gray-100">
+                {bookings.map((booking, index) => (
+                    <div key={booking._id} className="p-4 space-y-3">
+                        <div className="flex justify-between items-start gap-2">
+                            <div>
+                                <div className="font-bold text-gray-800 text-sm mb-0.5">{booking.topic}</div>
+                                {booking.note && <div className="text-xs text-gray-500 line-clamp-1">{booking.note}</div>}
+                            </div>
+                            <div className="flex-shrink-0">{getStatusBadge(booking.status)}</div>
+                        </div>
+
+                        {isAdmin && (
+                            <div className="flex items-center gap-2 text-xs text-gray-600">
+                                <div className="font-medium text-gray-800">{booking.user?.name || '-'}</div>
+                                {booking.user?.department && (
+                                    <>
+                                        <span className="text-gray-300">·</span>
+                                        <span className="text-blue-600">{booking.user.department}</span>
+                                    </>
+                                )}
+                            </div>
+                        )}
+
+                        <div className="grid grid-cols-2 gap-2 text-xs">
+                            <div className="bg-gray-50 p-2 rounded-lg">
+                                <div className="text-gray-500 mb-1">ห้อง</div>
+                                <div className="font-medium text-primary">{booking.room?.name || '-'}</div>
+                            </div>
+                            <div className="bg-gray-50 p-2 rounded-lg">
+                                <div className="text-gray-500 mb-1">เวลา</div>
+                                <div className="font-medium text-gray-800">
+                                    {new Date(booking.startTime).toLocaleTimeString('th-TH', { hour: '2-digit', minute: '2-digit' })} - {new Date(booking.endTime).toLocaleTimeString('th-TH', { hour: '2-digit', minute: '2-digit' })}
+                                </div>
+                            </div>
+                        </div>
+
+                        <div className="flex items-center justify-between text-xs text-gray-500 pt-1">
+                            <div>
+                                {new Date(booking.startTime).toLocaleDateString('th-TH', { day: 'numeric', month: 'short', year: 'numeric' })}
+                            </div>
+                            
+                            {!isAdmin && (
+                                <div className="flex gap-2">
+                                    {booking.status === 'pending' && (
+                                        <button
+                                            onClick={() => onCancel(booking._id)}
+                                            className="flex items-center gap-1.5 bg-red-50 text-red-600 px-3 py-1.5 rounded-lg hover:bg-red-100 transition font-medium"
+                                        >
+                                            <FaBan /> ยกเลิก
+                                        </button>
+                                    )}
+                                    {booking.status === 'approved' && (
+                                        <a
+                                            href={`mailto:${settings?.contactEmail || 'admin@email.com'}`}
+                                            className="flex items-center gap-1.5 bg-primary/10 text-primary px-3 py-1.5 rounded-lg hover:bg-primary/20 transition font-medium"
+                                        >
+                                            <FaEnvelope /> ติดต่อ
+                                        </a>
+                                    )}
+                                </div>
+                            )}
+                        </div>
+                    </div>
+                ))}
             </div>
 
             {/* Empty State */}

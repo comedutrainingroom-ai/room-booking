@@ -19,7 +19,7 @@ const LogoWatermark = () => {
             <img
                 src="/logo.png"
                 alt=""
-                className="w-[900px] h-[900px] object-contain opacity-[0.04]"
+                className="w-[900px] h-[900px] object-contain opacity-[0.07]"
             />
         </div>
     );

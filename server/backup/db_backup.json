@@ -9,7 +9,7 @@
       "lastLogin": "2026-03-03T16:15:01.873Z",
       "name": "PADJAPHON BOONCHOO",
       "picture": "https://lh3.googleusercontent.com/a/ACg8ocJFemPW7FHfR6S6bB7ZnoOFE7MwddSTMWE6bdB8Tx9MM3u6Ladb=s96-c",
-      "role": "admin"
+      "role": "student"
     },
     {
       "_id": "69a70ea941399d8c4349fd9e",
@@ -32,25 +32,868 @@
       "picture": "https://lh3.googleusercontent.com/a/ACg8ocLhkmvvzYiiC7MXVUVAm6vn6TEjTVfOOINk5eWkm-bhoJe2TQ=s96-c"
     }
   ],
+  "auditlogs": [
+    {
+      "_id": "69a72d07cb7c72c3305514aa",
+      "action": "user:login",
+      "performedBy": "69a71b250db1e6cf6c93e921",
+      "targetType": "user",
+      "targetId": "69a71b250db1e6cf6c93e921",
+      "details": "เข้าสู่ระบบ: comedu.trainingroom@gmail.com",
+      "ipAddress": "::1",
+      "createdAt": "2026-03-03T18:48:39.120Z",
+      "__v": 0
+    },
+    {
+      "_id": "69a72d34cb7c72c3305514d9",
+      "action": "user:login",
+      "performedBy": "69a71b250db1e6cf6c93e921",
+      "targetType": "user",
+      "targetId": "69a71b250db1e6cf6c93e921",
+      "details": "เข้าสู่ระบบ: comedu.trainingroom@gmail.com",
+      "ipAddress": "::1",
+      "createdAt": "2026-03-03T18:49:24.671Z",
+      "__v": 0
+    },
+    {
+      "_id": "69a72d38cb7c72c3305514e5",
+      "action": "user:login",
+      "performedBy": "69a71b250db1e6cf6c93e921",
+      "targetType": "user",
+      "targetId": "69a71b250db1e6cf6c93e921",
+      "details": "เข้าสู่ระบบ: comedu.trainingroom@gmail.com",
+      "ipAddress": "::1",
+      "createdAt": "2026-03-03T18:49:28.703Z",
+      "__v": 0
+    },
+    {
+      "_id": "69a72d9fcb7c72c33055150b",
+      "action": "user:login",
+      "performedBy": "69a71b250db1e6cf6c93e921",
+      "targetType": "user",
+      "targetId": "69a71b250db1e6cf6c93e921",
+      "details": "เข้าสู่ระบบ: comedu.trainingroom@gmail.com",
+      "ipAddress": "::1",
+      "createdAt": "2026-03-03T18:51:11.300Z",
+      "__v": 0
+    },
+    {
+      "_id": "69a72e5bcb7c72c330551562",
+      "action": "user:login",
+      "performedBy": "69a71b250db1e6cf6c93e921",
+      "targetType": "user",
+      "targetId": "69a71b250db1e6cf6c93e921",
+      "details": "เข้าสู่ระบบ: comedu.trainingroom@gmail.com",
+      "ipAddress": "::1",
+      "createdAt": "2026-03-03T18:54:19.256Z",
+      "__v": 0
+    },
+    {
+      "_id": "69a72e80cb7c72c330551570",
+      "action": "user:login",
+      "performedBy": "69a71b250db1e6cf6c93e921",
+      "targetType": "user",
+      "targetId": "69a71b250db1e6cf6c93e921",
+      "details": "เข้าสู่ระบบ: comedu.trainingroom@gmail.com",
+      "ipAddress": "::1",
+      "createdAt": "2026-03-03T18:54:56.543Z",
+      "__v": 0
+    },
+    {
+      "_id": "69a72e80cb7c72c330551572",
+      "action": "user:login",
+      "performedBy": "69a71b250db1e6cf6c93e921",
+      "targetType": "user",
+      "targetId": "69a71b250db1e6cf6c93e921",
+      "details": "เข้าสู่ระบบ: comedu.trainingroom@gmail.com",
+      "ipAddress": "::1",
+      "createdAt": "2026-03-03T18:54:56.545Z",
+      "__v": 0
+    },
+    {
+      "_id": "69a72eaccb7c72c33055157f",
+      "action": "user:login",
+      "performedBy": "69a71b250db1e6cf6c93e921",
+      "targetType": "user",
+      "targetId": "69a71b250db1e6cf6c93e921",
+      "details": "เข้าสู่ระบบ: comedu.trainingroom@gmail.com",
+      "ipAddress": "::1",
+      "createdAt": "2026-03-03T18:55:40.588Z",
+      "__v": 0
+    },
+    {
+      "_id": "69a72f34cb7c72c3305515b9",
+      "action": "report:create",
+      "performedBy": "69a71b250db1e6cf6c93e921",
+      "targetType": "report",
+      "targetId": "69a72f34cb7c72c3305515b7",
+      "details": "แจ้งปัญหา: แอร์ไม่เย็น",
+      "ipAddress": "::1",
+      "createdAt": "2026-03-03T18:57:56.171Z",
+      "__v": 0
+    },
+    {
+      "_id": "69a73066cb7c72c3305515e1",
+      "action": "user:login",
+      "performedBy": "69a71b250db1e6cf6c93e921",
+      "targetType": "user",
+      "targetId": "69a71b250db1e6cf6c93e921",
+      "details": "เข้าสู่ระบบ: comedu.trainingroom@gmail.com",
+      "ipAddress": "::1",
+      "createdAt": "2026-03-03T19:03:02.758Z",
+      "__v": 0
+    },
+    {
+      "_id": "69a73180cb7c72c3305515fe",
+      "action": "user:login",
+      "performedBy": "69a71b250db1e6cf6c93e921",
+      "targetType": "user",
+      "targetId": "69a71b250db1e6cf6c93e921",
+      "details": "เข้าสู่ระบบ: comedu.trainingroom@gmail.com",
+      "ipAddress": "::1",
+      "createdAt": "2026-03-03T19:07:44.458Z",
+      "__v": 0
+    },
+    {
+      "_id": "69a732accb7c72c330551638",
+      "action": "user:login",
+      "performedBy": "69a7090541399d8c4349fd9d",
+      "targetType": "user",
+      "targetId": "69a7090541399d8c4349fd9d",
+      "details": "เข้าสู่ระบบ: s6702041510288@email.kmutnb.ac.th",
+      "ipAddress": "::1",
+      "createdAt": "2026-03-03T19:12:44.051Z",
+      "__v": 0
+    },
+    {
+      "_id": "69a732accb7c72c33055163a",
+      "action": "user:login",
+      "performedBy": "69a7090541399d8c4349fd9d",
+      "targetType": "user",
+      "targetId": "69a7090541399d8c4349fd9d",
+      "details": "เข้าสู่ระบบ: s6702041510288@email.kmutnb.ac.th",
+      "ipAddress": "::1",
+      "createdAt": "2026-03-03T19:12:44.053Z",
+      "__v": 0
+    },
+    {
+      "_id": "69a732d3cb7c72c330551643",
+      "action": "user:login",
+      "performedBy": "69a70ea941399d8c4349fd9e",
+      "targetType": "user",
+      "targetId": "69a70ea941399d8c4349fd9e",
+      "details": "เข้าสู่ระบบ: s6702041510156@email.kmutnb.ac.th",
+      "ipAddress": "::1",
+      "createdAt": "2026-03-03T19:13:23.956Z",
+      "__v": 0
+    },
+    {
+      "_id": "69a732d3cb7c72c330551645",
+      "action": "user:login",
+      "performedBy": "69a70ea941399d8c4349fd9e",
+      "targetType": "user",
+      "targetId": "69a70ea941399d8c4349fd9e",
+      "details": "เข้าสู่ระบบ: s6702041510156@email.kmutnb.ac.th",
+      "ipAddress": "::1",
+      "createdAt": "2026-03-03T19:13:23.958Z",
+      "__v": 0
+    },
+    {
+      "_id": "69a732f1cb7c72c33055167e",
+      "action": "user:login",
+      "performedBy": "69a70ea941399d8c4349fd9e",
+      "targetType": "user",
+      "targetId": "69a70ea941399d8c4349fd9e",
+      "details": "เข้าสู่ระบบ: s6702041510156@email.kmutnb.ac.th",
+      "ipAddress": "::1",
+      "createdAt": "2026-03-03T19:13:53.646Z",
+      "__v": 0
+    },
+    {
+      "_id": "69a733b4cb7c72c330551707",
+      "action": "user:login",
+      "performedBy": "69a70ea941399d8c4349fd9e",
+      "targetType": "user",
+      "targetId": "69a70ea941399d8c4349fd9e",
+      "details": "เข้าสู่ระบบ: s6702041510156@email.kmutnb.ac.th",
+      "ipAddress": "::1",
+      "createdAt": "2026-03-03T19:17:08.362Z",
+      "__v": 0
+    },
+    {
+      "_id": "69a733e2cb7c72c330551722",
+      "action": "user:login",
+      "performedBy": "69a70ea941399d8c4349fd9e",
+      "targetType": "user",
+      "targetId": "69a70ea941399d8c4349fd9e",
+      "details": "เข้าสู่ระบบ: s6702041510156@email.kmutnb.ac.th",
+      "ipAddress": "::1",
+      "createdAt": "2026-03-03T19:17:54.237Z",
+      "__v": 0
+    },
+    {
+      "_id": "69a73476cb7c72c33055173a",
+      "action": "user:login",
+      "performedBy": "69a70ea941399d8c4349fd9e",
+      "targetType": "user",
+      "targetId": "69a70ea941399d8c4349fd9e",
+      "details": "เข้าสู่ระบบ: s6702041510156@email.kmutnb.ac.th",
+      "ipAddress": "::1",
+      "createdAt": "2026-03-03T19:20:22.054Z",
+      "__v": 0
+    },
+    {
+      "_id": "69a7351ecb7c72c330551762",
+      "action": "user:login",
+      "performedBy": "69a70ea941399d8c4349fd9e",
+      "targetType": "user",
+      "targetId": "69a70ea941399d8c4349fd9e",
+      "details": "เข้าสู่ระบบ: s6702041510156@email.kmutnb.ac.th",
+      "ipAddress": "::1",
+      "createdAt": "2026-03-03T19:23:10.971Z",
+      "__v": 0
+    },
+    {
+      "_id": "69a73527cb7c72c330551789",
+      "action": "user:login",
+      "performedBy": "69a70ea941399d8c4349fd9e",
+      "targetType": "user",
+      "targetId": "69a70ea941399d8c4349fd9e",
+      "details": "เข้าสู่ระบบ: s6702041510156@email.kmutnb.ac.th",
+      "ipAddress": "::1",
+      "createdAt": "2026-03-03T19:23:19.611Z",
+      "__v": 0
+    },
+    {
+      "_id": "69a73527cb7c72c33055178d",
+      "action": "user:login",
+      "performedBy": "69a70ea941399d8c4349fd9e",
+      "targetType": "user",
+      "targetId": "69a70ea941399d8c4349fd9e",
+      "details": "เข้าสู่ระบบ: s6702041510156@email.kmutnb.ac.th",
+      "ipAddress": "::1",
+      "createdAt": "2026-03-03T19:23:19.944Z",
+      "__v": 0
+    },
+    {
+      "_id": "69a73536cb7c72c3305517a6",
+      "action": "user:login",
+      "performedBy": "69a70ea941399d8c4349fd9e",
+      "targetType": "user",
+      "targetId": "69a70ea941399d8c4349fd9e",
+      "details": "เข้าสู่ระบบ: s6702041510156@email.kmutnb.ac.th",
+      "ipAddress": "::1",
+      "createdAt": "2026-03-03T19:23:34.336Z",
+      "__v": 0
+    },
+    {
+      "_id": "69a735d8cb7c72c3305517c4",
+      "action": "user:login",
+      "performedBy": "69a70ea941399d8c4349fd9e",
+      "targetType": "user",
+      "targetId": "69a70ea941399d8c4349fd9e",
+      "details": "เข้าสู่ระบบ: s6702041510156@email.kmutnb.ac.th",
+      "ipAddress": "::1",
+      "createdAt": "2026-03-03T19:26:16.140Z",
+      "__v": 0
+    },
+    {
+      "_id": "69a735fbcb7c72c3305517d9",
+      "action": "user:login",
+      "performedBy": "69a70ea941399d8c4349fd9e",
+      "targetType": "user",
+      "targetId": "69a70ea941399d8c4349fd9e",
+      "details": "เข้าสู่ระบบ: s6702041510156@email.kmutnb.ac.th",
+      "ipAddress": "::1",
+      "createdAt": "2026-03-03T19:26:51.940Z",
+      "__v": 0
+    },
+    {
+      "_id": "69a735fccb7c72c3305517e7",
+      "action": "user:login",
+      "performedBy": "69a70ea941399d8c4349fd9e",
+      "targetType": "user",
+      "targetId": "69a70ea941399d8c4349fd9e",
+      "details": "เข้าสู่ระบบ: s6702041510156@email.kmutnb.ac.th",
+      "ipAddress": "::1",
+      "createdAt": "2026-03-03T19:26:52.474Z",
+      "__v": 0
+    },
+    {
+      "_id": "69a73657cb7c72c3305517fe",
+      "action": "user:login",
+      "performedBy": "69a70ea941399d8c4349fd9e",
+      "targetType": "user",
+      "targetId": "69a70ea941399d8c4349fd9e",
+      "details": "เข้าสู่ระบบ: s6702041510156@email.kmutnb.ac.th",
+      "ipAddress": "::1",
+      "createdAt": "2026-03-03T19:28:23.982Z",
+      "__v": 0
+    },
+    {
+      "_id": "69a73afacb7c72c330551841",
+      "action": "user:login",
+      "performedBy": "69a7090541399d8c4349fd9d",
+      "targetType": "user",
+      "targetId": "69a7090541399d8c4349fd9d",
+      "details": "เข้าสู่ระบบ: s6702041510288@email.kmutnb.ac.th",
+      "ipAddress": "::1",
+      "createdAt": "2026-03-03T19:48:10.508Z",
+      "__v": 0
+    },
+    {
+      "_id": "69a73afacb7c72c330551843",
+      "action": "user:login",
+      "performedBy": "69a7090541399d8c4349fd9d",
+      "targetType": "user",
+      "targetId": "69a7090541399d8c4349fd9d",
+      "details": "เข้าสู่ระบบ: s6702041510288@email.kmutnb.ac.th",
+      "ipAddress": "::1",
+      "createdAt": "2026-03-03T19:48:10.511Z",
+      "__v": 0
+    },
+    {
+      "_id": "69a73cd3cb7c72c33055186d",
+      "action": "user:login",
+      "performedBy": "69a7090541399d8c4349fd9d",
+      "targetType": "user",
+      "targetId": "69a7090541399d8c4349fd9d",
+      "details": "เข้าสู่ระบบ: s6702041510288@email.kmutnb.ac.th",
+      "ipAddress": "::1",
+      "createdAt": "2026-03-03T19:56:03.922Z",
+      "__v": 0
+    },
+    {
+      "_id": "69a73cd3cb7c72c33055186f",
+      "action": "user:login",
+      "performedBy": "69a7090541399d8c4349fd9d",
+      "targetType": "user",
+      "targetId": "69a7090541399d8c4349fd9d",
+      "details": "เข้าสู่ระบบ: s6702041510288@email.kmutnb.ac.th",
+      "ipAddress": "::1",
+      "createdAt": "2026-03-03T19:56:03.924Z",
+      "__v": 0
+    },
+    {
+      "_id": "69a73de5cb7c72c330551884",
+      "action": "booking:create",
+      "performedBy": "69a7090541399d8c4349fd9d",
+      "targetType": "booking",
+      "targetId": "69a73de1cb7c72c330551881",
+      "details": "สร้างการจอง: จุดประกายความคิดด้วย ai",
+      "ipAddress": "::1",
+      "createdAt": "2026-03-03T20:00:37.340Z",
+      "__v": 0
+    },
+    {
+      "_id": "69a7402ccb7c72c3305518af",
+      "action": "user:login",
+      "performedBy": "69a70ea941399d8c4349fd9e",
+      "targetType": "user",
+      "targetId": "69a70ea941399d8c4349fd9e",
+      "details": "เข้าสู่ระบบ: s6702041510156@email.kmutnb.ac.th",
+      "ipAddress": "::1",
+      "createdAt": "2026-03-03T20:10:20.023Z",
+      "__v": 0
+    },
+    {
+      "_id": "69a7402ccb7c72c3305518b1",
+      "action": "user:login",
+      "performedBy": "69a70ea941399d8c4349fd9e",
+      "targetType": "user",
+      "targetId": "69a70ea941399d8c4349fd9e",
+      "details": "เข้าสู่ระบบ: s6702041510156@email.kmutnb.ac.th",
+      "ipAddress": "::1",
+      "createdAt": "2026-03-03T20:10:20.026Z",
+      "__v": 0
+    },
+    {
+      "_id": "69a740becb7c72c3305518c5",
+      "action": "user:login",
+      "performedBy": "69a70ea941399d8c4349fd9e",
+      "targetType": "user",
+      "targetId": "69a70ea941399d8c4349fd9e",
+      "details": "เข้าสู่ระบบ: s6702041510156@email.kmutnb.ac.th",
+      "ipAddress": "::1",
+      "createdAt": "2026-03-03T20:12:46.865Z",
+      "__v": 0
+    },
+    {
+      "_id": "69a740becb7c72c3305518c7",
+      "action": "user:login",
+      "performedBy": "69a70ea941399d8c4349fd9e",
+      "targetType": "user",
+      "targetId": "69a70ea941399d8c4349fd9e",
+      "details": "เข้าสู่ระบบ: s6702041510156@email.kmutnb.ac.th",
+      "ipAddress": "::1",
+      "createdAt": "2026-03-03T20:12:46.867Z",
+      "__v": 0
+    },
+    {
+      "_id": "69a742f0cb7c72c330551921",
+      "action": "booking:approve",
+      "performedBy": "69a70ea941399d8c4349fd9e",
+      "targetType": "booking",
+      "targetId": "69a73de1cb7c72c330551881",
+      "details": "approved: จุดประกายความคิดด้วย ai",
+      "ipAddress": "::1",
+      "createdAt": "2026-03-03T20:22:08.361Z",
+      "__v": 0
+    },
+    {
+      "_id": "69a74477cb7c72c330551938",
+      "action": "user:login",
+      "performedBy": "69a7090541399d8c4349fd9d",
+      "targetType": "user",
+      "targetId": "69a7090541399d8c4349fd9d",
+      "details": "เข้าสู่ระบบ: s6702041510288@email.kmutnb.ac.th",
+      "ipAddress": "::1",
+      "createdAt": "2026-03-03T20:28:39.834Z",
+      "__v": 0
+    },
+    {
+      "_id": "69a74477cb7c72c33055193a",
+      "action": "user:login",
+      "performedBy": "69a7090541399d8c4349fd9d",
+      "targetType": "user",
+      "targetId": "69a7090541399d8c4349fd9d",
+      "details": "เข้าสู่ระบบ: s6702041510288@email.kmutnb.ac.th",
+      "ipAddress": "::1",
+      "createdAt": "2026-03-03T20:28:39.836Z",
+      "__v": 0
+    },
+    {
+      "_id": "69a79b01a205122b12d6b5bf",
+      "action": "user:login",
+      "performedBy": "69a71b250db1e6cf6c93e921",
+      "targetType": "user",
+      "targetId": "69a71b250db1e6cf6c93e921",
+      "details": "เข้าสู่ระบบ: comedu.trainingroom@gmail.com",
+      "ipAddress": "::1",
+      "createdAt": "2026-03-04T02:37:53.302Z",
+      "__v": 0
+    },
+    {
+      "_id": "69a79b20a205122b12d6b5d4",
+      "action": "user:login",
+      "performedBy": "69a7090541399d8c4349fd9d",
+      "targetType": "user",
+      "targetId": "69a7090541399d8c4349fd9d",
+      "details": "เข้าสู่ระบบ: s6702041510288@email.kmutnb.ac.th",
+      "ipAddress": "::1",
+      "createdAt": "2026-03-04T02:38:24.433Z",
+      "__v": 0
+    },
+    {
+      "_id": "69a79c3ca205122b12d6b5fd",
+      "action": "user:login",
+      "performedBy": "69a71b250db1e6cf6c93e921",
+      "targetType": "user",
+      "targetId": "69a71b250db1e6cf6c93e921",
+      "details": "เข้าสู่ระบบ: comedu.trainingroom@gmail.com",
+      "ipAddress": "::1",
+      "createdAt": "2026-03-04T02:43:08.240Z",
+      "__v": 0
+    },
+    {
+      "_id": "69a79c3ca205122b12d6b5ff",
+      "action": "user:login",
+      "performedBy": "69a71b250db1e6cf6c93e921",
+      "targetType": "user",
+      "targetId": "69a71b250db1e6cf6c93e921",
+      "details": "เข้าสู่ระบบ: comedu.trainingroom@gmail.com",
+      "ipAddress": "::1",
+      "createdAt": "2026-03-04T02:43:08.242Z",
+      "__v": 0
+    },
+    {
+      "_id": "69a79c8ea205122b12d6b656",
+      "action": "user:login",
+      "performedBy": "69a71b250db1e6cf6c93e921",
+      "targetType": "user",
+      "targetId": "69a71b250db1e6cf6c93e921",
+      "details": "เข้าสู่ระบบ: comedu.trainingroom@gmail.com",
+      "ipAddress": "::1",
+      "createdAt": "2026-03-04T02:44:30.488Z",
+      "__v": 0
+    },
+    {
+      "_id": "69a79e30a055f0a0dfebbd3b",
+      "action": "settings:update",
+      "performedBy": "69a71b250db1e6cf6c93e921",
+      "targetType": "settings",
+      "targetId": "69a708e96a49b43b4068ae6b",
+      "details": "แก้ไขการตั้งค่าระบบ",
+      "ipAddress": "::1",
+      "createdAt": "2026-03-04T02:51:28.748Z",
+      "__v": 0
+    },
+    {
+      "_id": "69a79e3aa055f0a0dfebbd42",
+      "action": "user:login",
+      "performedBy": "69a7090541399d8c4349fd9d",
+      "targetType": "user",
+      "targetId": "69a7090541399d8c4349fd9d",
+      "details": "เข้าสู่ระบบ: s6702041510288@email.kmutnb.ac.th",
+      "ipAddress": "::1",
+      "createdAt": "2026-03-04T02:51:38.181Z",
+      "__v": 0
+    },
+    {
+      "_id": "69a79e3aa055f0a0dfebbd44",
+      "action": "user:login",
+      "performedBy": "69a7090541399d8c4349fd9d",
+      "targetType": "user",
+      "targetId": "69a7090541399d8c4349fd9d",
+      "details": "เข้าสู่ระบบ: s6702041510288@email.kmutnb.ac.th",
+      "ipAddress": "::1",
+      "createdAt": "2026-03-04T02:51:38.184Z",
+      "__v": 0
+    },
+    {
+      "_id": "69a79e76a055f0a0dfebbd5c",
+      "action": "user:login",
+      "performedBy": "69a71b250db1e6cf6c93e921",
+      "targetType": "user",
+      "targetId": "69a71b250db1e6cf6c93e921",
+      "details": "เข้าสู่ระบบ: comedu.trainingroom@gmail.com",
+      "ipAddress": "::1",
+      "createdAt": "2026-03-04T02:52:38.191Z",
+      "__v": 0
+    },
+    {
+      "_id": "69a79e76a055f0a0dfebbd5e",
+      "action": "user:login",
+      "performedBy": "69a71b250db1e6cf6c93e921",
+      "targetType": "user",
+      "targetId": "69a71b250db1e6cf6c93e921",
+      "details": "เข้าสู่ระบบ: comedu.trainingroom@gmail.com",
+      "ipAddress": "::1",
+      "createdAt": "2026-03-04T02:52:38.194Z",
+      "__v": 0
+    },
+    {
+      "_id": "69a79f3aa055f0a0dfebbd88",
+      "action": "user:login",
+      "performedBy": "69a71b250db1e6cf6c93e921",
+      "targetType": "user",
+      "targetId": "69a71b250db1e6cf6c93e921",
+      "details": "เข้าสู่ระบบ: comedu.trainingroom@gmail.com",
+      "ipAddress": "::1",
+      "createdAt": "2026-03-04T02:55:54.702Z",
+      "__v": 0
+    },
+    {
+      "_id": "69a79fa8a055f0a0dfebbe15",
+      "action": "user:login",
+      "performedBy": "69a71b250db1e6cf6c93e921",
+      "targetType": "user",
+      "targetId": "69a71b250db1e6cf6c93e921",
+      "details": "เข้าสู่ระบบ: comedu.trainingroom@gmail.com",
+      "ipAddress": "::1",
+      "createdAt": "2026-03-04T02:57:44.335Z",
+      "__v": 0
+    },
+    {
+      "_id": "69a79fb2a055f0a0dfebbe27",
+      "action": "user:login",
+      "performedBy": "69a7090541399d8c4349fd9d",
+      "targetType": "user",
+      "targetId": "69a7090541399d8c4349fd9d",
+      "details": "เข้าสู่ระบบ: s6702041510288@email.kmutnb.ac.th",
+      "ipAddress": "::1",
+      "createdAt": "2026-03-04T02:57:54.463Z",
+      "__v": 0
+    },
+    {
+      "_id": "69a79fb2a055f0a0dfebbe29",
+      "action": "user:login",
+      "performedBy": "69a7090541399d8c4349fd9d",
+      "targetType": "user",
+      "targetId": "69a7090541399d8c4349fd9d",
+      "details": "เข้าสู่ระบบ: s6702041510288@email.kmutnb.ac.th",
+      "ipAddress": "::1",
+      "createdAt": "2026-03-04T02:57:54.465Z",
+      "__v": 0
+    },
+    {
+      "_id": "69a79ffca055f0a0dfebbe4b",
+      "action": "user:login",
+      "performedBy": "69a71b250db1e6cf6c93e921",
+      "targetType": "user",
+      "targetId": "69a71b250db1e6cf6c93e921",
+      "details": "เข้าสู่ระบบ: comedu.trainingroom@gmail.com",
+      "ipAddress": "::1",
+      "createdAt": "2026-03-04T02:59:08.623Z",
+      "__v": 0
+    },
+    {
+      "_id": "69a79ffca055f0a0dfebbe4d",
+      "action": "user:login",
+      "performedBy": "69a71b250db1e6cf6c93e921",
+      "targetType": "user",
+      "targetId": "69a71b250db1e6cf6c93e921",
+      "details": "เข้าสู่ระบบ: comedu.trainingroom@gmail.com",
+      "ipAddress": "::1",
+      "createdAt": "2026-03-04T02:59:08.626Z",
+      "__v": 0
+    },
+    {
+      "_id": "69a7a099a055f0a0dfebbe83",
+      "action": "user:login",
+      "performedBy": "69a71b250db1e6cf6c93e921",
+      "targetType": "user",
+      "targetId": "69a71b250db1e6cf6c93e921",
+      "details": "เข้าสู่ระบบ: comedu.trainingroom@gmail.com",
+      "ipAddress": "::1",
+      "createdAt": "2026-03-04T03:01:45.521Z",
+      "__v": 0
+    },
+    {
+      "_id": "69a7a09aa055f0a0dfebbe97",
+      "action": "user:login",
+      "performedBy": "69a71b250db1e6cf6c93e921",
+      "targetType": "user",
+      "targetId": "69a71b250db1e6cf6c93e921",
+      "details": "เข้าสู่ระบบ: comedu.trainingroom@gmail.com",
+      "ipAddress": "::1",
+      "createdAt": "2026-03-04T03:01:46.297Z",
+      "__v": 0
+    },
+    {
+      "_id": "69a7a09aa055f0a0dfebbea9",
+      "action": "user:login",
+      "performedBy": "69a71b250db1e6cf6c93e921",
+      "targetType": "user",
+      "targetId": "69a71b250db1e6cf6c93e921",
+      "details": "เข้าสู่ระบบ: comedu.trainingroom@gmail.com",
+      "ipAddress": "::1",
+      "createdAt": "2026-03-04T03:01:46.974Z",
+      "__v": 0
+    },
+    {
+      "_id": "69a7a695666bec5b613ec781",
+      "action": "user:login",
+      "performedBy": "69a71b250db1e6cf6c93e921",
+      "targetType": "user",
+      "targetId": "69a71b250db1e6cf6c93e921",
+      "details": "เข้าสู่ระบบ: comedu.trainingroom@gmail.com",
+      "ipAddress": "::1",
+      "createdAt": "2026-03-04T03:27:17.672Z",
+      "__v": 0
+    },
+    {
+      "_id": "69a7a6c6666bec5b613ec794",
+      "action": "user:login",
+      "performedBy": "69a71b250db1e6cf6c93e921",
+      "targetType": "user",
+      "targetId": "69a71b250db1e6cf6c93e921",
+      "details": "เข้าสู่ระบบ: comedu.trainingroom@gmail.com",
+      "ipAddress": "::1",
+      "createdAt": "2026-03-04T03:28:06.465Z",
+      "__v": 0
+    },
+    {
+      "_id": "69a7a6e1666bec5b613ec7a4",
+      "action": "user:login",
+      "performedBy": "69a71b250db1e6cf6c93e921",
+      "targetType": "user",
+      "targetId": "69a71b250db1e6cf6c93e921",
+      "details": "เข้าสู่ระบบ: comedu.trainingroom@gmail.com",
+      "ipAddress": "::1",
+      "createdAt": "2026-03-04T03:28:33.984Z",
+      "__v": 0
+    },
+    {
+      "_id": "69a7b148666bec5b613ec7ec",
+      "action": "user:login",
+      "performedBy": "69a71b250db1e6cf6c93e921",
+      "targetType": "user",
+      "targetId": "69a71b250db1e6cf6c93e921",
+      "details": "เข้าสู่ระบบ: comedu.trainingroom@gmail.com",
+      "ipAddress": "::1",
+      "createdAt": "2026-03-04T04:12:56.803Z",
+      "__v": 0
+    },
+    {
+      "_id": "69a7b14c666bec5b613ec7ff",
+      "action": "user:login",
+      "performedBy": "69a71b250db1e6cf6c93e921",
+      "targetType": "user",
+      "targetId": "69a71b250db1e6cf6c93e921",
+      "details": "เข้าสู่ระบบ: comedu.trainingroom@gmail.com",
+      "ipAddress": "::1",
+      "createdAt": "2026-03-04T04:13:00.277Z",
+      "__v": 0
+    },
+    {
+      "_id": "69a7b14c666bec5b613ec805",
+      "action": "user:login",
+      "performedBy": "69a71b250db1e6cf6c93e921",
+      "targetType": "user",
+      "targetId": "69a71b250db1e6cf6c93e921",
+      "details": "เข้าสู่ระบบ: comedu.trainingroom@gmail.com",
+      "ipAddress": "::1",
+      "createdAt": "2026-03-04T04:13:00.820Z",
+      "__v": 0
+    },
+    {
+      "_id": "69a7b155666bec5b613ec817",
+      "action": "user:login",
+      "performedBy": "69a7090541399d8c4349fd9d",
+      "targetType": "user",
+      "targetId": "69a7090541399d8c4349fd9d",
+      "details": "เข้าสู่ระบบ: s6702041510288@email.kmutnb.ac.th",
+      "ipAddress": "::1",
+      "createdAt": "2026-03-04T04:13:09.468Z",
+      "__v": 0
+    },
+    {
+      "_id": "69a7b155666bec5b613ec81b",
+      "action": "user:login",
+      "performedBy": "69a7090541399d8c4349fd9d",
+      "targetType": "user",
+      "targetId": "69a7090541399d8c4349fd9d",
+      "details": "เข้าสู่ระบบ: s6702041510288@email.kmutnb.ac.th",
+      "ipAddress": "::1",
+      "createdAt": "2026-03-04T04:13:09.481Z",
+      "__v": 0
+    }
+  ],
   "settings": [
     {
       "_id": "69a708e96a49b43b4068ae6b",
       "systemName": "ระบบจองห้องประชุมออนไลน์",
       "contactEmail": "admin@example.com",
       "themeColor": "#16a34a",
-      "maxBookingDays": 30,
+      "maxBookingDays": 3,
       "maxBookingHours": 4,
       "requireApproval": true,
-      "weekendBooking": false,
+      "weekendBooking": true,
       "maintenanceMode": false,
       "openTime": "08:00",
       "closeTime": "21:00",
       "createdAt": "2026-03-03T16:14:33.604Z",
-      "updatedAt": "2026-03-03T17:37:10.887Z",
+      "updatedAt": "2026-03-04T02:51:28.737Z",
       "__v": 0
     }
   ],
-  "reports": [],
-  "rooms": [],
-  "bookings": []
+  "reports": [
+    {
+      "_id": "69a72f34cb7c72c3305515b7",
+      "topic": "แอร์ไม่เย็น",
+      "description": "แอร์ไม่เย็น",
+      "urgency": "emergency",
+      "status": "pending",
+      "room": null,
+      "reporter": "69a71b250db1e6cf6c93e921",
+      "images": [],
+      "createdAt": "2026-03-03T18:57:56.168Z",
+      "updatedAt": "2026-03-03T18:57:56.168Z",
+      "__v": 0
+    }
+  ],
+  "rooms": [
+    {
+      "_id": "69a73a3bcb7c72c330551822",
+      "name": "44-702",
+      "capacity": 30,
+      "equipment": [
+        "โปรเจคเตอร์",
+        "ไมโครโฟน",
+        "เครื่องเสียง",
+        "จอทีวี",
+        "เครื่องปรับอากาศ",
+        "คอมพิวเตอร์"
+      ],
+      "images": [
+        "room-1772567099082-44-702.webp"
+      ],
+      "description": "",
+      "isActive": true,
+      "createdAt": "2026-03-03T19:44:59.185Z",
+      "__v": 0
+    },
+    {
+      "_id": "69a73a60cb7c72c330551827",
+      "name": "44-703",
+      "capacity": 30,
+      "equipment": [
+        "จอทีวี",
+        "เครื่องเสียง",
+        "ไมโครโฟน",
+        "คอมพิวเตอร์",
+        "เครื่องปรับอากาศ"
+      ],
+      "images": [
+        "room-1772567136046-44-203.webp"
+      ],
+      "description": "",
+      "isActive": true,
+      "createdAt": "2026-03-03T19:45:36.136Z",
+      "__v": 0
+    },
+    {
+      "_id": "69a73aa7cb7c72c33055182c",
+      "name": "52-712",
+      "capacity": 30,
+      "equipment": [
+        "โปรเจคเตอร์",
+        "กระดานไวท์บอร์ด",
+        "เครื่องเสียง",
+        "ไมโครโฟน",
+        "เครื่องปรับอากาศ",
+        "คอมพิวเตอร์",
+        "จอทีวี"
+      ],
+      "images": [
+        "room-1772567207102-52-213.webp"
+      ],
+      "description": "",
+      "isActive": true,
+      "createdAt": "2026-03-03T19:46:47.199Z",
+      "__v": 0
+    },
+    {
+      "_id": "69a73ac0cb7c72c330551831",
+      "name": "52-212",
+      "capacity": 25,
+      "equipment": [
+        "โปรเจคเตอร์",
+        "ไมโครโฟน",
+        "คอมพิวเตอร์",
+        "เครื่องเสียง",
+        "เครื่องปรับอากาศ",
+        "จอทีวี"
+      ],
+      "images": [
+        "room-1772567232460-52-212.webp"
+      ],
+      "description": "",
+      "isActive": true,
+      "createdAt": "2026-03-03T19:47:12.559Z",
+      "__v": 0
+    }
+  ],
+  "bookings": [
+    {
+      "_id": "69a73de1cb7c72c330551881",
+      "room": "69a73a3bcb7c72c330551822",
+      "topic": "จุดประกายความคิดด้วย ai",
+      "note": "",
+      "user": {
+        "name": "PADJAPHON BOONCHOO",
+        "email": "s6702041510288@email.kmutnb.ac.th",
+        "phone": "0984472471",
+        "department": "Tct34"
+      },
+      "startTime": "2026-03-04T02:00:00.000Z",
+      "endTime": "2026-03-04T09:30:00.000Z",
+      "status": "approved",
+      "reminderSent": false,
+      "isImported": false,
+      "createdAt": "2026-03-03T20:00:33.940Z",
+      "__v": 0
+    }
+  ]
 }

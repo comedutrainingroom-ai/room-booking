@@ -122,6 +122,11 @@ const RoomBooking = () => {
     };
 
     const handleSlotClick = (slotIndex) => {
+        if (room?.isActive === false) {
+            toast.error('ห้องนี้กำลังปิดซ่อมบำรุง ไม่สามารถจองได้');
+            return;
+        }
+
         if (isSlotOccupied(slotIndex)) {
             toast.warning('ช่วงเวลานี้ถูกจองแล้ว');
             return;
@@ -204,7 +209,7 @@ const RoomBooking = () => {
 
     if (loading || !room) {
         return (
-            <div className="flex justify-center items-center h-screen bg-gradient-to-br from-slate-50 to-slate-100">
+            <div className="flex justify-center items-center min-h-[60vh]">
                 <div className="text-center">
                     <div className="w-16 h-16 border-4 border-primary border-t-transparent rounded-full animate-spin mx-auto"></div>
                     <p className="mt-4 text-gray-500">กำลังโหลด...</p>
@@ -214,27 +219,27 @@ const RoomBooking = () => {
     }
 
     return (
-        <div className="min-h-screen bg-gradient-to-br from-slate-50 via-white to-slate-100 p-4 md:p-6">
-            <div className="max-w-6xl mx-auto space-y-6">
+        <div className="w-full h-full px-0 sm:px-4 py-4 sm:py-8">
+            <div className="max-w-6xl mx-auto space-y-3 md:space-y-6">
 
                 {/* Hero Header */}
-                <div className="relative overflow-hidden bg-gradient-to-r from-primary via-emerald-500 to-teal-500 rounded-3xl p-6 text-white shadow-2xl">
+                <div className="relative overflow-hidden bg-gradient-to-r from-primary via-emerald-500 to-teal-500 rounded-2xl md:rounded-3xl p-3 md:p-6 text-white shadow-2xl">
                     <div className="absolute inset-0 bg-black/10"></div>
                     <div className="absolute -top-20 -right-20 w-64 h-64 bg-white/10 rounded-full blur-3xl"></div>
                     <div className="absolute -bottom-20 -left-20 w-64 h-64 bg-white/10 rounded-full blur-3xl"></div>
 
-                    <div className="relative flex items-center gap-4">
+                    <div className="relative flex items-center gap-2 md:gap-4">
                         <button
                             onClick={() => navigate('/rooms')}
-                            className="p-3 bg-white/20 hover:bg-white/30 rounded-xl backdrop-blur-sm transition-all"
+                            className="p-2 md:p-3 bg-white/20 hover:bg-white/30 rounded-lg md:rounded-xl backdrop-blur-sm transition-all"
                         >
-                            <FaArrowLeft />
+                            <FaArrowLeft className="text-sm md:text-base" />
                         </button>
                         <div className="flex-1">
-                            <h1 className="text-2xl md:text-3xl font-bold">{room.name}</h1>
-                            <div className="flex items-center gap-4 mt-2 text-white/80 text-sm">
-                                <span className="flex items-center gap-1.5 bg-white/20 px-3 py-1 rounded-full">
-                                    <FaUsers /> {room.capacity} คน
+                            <h1 className="text-lg md:text-3xl font-bold">{room.name}</h1>
+                            <div className="flex items-center gap-2 md:gap-4 mt-1 md:mt-2 text-white/80 text-xs md:text-sm">
+                                <span className="flex items-center gap-1 md:gap-1.5 bg-white/20 px-2 md:px-3 py-0.5 md:py-1 rounded-full">
+                                    <FaUsers className="text-[10px] md:text-sm" /> {room.capacity} คน
                                 </span>
                                 {room.description && (
                                     <span className="hidden md:inline">{room.description}</span>
@@ -244,25 +249,40 @@ const RoomBooking = () => {
                     </div>
                 </div>
 
+                {/* Maintenance Banner */}
+                {room.isActive === false && (
+                    <div className="bg-red-50 text-red-700 p-4 rounded-xl border border-red-200 shadow-sm flex items-center justify-between gap-3 animate-in fade-in slide-in-from-top-2">
+                        <div className="flex items-center gap-3">
+                            <div className="bg-white p-2 text-red-600 rounded-lg shadow-sm shrink-0">
+                                <FaLock className="text-xl" />
+                            </div>
+                            <div>
+                                <h3 className="font-bold text-red-800">ห้องนี้กำลังปิดซ่อมบำรุง</h3>
+                                <p className="text-sm text-red-600/90 mt-0.5">ไม่สามารถทำการจองได้ในขณะนี้ ขออภัยในความไม่สะดวก</p>
+                            </div>
+                        </div>
+                    </div>
+                )}
+
                 {/* Date Selector Card */}
-                <div className="bg-white/80 backdrop-blur-xl rounded-2xl shadow-lg border border-white/50 p-5">
-                    <div className="flex items-center justify-between gap-4">
+                <div className="bg-white/80 backdrop-blur-xl rounded-xl md:rounded-2xl shadow-lg border border-white/50 p-3 md:p-5">
+                    <div className="flex items-center justify-between gap-2 md:gap-4">
                         <button
                             onClick={() => handleDateChange(-1)}
                             disabled={isPastDate(new Date(selectedDate.getTime() - 86400000))}
-                            className="p-3 bg-slate-100 hover:bg-slate-200 rounded-xl transition-all disabled:opacity-30 disabled:cursor-not-allowed"
+                            className="p-2 md:p-3 bg-slate-100 hover:bg-slate-200 rounded-lg md:rounded-xl transition-all disabled:opacity-30 disabled:cursor-not-allowed"
                         >
                             <FaChevronLeft className="text-slate-600" />
                         </button>
 
                         <div className="flex-1 text-center">
-                            <div className="inline-flex items-center gap-3 bg-gradient-to-r from-primary/10 to-emerald-500/10 px-6 py-3 rounded-2xl">
-                                <FaCalendarAlt className="text-primary text-xl" />
+                            <div className="inline-flex items-center gap-2 md:gap-3 bg-gradient-to-r from-primary/10 to-emerald-500/10 px-3 md:px-6 py-2 md:py-3 rounded-xl md:rounded-2xl">
+                                <FaCalendarAlt className="text-primary text-base md:text-xl" />
                                 <div>
-                                    <div className="text-lg font-bold text-gray-800">{formatDate(selectedDate)}</div>
+                                    <div className="text-sm md:text-lg font-bold text-gray-800">{formatDate(selectedDate)}</div>
                                 </div>
                             </div>
-                            <div className="mt-3">
+                            <div className="mt-2 md:mt-3">
                                 <input
                                     type="date"
                                     value={toLocalISOString(selectedDate)}
@@ -272,14 +292,14 @@ const RoomBooking = () => {
                                         setSelectionStart(null);
                                         setSelectionEnd(null);
                                     }}
-                                    className="px-4 py-2 bg-slate-50 border border-slate-200 rounded-xl text-sm focus:ring-2 focus:ring-primary/30 focus:border-primary outline-none transition-all"
+                                    className="px-3 md:px-4 py-1.5 md:py-2 bg-slate-50 border border-slate-200 rounded-lg md:rounded-xl text-xs md:text-sm focus:ring-2 focus:ring-primary/30 focus:border-primary outline-none transition-all"
                                 />
                             </div>
                         </div>
 
                         <button
                             onClick={() => handleDateChange(1)}
-                            className="p-3 bg-slate-100 hover:bg-slate-200 rounded-xl transition-all"
+                            className="p-2 md:p-3 bg-slate-100 hover:bg-slate-200 rounded-lg md:rounded-xl transition-all"
                         >
                             <FaChevronRight className="text-slate-600" />
                         </button>
@@ -287,19 +307,19 @@ const RoomBooking = () => {
                 </div>
 
                 {/* Time Slots */}
-                <div className="bg-white/80 backdrop-blur-xl rounded-2xl shadow-lg border border-white/50 p-6">
-                    <div className="flex items-center justify-between mb-6">
+                <div className="bg-white/80 backdrop-blur-xl rounded-xl md:rounded-2xl shadow-lg border border-white/50 p-3 md:p-6">
+                    <div className="flex items-center justify-between mb-3 md:mb-6">
                         <div className="flex-1">
-                            <h2 className="text-xl font-bold text-gray-800 flex items-center gap-2">
-                                <FaClock className="text-primary" />
+                            <h2 className="text-base md:text-xl font-bold text-gray-800 flex items-center gap-1.5 md:gap-2">
+                                <FaClock className="text-primary text-sm md:text-base" />
                                 เลือกช่วงเวลา
                             </h2>
                             {selectionStart === null ? (
-                                <p className="text-gray-500 text-sm mt-1">แตะเวลาเริ่มต้น แล้วแตะเวลาสิ้นสุด</p>
+                                <p className="text-gray-500 text-xs md:text-sm mt-0.5 md:mt-1">แตะเวลาเริ่มต้น แล้วแตะเวลาสิ้นสุด</p>
                             ) : (
                                 <div className="flex items-center gap-2 mt-2">
-                                    <span className="inline-flex items-center gap-2 px-3 py-1.5 bg-gradient-to-r from-blue-500 to-indigo-600 text-white rounded-full text-sm font-medium shadow-md">
-                                        <FaClock className="animate-pulse" />
+                                    <span className="inline-flex items-center gap-1.5 md:gap-2 px-2 md:px-3 py-1 md:py-1.5 bg-emerald-600 text-white rounded-md text-xs md:text-sm font-medium shadow-sm">
+                                        <FaClock />
                                         เริ่ม {timeSlots[selectionStart].start}
                                         {getSelectedDuration() > 1 && (
                                             <span className="px-1.5 py-0.5 bg-white/20 rounded text-xs">
@@ -307,7 +327,7 @@ const RoomBooking = () => {
                                             </span>
                                         )}
                                     </span>
-                                    <span className="text-gray-500 text-sm">กดเลือกเวลาสิ้นสุด</span>
+                                    <span className="text-gray-500 text-xs md:text-sm">กดเลือกเวลาสิ้นสุด</span>
                                 </div>
                             )}
                         </div>
@@ -323,7 +343,7 @@ const RoomBooking = () => {
                     </div>
 
                     {/* Timeline Style Grid */}
-                    <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-6 gap-3">
+                    <div className="grid grid-cols-3 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-6 gap-1.5 md:gap-3">
                         {timeSlots.map((slot, index) => {
                             const occupied = isSlotOccupied(index);
                             const booking = getSlotBooking(index);
@@ -342,14 +362,14 @@ const RoomBooking = () => {
                                     }}
                                     disabled={occupied}
                                     className={`
-                                        group relative overflow-hidden rounded-2xl p-4 transition-all duration-300 transform
+                                        group relative overflow-hidden rounded-xl p-3 md:p-4 transition-all duration-200 transform border
                                         ${occupied
                                             ? isImported
-                                                ? 'bg-gradient-to-br from-slate-100 to-slate-200 text-slate-400 cursor-not-allowed'
-                                                : 'bg-gradient-to-br from-amber-50 to-orange-100 text-amber-600 cursor-not-allowed border-2 border-amber-200'
+                                                ? 'bg-gray-100 text-gray-500 border-gray-200 cursor-not-allowed'
+                                                : 'bg-orange-50 text-orange-700 border-orange-200 cursor-not-allowed'
                                             : inRange
-                                                ? 'bg-gradient-to-br from-blue-500 to-indigo-600 text-white shadow-xl scale-[1.02] border-2 border-blue-300'
-                                                : 'bg-gradient-to-br from-emerald-50 to-teal-50 text-emerald-700 hover:from-emerald-100 hover:to-teal-100 hover:shadow-lg hover:scale-[1.02] border-2 border-emerald-200 hover:border-emerald-300 cursor-pointer'
+                                                ? 'bg-emerald-600 text-white border-emerald-700 shadow-md scale-[1.02]'
+                                                : 'bg-white text-emerald-800 border-emerald-200 hover:border-emerald-400 hover:bg-emerald-50 hover:shadow-sm cursor-pointer'
                                         }
                                     `}
                                     style={{
@@ -357,34 +377,31 @@ const RoomBooking = () => {
                                     }}
                                 >
                                     {/* Decorative Elements */}
-                                    {!occupied && !inRange && (
-                                        <div className="absolute top-0 right-0 w-16 h-16 bg-white/30 rounded-full -translate-y-8 translate-x-8 group-hover:scale-150 transition-transform duration-500"></div>
-                                    )}
                                     {inRange && (
                                         <div className="absolute inset-0 bg-white/10 animate-pulse"></div>
                                     )}
 
                                     <div className="relative">
-                                        <div className="text-2xl font-bold tracking-tight">{slot.label}</div>
-                                        <div className="text-xs mt-1 opacity-75">ถึง {slot.end}</div>
+                                        <div className="text-sm md:text-2xl font-bold tracking-tight">{slot.label}</div>
+                                        <div className="text-[10px] md:text-xs mt-0.5 md:mt-1 opacity-75">ถึง {slot.end}</div>
 
-                                        <div className="mt-3 flex items-center justify-center">
+                                        <div className="mt-1.5 md:mt-3 flex items-center justify-center">
                                             {occupied ? (
                                                 isImported ? (
-                                                    <span className="inline-flex items-center gap-1 px-2 py-1 bg-slate-200/50 rounded-full text-[10px] font-medium">
+                                                    <span className="inline-flex items-center gap-1 px-2 py-0.5 bg-gray-200 rounded text-[10px] font-medium text-gray-600">
                                                         <FaBook className="text-[8px]" /> ตารางสอน
                                                     </span>
                                                 ) : (
-                                                    <span className="inline-flex items-center gap-1 px-2 py-1 bg-amber-200/50 rounded-full text-[10px] font-medium">
+                                                    <span className="inline-flex items-center gap-1 px-2 py-0.5 bg-orange-100 rounded text-[10px] font-medium text-orange-800">
                                                         <FaLock className="text-[8px]" /> จองแล้ว
                                                     </span>
                                                 )
                                             ) : inRange ? (
-                                                <span className="inline-flex items-center gap-1 px-2 py-1 bg-white/30 rounded-full text-[10px] font-medium">
+                                                <span className="inline-flex items-center gap-1 px-2 py-0.5 bg-white/20 rounded text-[10px] font-medium text-white">
                                                     <FaCheck className="text-[8px]" /> {isStart ? 'เริ่มต้น' : 'เลือกแล้ว'}
                                                 </span>
                                             ) : (
-                                                <span className="inline-flex items-center gap-1 px-2 py-1 bg-emerald-200/50 rounded-full text-[10px] font-medium text-emerald-700 group-hover:bg-emerald-300/50 transition-colors">
+                                                <span className="inline-flex items-center gap-1 px-2 py-0.5 bg-emerald-100 rounded text-[10px] font-medium text-emerald-700 transition-colors">
                                                     <FaCheck className="text-[8px]" /> ว่าง
                                                 </span>
                                             )}
@@ -396,21 +413,21 @@ const RoomBooking = () => {
                     </div>
 
                     {/* Legend */}
-                    <div className="flex flex-wrap justify-center gap-6 mt-8 pt-6 border-t border-slate-100">
-                        <div className="flex items-center gap-2 text-sm text-gray-600">
-                            <div className="w-5 h-5 bg-gradient-to-br from-emerald-50 to-teal-50 border-2 border-emerald-200 rounded-lg"></div>
+                    <div className="flex flex-wrap justify-center gap-3 md:gap-6 mt-4 md:mt-8 pt-3 md:pt-6 border-t border-gray-100">
+                        <div className="flex items-center gap-2 text-xs md:text-sm text-gray-600">
+                            <div className="w-5 h-5 bg-white border border-emerald-300 rounded"></div>
                             <span>ว่าง</span>
                         </div>
-                        <div className="flex items-center gap-2 text-sm text-gray-600">
-                            <div className="w-5 h-5 bg-gradient-to-br from-blue-500 to-indigo-600 rounded-lg"></div>
+                        <div className="flex items-center gap-2 text-xs md:text-sm text-gray-600">
+                            <div className="w-5 h-5 bg-emerald-600 rounded"></div>
                             <span>กำลังเลือก</span>
                         </div>
-                        <div className="flex items-center gap-2 text-sm text-gray-600">
-                            <div className="w-5 h-5 bg-gradient-to-br from-amber-50 to-orange-100 border-2 border-amber-200 rounded-lg"></div>
+                        <div className="flex items-center gap-2 text-xs md:text-sm text-gray-600">
+                            <div className="w-5 h-5 bg-orange-50 border border-orange-200 rounded"></div>
                             <span>จองแล้ว</span>
                         </div>
-                        <div className="flex items-center gap-2 text-sm text-gray-600">
-                            <div className="w-5 h-5 bg-gradient-to-br from-slate-100 to-slate-200 rounded-lg"></div>
+                        <div className="flex items-center gap-2 text-xs md:text-sm text-gray-600">
+                            <div className="w-5 h-5 bg-gray-100 border border-gray-200 rounded"></div>
                             <span>ตารางสอน</span>
                         </div>
                     </div>

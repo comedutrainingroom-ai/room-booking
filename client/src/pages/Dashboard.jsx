@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import api from '../services/api';
 import { Link } from 'react-router-dom';
 import { FaClock, FaBuilding } from 'react-icons/fa';
@@ -14,11 +14,7 @@ const Dashboard = () => {
     const [bookings, setBookings] = useState([]);
     const [loading, setLoading] = useState(true);
 
-    useEffect(() => {
-        fetchData();
-    }, []);
-
-    const fetchData = async () => {
+    const fetchData = useCallback(async () => {
         try {
             setLoading(true);
             const res = await api.get('/bookings');
@@ -32,7 +28,11 @@ const Dashboard = () => {
         } finally {
             setLoading(false);
         }
-    };
+    }, []);
+
+    useEffect(() => {
+        fetchData();
+    }, [fetchData]);
 
     if (loading) {
         return (
@@ -48,14 +48,14 @@ const Dashboard = () => {
         .slice(0, 5);
 
     return (
-        <div className="w-full h-full px-4 py-8 space-y-8 animate-fadeIn">
+        <div className="w-full h-full px-0 sm:px-4 py-6 sm:py-8 space-y-6 md:space-y-8">
             {/* Header */}
             <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
                 <div>
-                    <h1 className="text-3xl font-bold text-gray-800">Dashboard</h1>
+                    <h1 className="text-2xl md:text-3xl font-bold text-gray-800">Dashboard</h1>
                     <p className="text-gray-500 mt-1">ภาพรวมสถิติการจองห้องประชุม</p>
                 </div>
-                <div className="flex gap-3">
+                <div className="flex gap-3 w-full md:w-auto">
                     <ExportButton bookings={bookings} />
                 </div>
             </div>
@@ -75,9 +75,9 @@ const Dashboard = () => {
                 </div>
 
                 {/* Recent Activity (kept inline as it's simple) */}
-                <div className="bg-white rounded-2xl p-6 shadow-sm border border-gray-100 h-full">
+                <div className="bg-white rounded-xl p-5 md:p-6 shadow-sm border border-gray-200 h-full">
                     <div className="flex items-center gap-2 mb-6">
-                        <div className="p-2 rounded-lg bg-blue-50 text-blue-500">
+                        <div className="p-2 rounded-md bg-gray-100 text-gray-600">
                             <FaClock />
                         </div>
                         <h3 className="font-bold text-gray-800">มาใหม่ล่าสุด</h3>

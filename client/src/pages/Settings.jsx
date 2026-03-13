@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import { FaCog, FaCalendarCheck, FaServer, FaSave, FaUndo, FaClock, FaCalendarAlt, FaToggleOn, FaToggleOff } from 'react-icons/fa';
 import api from '../services/api';
 import { useSettings } from '../contexts/SettingsContext';
@@ -51,7 +51,7 @@ const Settings = () => {
         fetchSettings();
     }, []);
 
-    const handleSave = async () => {
+    const handleSave = useCallback(async () => {
         setLoading(true);
         try {
             const res = await api.put('/settings', settings);
@@ -66,7 +66,7 @@ const Settings = () => {
         } finally {
             setLoading(false);
         }
-    };
+    }, [settings, refreshSettings, toast]);
 
     const Toggle = ({ label, checked, onChange, description }) => (
         <div className="flex items-center justify-between p-4 bg-gray-50 rounded-xl border border-gray-100 hover:border-gray-200 transition-colors">
@@ -86,9 +86,9 @@ const Settings = () => {
     return (
         <div className="space-y-6 pb-8">
             {/* Header */}
-            <div className="flex justify-between items-center">
+            <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
                 <div>
-                    <h1 className="text-2xl font-bold text-gray-800 flex items-center gap-2">
+                    <h1 className="text-xl md:text-2xl font-bold text-gray-800 flex items-center gap-2">
                         <FaCog className="text-primary" /> ตั้งค่าระบบ
                     </h1>
                     <p className="text-gray-500 text-sm mt-1">จัดการการตั้งค่าและเงื่อนไขการจอง</p>
@@ -96,7 +96,7 @@ const Settings = () => {
                 <button
                     onClick={handleSave}
                     disabled={loading}
-                    className="bg-primary text-white px-6 py-2.5 rounded-xl shadow-lg shadow-green-200 hover:bg-green-700 hover:shadow-xl transition-all flex items-center gap-2 font-medium disabled:opacity-70 disabled:cursor-not-allowed"
+                    className="w-full sm:w-auto bg-primary text-white px-6 py-2.5 rounded-xl shadow-lg shadow-green-200 hover:bg-green-700 hover:shadow-xl transition-all flex items-center justify-center gap-2 font-medium disabled:opacity-70 disabled:cursor-not-allowed"
                 >
                     {loading ? (
                         <div className="animate-spin h-5 w-5 border-2 border-white border-t-transparent rounded-full"></div>

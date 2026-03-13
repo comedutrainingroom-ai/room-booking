@@ -1,0 +1,668 @@
+<!DOCTYPE html>
+<html lang="th">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>คู่มือพัฒนาระบบจองห้องประชุมออนไลน์</title>
+    <script src="https://cdn.jsdelivr.net/npm/mermaid/dist/mermaid.min.js"></script>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/styles/github.min.css">
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/highlight.min.js"></script>
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=JetBrains+Mono:wght@400;500&display=swap');
+
+        :root {
+            --bg: #f8fafc;
+            --card: #ffffff;
+            --text: #1e293b;
+            --text-secondary: #64748b;
+            --border: #e2e8f0;
+            --accent: #16a34a;
+            --accent-bg: #f0fdf4;
+            --blue: #2563eb;
+            --blue-bg: #eff6ff;
+            --orange: #ea580c;
+            --orange-bg: #fff7ed;
+            --red: #dc2626;
+            --red-bg: #fef2f2;
+            --code-bg: #f1f5f9;
+        }
+
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+
+        body {
+            font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
+            background: var(--bg);
+            color: var(--text);
+            line-height: 1.7;
+            padding: 2rem;
+        }
+
+        .container {
+            max-width: 960px;
+            margin: 0 auto;
+        }
+
+        /* Header */
+        .doc-header {
+            background: linear-gradient(135deg, #16a34a 0%, #15803d 100%);
+            color: white;
+            padding: 3rem 2.5rem;
+            border-radius: 1.5rem;
+            margin-bottom: 2rem;
+            box-shadow: 0 10px 40px rgba(22, 163, 74, 0.2);
+        }
+        .doc-header h1 { font-size: 2rem; font-weight: 800; margin-bottom: 0.5rem; }
+        .doc-header .subtitle { opacity: 0.9; font-size: 0.95rem; }
+        .doc-header .tech-badges { display: flex; flex-wrap: wrap; gap: 0.5rem; margin-top: 1rem; }
+        .doc-header .badge {
+            background: rgba(255,255,255,0.2);
+            padding: 0.3rem 0.8rem;
+            border-radius: 999px;
+            font-size: 0.8rem;
+            font-weight: 600;
+            backdrop-filter: blur(10px);
+        }
+
+        /* Sections */
+        .section {
+            background: var(--card);
+            border-radius: 1rem;
+            padding: 2rem 2.5rem;
+            margin-bottom: 1.5rem;
+            border: 1px solid var(--border);
+            box-shadow: 0 1px 3px rgba(0,0,0,0.04);
+        }
+        .section h2 {
+            font-size: 1.4rem;
+            font-weight: 700;
+            color: var(--text);
+            margin-bottom: 1rem;
+            padding-bottom: 0.75rem;
+            border-bottom: 2px solid var(--accent);
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+        }
+        .section h3 {
+            font-size: 1.1rem;
+            font-weight: 600;
+            margin: 1.5rem 0 0.75rem;
+            color: var(--text);
+        }
+        .section h4 {
+            font-size: 0.95rem;
+            font-weight: 600;
+            margin: 1rem 0 0.5rem;
+            color: var(--text-secondary);
+        }
+        .section p, .section li {
+            color: var(--text);
+            font-size: 0.92rem;
+        }
+        .section ul, .section ol {
+            padding-left: 1.5rem;
+            margin: 0.5rem 0;
+        }
+        .section li { margin-bottom: 0.3rem; }
+
+        /* Tables */
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            margin: 1rem 0;
+            font-size: 0.88rem;
+        }
+        thead { background: var(--code-bg); }
+        th {
+            text-align: left;
+            padding: 0.7rem 1rem;
+            font-weight: 600;
+            color: var(--text);
+            border-bottom: 2px solid var(--border);
+        }
+        td {
+            padding: 0.6rem 1rem;
+            border-bottom: 1px solid var(--border);
+            color: var(--text);
+        }
+        tr:hover { background: #f8fafc; }
+
+        /* Code */
+        pre {
+            background: #0f172a;
+            color: #e2e8f0;
+            padding: 1.2rem 1.5rem;
+            border-radius: 0.75rem;
+            overflow-x: auto;
+            margin: 1rem 0;
+            font-size: 0.85rem;
+            line-height: 1.6;
+        }
+        pre code {
+            font-family: 'JetBrains Mono', monospace;
+            background: none !important;
+            padding: 0 !important;
+            color: inherit;
+        }
+        code {
+            font-family: 'JetBrains Mono', monospace;
+            background: var(--code-bg);
+            padding: 0.15rem 0.4rem;
+            border-radius: 0.3rem;
+            font-size: 0.85em;
+            color: var(--accent);
+        }
+
+        /* Mermaid */
+        .mermaid {
+            text-align: center;
+            margin: 1.5rem 0;
+            background: #fafbfc;
+            border-radius: 0.75rem;
+            padding: 1.5rem;
+            border: 1px solid var(--border);
+        }
+
+        /* Alerts */
+        .alert {
+            padding: 1rem 1.2rem;
+            border-radius: 0.75rem;
+            margin: 1rem 0;
+            font-size: 0.9rem;
+            border-left: 4px solid;
+        }
+        .alert-note { background: var(--blue-bg); border-color: var(--blue); color: #1e40af; }
+        .alert-important { background: #faf5ff; border-color: #9333ea; color: #6b21a8; }
+        .alert-tip { background: var(--accent-bg); border-color: var(--accent); color: #15803d; }
+        .alert-warning { background: var(--orange-bg); border-color: var(--orange); color: #c2410c; }
+        .alert-caution { background: var(--red-bg); border-color: var(--red); color: #b91c1c; }
+        .alert strong { display: block; margin-bottom: 0.3rem; }
+
+        /* Auth symbols */
+        .auth-legend {
+            display: flex;
+            gap: 1.5rem;
+            margin-top: 0.5rem;
+            font-size: 0.85rem;
+            color: var(--text-secondary);
+        }
+
+        /* Tree structure */
+        .tree {
+            font-family: 'JetBrains Mono', monospace;
+            font-size: 0.82rem;
+            line-height: 1.5;
+            background: #0f172a;
+            color: #94a3b8;
+            padding: 1.5rem;
+            border-radius: 0.75rem;
+            overflow-x: auto;
+        }
+        .tree .dir { color: #60a5fa; }
+        .tree .comment { color: #64748b; }
+        .tree .file { color: #e2e8f0; }
+
+        /* Print */
+        @media print {
+            body { padding: 0; background: white; }
+            .section { break-inside: avoid; box-shadow: none; border: 1px solid #ddd; }
+            .doc-header { background: #16a34a !important; -webkit-print-color-adjust: exact; print-color-adjust: exact; }
+        }
+
+        /* Responsive */
+        @media (max-width: 768px) {
+            body { padding: 1rem; }
+            .doc-header { padding: 2rem 1.5rem; }
+            .section { padding: 1.5rem; }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+
+        <!-- Header -->
+        <div class="doc-header">
+            <h1>📖 คู่มือพัฒนาระบบจองห้องประชุมออนไลน์</h1>
+            <p class="subtitle">Room Booking System — ภาควิชาคอมพิวเตอร์</p>
+            <div class="tech-badges">
+                <span class="badge">MongoDB</span>
+                <span class="badge">Express v5</span>
+                <span class="badge">React (Vite)</span>
+                <span class="badge">Node.js</span>
+                <span class="badge">Firebase Auth</span>
+                <span class="badge">Socket.io</span>
+            </div>
+        </div>
+
+        <!-- 1. Architecture -->
+        <div class="section">
+            <h2>1. สถาปัตยกรรมระบบ (Architecture Overview)</h2>
+            <div class="mermaid">
+graph TB
+    subgraph Client["🖥️ Client - React + Vite"]
+        Pages["Pages (15 หน้า)"]
+        Components["Components"]
+        Contexts["Contexts (4 ตัว)"]
+        Services["Services (api, firebase, export)"]
+    end
+    subgraph Server["⚙️ Server - Express v5"]
+        Routes["Routes (8 กลุ่ม)"]
+        Controllers["Controllers"]
+        Middleware["Middleware (Auth, Upload)"]
+        ServerServices["Services (Email, Audit, Booking)"]
+        Cron["Cron Scheduler"]
+    end
+    subgraph External["☁️ External Services"]
+        Firebase["Firebase Auth"]
+        MongoDB["MongoDB"]
+        Gmail["Gmail SMTP"]
+    end
+    Client -->|REST API + Socket.io| Server
+    Client -->|Google Login| Firebase
+    Server -->|Firebase Admin SDK| Firebase
+    Server -->|Mongoose| MongoDB
+    Server -->|Nodemailer| Gmail
+            </div>
+
+            <h3>Data Flow สรุป</h3>
+            <ol>
+                <li><strong>ผู้ใช้</strong> เข้าเว็บ → ล็อกอินผ่าน <strong>Google (Firebase Auth)</strong></li>
+                <li><strong>Client</strong> ส่ง Firebase ID Token ไป <strong>Server</strong> เพื่อ verify ตัวตน</li>
+                <li><strong>Server</strong> ตรวจ Token → สร้าง/อัปเดต User ใน <strong>MongoDB</strong> → ส่ง Role กลับ</li>
+                <li>ผู้ใช้ทำรายการ (จอง, แจ้งปัญหา ฯลฯ) → <strong>REST API</strong> → <strong>MongoDB</strong></li>
+                <li><strong>Socket.io</strong> แจ้งเตือน Admin แบบ real-time เมื่อมีการจองใหม่</li>
+                <li><strong>Cron Job</strong> ส่ง email เตือนก่อนประชุม 1 ชม.</li>
+            </ol>
+        </div>
+
+        <!-- 2. Project Structure -->
+        <div class="section">
+            <h2>2. โครงสร้างโฟลเดอร์ (Project Structure)</h2>
+            <pre><code>Pad/
+├── client/                     # Frontend (React + Vite)
+│   ├── src/
+│   │   ├── App.jsx             # Root component + Router
+│   │   ├── main.jsx            # Entry point
+│   │   ├── index.css           # Global styles
+│   │   ├── pages/              # 15 หน้า (Lazy-loaded)
+│   │   │   ├── Home.jsx            # หน้าแรก
+│   │   │   ├── Login.jsx           # ล็อกอิน Google
+│   │   │   ├── Calendar.jsx        # ปฏิทินจอง (FullCalendar)
+│   │   │   ├── RoomSelection.jsx   # เลือกห้อง
+│   │   │   ├── RoomBooking.jsx     # ฟอร์มจองห้อง
+│   │   │   ├── History.jsx         # ประวัติการจอง
+│   │   │   ├── Profile.jsx         # โปรไฟล์ผู้ใช้
+│   │   │   ├── ReportIssue.jsx     # แจ้งปัญหา
+│   │   │   ├── RoomRules.jsx       # กฎการใช้ห้อง
+│   │   │   ├── AdminApprove.jsx    # [Admin] อนุมัติจอง
+│   │   │   ├── AdminReports.jsx    # [Admin] จัดการรายงาน
+│   │   │   ├── Dashboard.jsx       # [Admin] แดชบอร์ด
+│   │   │   ├── RoomManagement.jsx  # [Admin] จัดการห้อง
+│   │   │   ├── UserManagement.jsx  # [Admin] จัดการผู้ใช้
+│   │   │   └── Settings.jsx        # [Admin] ตั้งค่าระบบ
+│   │   ├── components/         # Reusable components
+│   │   ├── contexts/           # React Contexts (4 ตัว)
+│   │   └── services/           # API &amp; External services
+│   └── .env                    # Firebase config
+│
+├── server/                     # Backend (Express v5 + MongoDB)
+│   ├── server.js               # Entry point
+│   ├── config/                 # DB, Firebase Admin
+│   ├── models/                 # Mongoose models (6 ตัว)
+│   ├── routes/                 # API route definitions
+│   ├── controllers/            # Business logic
+│   ├── middleware/              # Auth, Upload
+│   ├── services/               # Email, Audit, Booking
+│   ├── cron/                   # Reminder email cron
+│   ├── scripts/                # Utility scripts
+│   └── .env                    # Server secrets
+└── docs/                       # เอกสาร</code></pre>
+        </div>
+
+        <!-- 3. Data Models -->
+        <div class="section">
+            <h2>3. Data Models (ฐานข้อมูล)</h2>
+
+            <h3>3.1 Room — ห้องประชุม</h3>
+            <table>
+                <thead><tr><th>Field</th><th>Type</th><th>รายละเอียด</th></tr></thead>
+                <tbody>
+                    <tr><td><code>name</code></td><td>String</td><td>ชื่อห้อง (unique, สูงสุด 50 ตัว)</td></tr>
+                    <tr><td><code>capacity</code></td><td>Number</td><td>จำนวนที่นั่ง</td></tr>
+                    <tr><td><code>equipment</code></td><td>[String]</td><td>อุปกรณ์ที่มี เช่น โปรเจคเตอร์, ไมค์</td></tr>
+                    <tr><td><code>images</code></td><td>[String]</td><td>path รูปภาพห้อง</td></tr>
+                    <tr><td><code>description</code></td><td>String</td><td>คำอธิบาย (สูงสุด 500 ตัว)</td></tr>
+                    <tr><td><code>isActive</code></td><td>Boolean</td><td>เปิด/ปิดใช้งาน</td></tr>
+                </tbody>
+            </table>
+
+            <h3>3.2 Booking — การจอง</h3>
+            <table>
+                <thead><tr><th>Field</th><th>Type</th><th>รายละเอียด</th></tr></thead>
+                <tbody>
+                    <tr><td><code>room</code></td><td>ObjectId → Room</td><td>ห้องที่จอง</td></tr>
+                    <tr><td><code>topic</code></td><td>String</td><td>หัวข้อการจอง</td></tr>
+                    <tr><td><code>user.name/email/phone</code></td><td>String</td><td>ข้อมูลผู้จอง</td></tr>
+                    <tr><td><code>startTime / endTime</code></td><td>Date</td><td>เวลาเริ่ม-สิ้นสุด</td></tr>
+                    <tr><td><code>status</code></td><td>Enum</td><td>pending · approved · rejected · cancelled</td></tr>
+                    <tr><td><code>reminderSent</code></td><td>Boolean</td><td>ส่ง email เตือนแล้วหรือยัง</td></tr>
+                    <tr><td><code>isImported</code></td><td>Boolean</td><td>จองจากการ import Excel</td></tr>
+                </tbody>
+            </table>
+
+            <h3>3.3 User — ผู้ใช้</h3>
+            <table>
+                <thead><tr><th>Field</th><th>Type</th><th>รายละเอียด</th></tr></thead>
+                <tbody>
+                    <tr><td><code>email</code></td><td>String</td><td>อีเมล (unique, lowercase)</td></tr>
+                    <tr><td><code>name</code></td><td>String</td><td>ชื่อ</td></tr>
+                    <tr><td><code>role</code></td><td>Enum</td><td>student · admin</td></tr>
+                    <tr><td><code>studentId</code></td><td>String</td><td>รหัสนักศึกษา</td></tr>
+                    <tr><td><code>isBanned</code></td><td>Boolean</td><td>ถูกแบนหรือไม่</td></tr>
+                </tbody>
+            </table>
+
+            <h3>3.4 Setting — ตั้งค่าระบบ (Singleton)</h3>
+            <table>
+                <thead><tr><th>Field</th><th>ค่าเริ่มต้น</th><th>รายละเอียด</th></tr></thead>
+                <tbody>
+                    <tr><td><code>systemName</code></td><td>ระบบจองห้องประชุมออนไลน์</td><td>ชื่อระบบ</td></tr>
+                    <tr><td><code>maxBookingDays</code></td><td>30</td><td>จองล่วงหน้าได้กี่วัน</td></tr>
+                    <tr><td><code>maxBookingHours</code></td><td>4</td><td>จองได้นานสุดกี่ชม./ครั้ง</td></tr>
+                    <tr><td><code>requireApproval</code></td><td>true</td><td>ต้องรออนุมัติหรือไม่</td></tr>
+                    <tr><td><code>openTime / closeTime</code></td><td>08:00 - 20:00</td><td>เวลาเปิด-ปิดจอง</td></tr>
+                </tbody>
+            </table>
+
+            <h3>3.5 Report — แจ้งปัญหา</h3>
+            <table>
+                <thead><tr><th>Field</th><th>Type</th><th>รายละเอียด</th></tr></thead>
+                <tbody>
+                    <tr><td><code>topic</code></td><td>String</td><td>หัวข้อปัญหา</td></tr>
+                    <tr><td><code>urgency</code></td><td>Enum</td><td>normal · urgent · emergency</td></tr>
+                    <tr><td><code>status</code></td><td>Enum</td><td>pending · in_progress · resolved · rejected</td></tr>
+                    <tr><td><code>room</code></td><td>ObjectId → Room</td><td>ห้องที่มีปัญหา</td></tr>
+                    <tr><td><code>reporter</code></td><td>ObjectId → User</td><td>ผู้แจ้ง</td></tr>
+                </tbody>
+            </table>
+
+            <h3>3.6 AuditLog — บันทึกกิจกรรม</h3>
+            <table>
+                <thead><tr><th>Field</th><th>Type</th><th>รายละเอียด</th></tr></thead>
+                <tbody>
+                    <tr><td><code>action</code></td><td>Enum</td><td>เช่น booking:create, user:ban</td></tr>
+                    <tr><td><code>performedBy</code></td><td>ObjectId → User</td><td>ใครทำ</td></tr>
+                    <tr><td><code>targetType</code></td><td>Enum</td><td>booking, report, user, settings, room</td></tr>
+                    <tr><td><code>details</code></td><td>String</td><td>คำอธิบาย</td></tr>
+                </tbody>
+            </table>
+            <div class="alert alert-note"><strong>📝 หมายเหตุ</strong>AuditLog มี TTL index ลบข้อมูลอัตโนมัติหลัง 90 วัน</div>
+        </div>
+
+        <!-- 4. API -->
+        <div class="section">
+            <h2>4. REST API Endpoints</h2>
+
+            <h3>4.1 Auth — การยืนยันตัวตน</h3>
+            <table>
+                <thead><tr><th>Method</th><th>Endpoint</th><th>Auth</th><th>รายละเอียด</th></tr></thead>
+                <tbody>
+                    <tr><td><code>POST</code></td><td>/api/auth/google</td><td>❌</td><td>ล็อกอินด้วย Google (ส่ง idToken)</td></tr>
+                    <tr><td><code>POST</code></td><td>/api/auth/verify-pin</td><td>✅</td><td>ตรวจ PIN สำหรับ Admin 2FA</td></tr>
+                </tbody>
+            </table>
+
+            <h3>4.2 Rooms — ห้องประชุม</h3>
+            <table>
+                <thead><tr><th>Method</th><th>Endpoint</th><th>Auth</th><th>รายละเอียด</th></tr></thead>
+                <tbody>
+                    <tr><td><code>GET</code></td><td>/api/rooms</td><td>❌</td><td>ดูห้องทั้งหมด</td></tr>
+                    <tr><td><code>GET</code></td><td>/api/rooms/:id</td><td>❌</td><td>ดูห้องตาม ID</td></tr>
+                    <tr><td><code>POST</code></td><td>/api/rooms</td><td>🔒 Admin</td><td>สร้างห้อง (+ upload รูป max 5)</td></tr>
+                    <tr><td><code>PUT</code></td><td>/api/rooms/:id</td><td>🔒 Admin</td><td>แก้ไขห้อง</td></tr>
+                    <tr><td><code>DELETE</code></td><td>/api/rooms/:id</td><td>🔒 Admin</td><td>ลบห้อง</td></tr>
+                </tbody>
+            </table>
+
+            <h3>4.3 Bookings — การจอง</h3>
+            <table>
+                <thead><tr><th>Method</th><th>Endpoint</th><th>Auth</th><th>รายละเอียด</th></tr></thead>
+                <tbody>
+                    <tr><td><code>GET</code></td><td>/api/bookings</td><td>❌</td><td>ดูการจองทั้งหมด</td></tr>
+                    <tr><td><code>POST</code></td><td>/api/bookings</td><td>✅</td><td>สร้างคำขอจอง</td></tr>
+                    <tr><td><code>PUT</code></td><td>/api/bookings/:id</td><td>✅</td><td>แก้ไข/อนุมัติ/ยกเลิก</td></tr>
+                    <tr><td><code>DELETE</code></td><td>/api/bookings/:id</td><td>🔒 Admin</td><td>ลบการจอง</td></tr>
+                    <tr><td><code>POST</code></td><td>/api/bookings/import</td><td>🔒 Admin</td><td>Import จาก Excel</td></tr>
+                </tbody>
+            </table>
+
+            <h3>4.4 Reports &amp; อื่นๆ</h3>
+            <table>
+                <thead><tr><th>Group</th><th>Endpoints</th><th>รายละเอียด</th></tr></thead>
+                <tbody>
+                    <tr><td>Reports</td><td>GET/POST/PUT /api/reports</td><td>แจ้งปัญหา / จัดการ</td></tr>
+                    <tr><td>Users</td><td>GET/PUT /api/users</td><td>จัดการผู้ใช้ (Admin)</td></tr>
+                    <tr><td>Settings</td><td>GET/PUT /api/settings</td><td>ตั้งค่าระบบ (Admin)</td></tr>
+                    <tr><td>Audit Logs</td><td>GET /api/audit-logs</td><td>ดูบันทึกกิจกรรม</td></tr>
+                </tbody>
+            </table>
+            <div class="auth-legend">
+                <span>❌ = Public</span>
+                <span>✅ = ต้อง Login</span>
+                <span>🔒 = ต้องเป็น Admin</span>
+            </div>
+        </div>
+
+        <!-- 5. Auth Flow -->
+        <div class="section">
+            <h2>5. ระบบ Authentication &amp; Authorization</h2>
+
+            <h3>5.1 Flow การล็อกอิน</h3>
+            <div class="mermaid">
+sequenceDiagram
+    participant U as ผู้ใช้
+    participant C as Client (React)
+    participant FB as Firebase Auth
+    participant S as Server (Express)
+    participant DB as MongoDB
+
+    U->>C: กดปุ่ม Login with Google
+    C->>FB: signInWithPopup(googleProvider)
+    FB-->>C: Firebase User + ID Token
+    C->>S: POST /api/auth/google
+    S->>FB: verifyIdToken(idToken)
+    FB-->>S: Decoded token (email, name)
+    S->>DB: findOneAndUpdate(User)
+    DB-->>S: User doc (with role)
+    S-->>C: success + user data
+    C->>C: เก็บ dbUser ใน AuthContext
+            </div>
+
+            <h3>5.2 Middleware ป้องกัน API</h3>
+            <pre><code>// ทุก request ที่ต้อง login จะผ่าน protect middleware:
+// 1. อ่าน Bearer Token จาก header
+// 2. verify กับ Firebase Admin SDK
+// 3. ค้นหา User จาก MongoDB
+// 4. ใส่ req.user ให้ controller ใช้
+
+// สำหรับ Admin routes จะเพิ่ม admin middleware:
+// ตรวจ req.user.role === 'admin'</code></pre>
+
+            <h3>5.3 Admin Guard (2FA ด้วย PIN)</h3>
+            <pre><code>App.jsx
+└── AdminGuard.jsx → ตรวจ isAdmin + isAdminUnlocked
+    └── ถ้ายังไม่ unlock → แสดงหน้ากรอก PIN
+    └── ถ้า unlock แล้ว → แสดงหน้า Admin ปกติ</code></pre>
+        </div>
+
+        <!-- 6. Contexts -->
+        <div class="section">
+            <h2>6. Context Providers (State Management)</h2>
+            <pre><code>&lt;ErrorBoundary&gt;
+  &lt;Router&gt;
+    &lt;AuthProvider&gt;         ← จัดการ login/logout, role
+      &lt;SocketProvider&gt;     ← เชื่อม Socket.io
+        &lt;SettingsProvider&gt; ← ดึงตั้งค่าระบบ
+          &lt;ToastProvider&gt;  ← แสดง notification
+            &lt;Routes /&gt;
+          &lt;/ToastProvider&gt;
+        &lt;/SettingsProvider&gt;
+      &lt;/SocketProvider&gt;
+    &lt;/AuthProvider&gt;
+  &lt;/Router&gt;
+&lt;/ErrorBoundary&gt;</code></pre>
+
+            <table>
+                <thead><tr><th>Context</th><th>สิ่งที่ provide</th><th>ใช้ตรงไหน</th></tr></thead>
+                <tbody>
+                    <tr><td><code>AuthContext</code></td><td>currentUser, dbUser, isAdmin, loginWithGoogle(), logout()</td><td>ทุกหน้า</td></tr>
+                    <tr><td><code>SocketContext</code></td><td>socket instance</td><td>AdminApprove, Navbar</td></tr>
+                    <tr><td><code>SettingsContext</code></td><td>settings object (เวลา, สี ฯลฯ)</td><td>Booking forms, Navbar</td></tr>
+                    <tr><td><code>ToastContext</code></td><td>showToast(message, type)</td><td>ทุกหน้า</td></tr>
+                </tbody>
+            </table>
+        </div>
+
+        <!-- 7. Socket.io -->
+        <div class="section">
+            <h2>7. ระบบ Real-time (Socket.io)</h2>
+            <div class="mermaid">
+sequenceDiagram
+    participant Admin as Admin Browser
+    participant Server as Server
+    participant Student as Student Browser
+
+    Admin->>Server: socket.emit join-admin
+    Note over Server: Admin อยู่ใน admin-room
+    Student->>Server: POST /api/bookings สร้างจอง
+    Server->>Server: บันทึกลง MongoDB
+    Server->>Admin: io.to admin-room emit new-booking
+    Note over Admin: แสดง notification / refresh ข้อมูล
+            </div>
+        </div>
+
+        <!-- 8. Email -->
+        <div class="section">
+            <h2>8. ระบบ Email (Nodemailer)</h2>
+            <table>
+                <thead><tr><th>Event</th><th>ฟังก์ชัน</th><th>รายละเอียด</th></tr></thead>
+                <tbody>
+                    <tr><td>สร้างจองสำเร็จ</td><td><code>sendBookingCreated()</code></td><td>แจ้งผู้จองว่ากำลังรออนุมัติ</td></tr>
+                    <tr><td>จองได้รับอนุมัติ</td><td><code>sendBookingApproved()</code></td><td>แจ้งผู้จองว่าอนุมัติแล้ว</td></tr>
+                    <tr><td>เวลาจองถูกแก้ไข</td><td><code>sendBookingModified()</code></td><td>แจ้งเวลาเดิม/ใหม่</td></tr>
+                    <tr><td>จองถูกยกเลิก</td><td><code>sendBookingCancelled()</code></td><td>แจ้งการยกเลิก</td></tr>
+                    <tr><td>ใกล้ถึงเวลาประชุม</td><td><code>sendBookingReminder()</code></td><td>เตือน 1 ชม. ก่อน (Cron)</td></tr>
+                </tbody>
+            </table>
+            <div class="alert alert-important"><strong>⚠️ สำคัญ</strong>ต้องตั้งค่า EMAIL_USER และ EMAIL_PASS ในไฟล์ server/.env — สำหรับ Gmail ต้องใช้ App Password</div>
+        </div>
+
+        <!-- 9. Security -->
+        <div class="section">
+            <h2>9. Security Layers</h2>
+            <table>
+                <thead><tr><th>Layer</th><th>เทคโนโลยี</th><th>รายละเอียด</th></tr></thead>
+                <tbody>
+                    <tr><td>HTTPS Headers</td><td>Helmet</td><td>ป้องกัน XSS, clickjacking ฯลฯ</td></tr>
+                    <tr><td>Rate Limiting</td><td>express-rate-limit</td><td>API: 100 req/min, Auth: 20 req/min</td></tr>
+                    <tr><td>NoSQL Injection</td><td>Custom sanitizer</td><td>ลบ key ที่ขึ้นต้นด้วย $ จาก req.body</td></tr>
+                    <tr><td>CORS</td><td>cors</td><td>จำกัด origin เฉพาะ Client URL</td></tr>
+                    <tr><td>Auth</td><td>Firebase Admin SDK</td><td>Verify ID Token ทุก protected route</td></tr>
+                    <tr><td>Admin Guard</td><td>PIN verification</td><td>2FA สำหรับหน้า Admin</td></tr>
+                    <tr><td>File Upload</td><td>Multer + Sharp</td><td>จำกัดขนาด/ประเภทไฟล์, resize รูป</td></tr>
+                    <tr><td>Audit Trail</td><td>AuditLog model</td><td>บันทึกทุกการกระทำ (auto-expire 90 วัน)</td></tr>
+                </tbody>
+            </table>
+        </div>
+
+        <!-- 10. How to extend -->
+        <div class="section">
+            <h2>10. แนวทางการเพิ่มฟีเจอร์ใหม่</h2>
+
+            <h3>เพิ่ม Model ใหม่</h3>
+            <pre><code>1. สร้างไฟล์ใน server/models/NewModel.js
+2. กำหนด Schema ด้วย Mongoose
+3. ส่ง export: module.exports = mongoose.model('NewModel', schema)</code></pre>
+
+            <h3>เพิ่ม API Endpoint ใหม่</h3>
+            <pre><code>1. สร้าง Controller: server/controllers/newController.js
+   → เขียน function: getAll, create, update, delete
+   → ใช้ try-catch + ส่ง JSON { success, data/error }
+
+2. สร้าง Route: server/routes/newRoutes.js
+   → กำหนด protect / admin middleware
+
+3. ลงทะเบียนใน server.js:
+   app.use('/api/new', require('./routes/newRoutes'));</code></pre>
+
+            <h3>เพิ่มหน้าใหม่ใน Client</h3>
+            <pre><code>1. สร้างไฟล์: client/src/pages/NewPage.jsx
+2. Lazy load ใน App.jsx:
+   const NewPage = lazy(() => import('./pages/NewPage'));
+3. เพิ่ม Route ใน App.jsx
+4. เพิ่มลิงก์ใน Sidebar.jsx</code></pre>
+        </div>
+
+        <!-- 11. Coding Conventions -->
+        <div class="section">
+            <h2>11. Coding Conventions</h2>
+
+            <h3>Backend (Server)</h3>
+            <table>
+                <thead><tr><th>หัวข้อ</th><th>แนวทาง</th></tr></thead>
+                <tbody>
+                    <tr><td>Response format</td><td><code>{ success: true/false, data: {...} / error: "..." }</code></td></tr>
+                    <tr><td>Error handling</td><td>try-catch ใน controller, ส่ง status code ที่เหมาะสม</td></tr>
+                    <tr><td>Audit logging</td><td>ใช้ logAction() แบบ fire-and-forget</td></tr>
+                    <tr><td>Email</td><td>เรียกผ่าน emailService (ไม่ block response)</td></tr>
+                </tbody>
+            </table>
+
+            <h3>Frontend (Client)</h3>
+            <table>
+                <thead><tr><th>หัวข้อ</th><th>แนวทาง</th></tr></thead>
+                <tbody>
+                    <tr><td>API calls</td><td>ใช้ api instance จาก services/api.js (interceptor แนบ Token อัตโนมัติ)</td></tr>
+                    <tr><td>State</td><td>Contexts สำหรับ global, useState สำหรับ local</td></tr>
+                    <tr><td>Lazy loading</td><td>ทุกหน้าใช้ React.lazy() + Suspense</td></tr>
+                    <tr><td>CSS</td><td>Vanilla CSS ใน index.css (glassmorphism + gradients)</td></tr>
+                </tbody>
+            </table>
+        </div>
+
+        <!-- 12. Environment Variables -->
+        <div class="section">
+            <h2>12. Environment Variables</h2>
+
+            <h3>Server (server/.env)</h3>
+            <pre><code>PORT=5000
+MONGO_URI=mongodb://127.0.0.1:27017/room_booking_system
+CLIENT_URL=http://localhost:5173
+EMAIL_USER=your-email@gmail.com
+EMAIL_PASS=your-app-password
+ADMIN_PIN=123456</code></pre>
+
+            <h3>Client (client/.env)</h3>
+            <pre><code>VITE_FIREBASE_API_KEY=...
+VITE_FIREBASE_AUTH_DOMAIN=...
+VITE_FIREBASE_PROJECT_ID=...
+VITE_FIREBASE_STORAGE_BUCKET=...
+VITE_FIREBASE_MESSAGING_SENDER_ID=...
+VITE_FIREBASE_APP_ID=...
+VITE_API_BASE_URL=http://localhost:5000</code></pre>
+
+            <div class="alert alert-caution"><strong>🚨 ระวัง!</strong>ห้าม commit ไฟล์ .env หรือ serviceAccountKey.json ขึ้น Git! ไฟล์เหล่านี้มีข้อมูลความลับ (API keys, passwords)</div>
+        </div>
+
+    </div>
+
+    <script>
+        mermaid.initialize({
+            startOnLoad: true,
+            theme: 'default',
+            securityLevel: 'loose',
+            flowchart: { curve: 'basis' }
+        });
+    </script>
+</body>
+</html>

@@ -136,7 +136,7 @@ const setRoomMaintenance = async (req, res) => {
         await Room.findByIdAndUpdate(report.room._id, { isActive });
 
         // Update report status
-        report.status = isActive ? 'resolved' : 'in_progress';
+        report.status = !isActive ? 'in_progress' : 'resolved';
         report.updatedAt = Date.now();
         await report.save();
 
