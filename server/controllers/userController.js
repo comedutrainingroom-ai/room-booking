@@ -1,4 +1,5 @@
 const User = require('../models/User');
+const { sendBanNotification, sendUnbanNotification } = require('../services/emailService');
 
 // @desc    Get all users
 // @route   GET /api/users
@@ -55,7 +56,7 @@ const updateUserRole = async (req, res) => {
 // @access  Private/Admin
 const toggleBanUser = async (req, res) => {
     try {
-        const { isBanned } = req.body;
+        const { isBanned, reason } = req.body;
 
         // Prevent admin from banning themselves
         if (req.params.id === req.user._id.toString()) {
@@ -70,6 +71,13 @@ const toggleBanUser = async (req, res) => {
 
         if (!user) {
             return res.status(404).json({ success: false, error: 'ไม่พบผู้ใช้' });
+        }
+
+        // Send ban/unban notification email
+        if (isBanned) {
+            sendBanNotification(user, reason || null);
+        } else {
+            sendUnbanNotification(user);
         }
 
         res.status(200).json({

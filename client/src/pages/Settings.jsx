@@ -163,13 +163,8 @@ const Settings = () => {
                             <label className="text-sm font-medium text-gray-700">ธีมสีหลัก</label>
                             <div className="flex flex-wrap gap-3">
                                 {[
-                                    { name: 'Green', value: '#16a34a' },
-                                    { name: 'Blue', value: '#2563eb' },
-                                    { name: 'Purple', value: '#9333ea' },
-                                    { name: 'Orange', value: '#ea580c' },
-                                    { name: 'Red', value: '#dc2626' },
-                                    { name: 'Teal', value: '#0d9488' },
-                                    { name: 'Mourning', value: '#333333', label: 'ไว้อาลัย' }
+                                    { name: 'Green', value: '#16a34a', label: 'เขียว (ปกติ)' },
+                                    { name: 'Mourning', value: '#333333', label: 'ดำ (ไว้อาลัย)' }
                                 ].map((color) => (
                                     <button
                                         key={color.name}

@@ -17,43 +17,38 @@ const Toast = ({ id, type, message, onClose }) => {
         success: {
             icon: <FaCheck className="w-4 h-4" />,
             iconBg: 'bg-emerald-100/80 text-emerald-600',
-            borderColor: 'border-emerald-500'
         },
         error: {
-            icon: <FaTimes className="w-4 h-4" />,
-            iconBg: 'bg-rose-100/80 text-rose-600',
-            borderColor: 'border-rose-500'
+            icon: <FaExclamationTriangle className="w-4 h-4" />,
+            iconBg: 'bg-red-100/80 text-red-600',
         },
         warning: {
             icon: <FaExclamationTriangle className="w-4 h-4" />,
             iconBg: 'bg-amber-100/80 text-amber-600',
-            borderColor: 'border-amber-500'
         },
         info: {
             icon: <FaInfoCircle className="w-4 h-4" />,
             iconBg: 'bg-blue-100/80 text-blue-600',
-            borderColor: 'border-blue-500'
         }
     };
 
-    const { icon, iconBg, borderColor } = config[type] || config.info;
+    const { icon, iconBg } = config[type] || config.info;
 
     return (
         <div className={`
             pointer-events-auto
             relative overflow-hidden
             bg-white/95 backdrop-blur-md
-            rounded-xl
+            rounded-2xl
             shadow-[0_8px_30px_rgb(0,0,0,0.08)]
-            border border-gray-100
-            border-l-4 ${borderColor}
+            border border-gray-100/50
             w-full sm:w-auto
             min-w-[280px] sm:min-w-[320px] max-w-sm
             flex items-center gap-3 p-3.5
             animate-slide-in
         `}>
             {/* Icon */}
-            <div className={`flex-shrink-0 w-8 h-8 rounded-full flex items-center justify-center ${iconBg}`}>
+            <div className={`flex-shrink-0 w-9 h-9 rounded-full flex items-center justify-center ${iconBg}`}>
                 {icon}
             </div>
 

@@ -36,6 +36,7 @@ export const AuthProvider = ({ children }) => {
             });
             if (res.data.success) {
                 setDbUser(res.data.data);
+                setCurrentUser(firebaseUser);
                 return { success: true };
             }
         } catch (error) {

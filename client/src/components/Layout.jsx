@@ -36,12 +36,14 @@ const Layout = ({ children }) => {
     }, []);
 
     // Global listener: Auto-close sidebar when ANY modal is opened
-    // We detect modals by their common overlay classes
+    // and reopen it when modal is closed (on desktop)
     useEffect(() => {
         const observer = new MutationObserver((mutations) => {
             let shouldCloseSidebar = false;
+            let shouldOpenSidebar = false;
 
             for (let m of mutations) {
+                // Detect modals being opened
                 if (m.addedNodes.length) {
                     m.addedNodes.forEach(node => {
                         if (node.nodeType === 1 && typeof node.className === 'string') {
@@ -69,10 +71,57 @@ const Layout = ({ children }) => {
                         }
                     });
                 }
+
+                // Detect modals being closed
+                if (m.removedNodes.length) {
+                    m.removedNodes.forEach(node => {
+                        if (node.nodeType === 1 && typeof node.className === 'string') {
+                            const cn = node.className;
+                            if (cn.includes('fixed') && cn.includes('inset-0') && 
+                                (cn.includes('z-50') || cn.includes('z-[100]') || cn.includes('z-[110]') || cn.includes('z-[120]'))) {
+                                shouldOpenSidebar = true;
+                            }
+                            
+                            // Also check inside the removed node
+                            if (node.querySelectorAll) {
+                                const modals = node.querySelectorAll('[class*="fixed"][class*="inset-0"][class*="z-"]');
+                                modals.forEach(modal => {
+                                    const mcn = modal.className;
+                                    if (typeof mcn === 'string' && 
+                                        !mcn.includes('z-20') && 
+                                        !mcn.includes('-z-10') && 
+                                        !mcn.includes('pointer-events-none')
+                                    ) {
+                                        shouldOpenSidebar = true;
+                                    }
+                                });
+                            }
+                        }
+                    });
+                }
             }
 
             if (shouldCloseSidebar) {
                 setIsSidebarOpen(false);
+            } else if (shouldOpenSidebar) {
+                // Check if any other modals are still open
+                const activeModals = document.querySelectorAll('div.fixed.inset-0.z-50, div.fixed.inset-0.z-\\[100\\], div.fixed.inset-0.z-\\[110\\], div.fixed.inset-0.z-\\[120\\]');
+                let hasRealModal = false;
+                
+                activeModals.forEach(modal => {
+                    const mcn = modal.className;
+                    if (typeof mcn === 'string' && 
+                        !mcn.includes('z-20') && 
+                        !mcn.includes('-z-10') && 
+                        !mcn.includes('pointer-events-none')) {
+                        hasRealModal = true;
+                    }
+                });
+
+                // Note: Only auto-reopen on desktop. On mobile, the sidebar covers the screen so we leave it closed.
+                if (!hasRealModal && window.innerWidth >= 768) {
+                    setIsSidebarOpen(true);
+                }
             }
         });
 

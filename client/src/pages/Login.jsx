@@ -1,16 +1,22 @@
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../contexts/AuthContext';
 import { useToast } from '../contexts/ToastContext';
-import { FaGoogle, FaLaptopCode, FaShieldAlt, FaCode, FaMicrochip, FaNetworkWired, FaServer } from 'react-icons/fa';
+import { FaGoogle, FaShieldAlt, FaCode, FaMicrochip, FaNetworkWired, FaServer } from 'react-icons/fa';
 import { useState, useEffect } from 'react';
 
 const Login = () => {
-    const { loginWithGoogle } = useAuth();
+    const { loginWithGoogle, currentUser } = useAuth();
     const toast = useToast();
     const navigate = useNavigate();
     const [loading, setLoading] = useState(false);
     const [typedText, setTypedText] = useState('');
     const fullText = "SYSTEM.INITIALIZE(USER_EDU_DEPT);";
+
+    useEffect(() => {
+        if (currentUser) {
+            navigate('/', { replace: true });
+        }
+    }, [currentUser, navigate]);
 
     useEffect(() => {
         let index = 0;
@@ -29,7 +35,6 @@ const Login = () => {
 
             if (result && result.success) {
                 toast.success('เข้าสู่ระบบสำเร็จ ยินดีต้อนรับครับ');
-                navigate('/');
             } else if (result && result.code === 'INVALID_EMAIL_DOMAIN') {
                 toast.error('กรุณาใช้อีเมลมหาวิทยาลัย (@kmutnb.ac.th) เท่านั้น');
             } else if (result && result.code === 'BANNED_USER') {
@@ -55,10 +60,10 @@ const Login = () => {
             </div>
 
             {/* 2. Main Container */}
-            <div className="relative w-full max-w-[1600px] h-auto min-h-[85vh] md:h-[90vh] bg-white/80 backdrop-blur-2xl rounded-2xl md:rounded-[3rem] shadow-2xl flex flex-col md:flex-row overflow-hidden border border-white/50 z-10 animate-scale-in">
+            <div className="relative w-full max-w-[1600px] h-auto min-h-fit md:min-h-[85vh] lg:h-[90vh] bg-white/80 backdrop-blur-2xl rounded-2xl md:rounded-[3rem] shadow-2xl flex flex-col md:flex-row overflow-hidden border border-white/50 z-10 animate-scale-in">
 
                 {/* LEFT SIDE (60%) - Hero Image & Branding (Matches Navbar/Home style) */}
-                <div className="hidden lg:flex w-[60%] relative flex-col justify-between p-16 overflow-hidden bg-gradient-to-br from-emerald-600 to-teal-800 text-white group">
+                <div className="hidden lg:flex w-[60%] relative flex-col justify-between p-16 overflow-hidden bg-gradient-to-br from-emerald-500 to-emerald-800 text-white group">
                     {/* Background Pattern */}
                     <div className="absolute inset-0 z-0 opacity-10" style={{ backgroundImage: 'radial-gradient(#fff 1px, transparent 1px)', backgroundSize: '30px 30px' }}></div>
 
@@ -115,8 +120,12 @@ const Login = () => {
 
                         {/* Header Section */}
                         <div className="mb-6 md:mb-10 text-center lg:text-left">
-                            <div className="inline-block p-4 bg-white rounded-2xl shadow-premium mb-6 hover:scale-105 transition-transform duration-300">
-                                <FaLaptopCode className="text-4xl text-emerald-600" />
+                            <div className="mb-8 flex justify-center lg:justify-start mt-10 sm:mt-12 lg:mt-0">
+                                <img 
+                                    src="/Comedu.png" 
+                                    alt="ComEdu Logo" 
+                                    className="h-24 sm:h-28 md:h-32 lg:h-36 object-contain drop-shadow-lg transform hover:scale-105 transition-transform duration-500" 
+                                />
                             </div>
 
                             <h1 className="text-2xl sm:text-3xl md:text-4xl font-bold text-gray-800 mb-2 tracking-tight font-display">

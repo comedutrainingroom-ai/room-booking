@@ -7,7 +7,7 @@ export const useSettings = () => useContext(SettingsContext);
 
 export const SettingsProvider = ({ children }) => {
     const [settings, setSettings] = useState({
-        systemName: 'ระบบจองห้องประชุมออนไลน์',
+        systemName: 'ระบบจองห้องอบรม ภาควิชาคอมพิวเตอร์ศึกษา คณะครุศาสตร์อุตสาหกรรม (KMUTNB)',
         contactEmail: '',
         themeColor: '#16a34a',
         maintenanceMode: false

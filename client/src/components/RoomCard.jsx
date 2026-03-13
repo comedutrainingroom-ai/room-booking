@@ -72,29 +72,6 @@ const RoomCard = ({ room, onBook, onEdit, onDelete, onViewDetails }) => {
                     )}
                 </div>
 
-                {/* Admin Actions Overlay (if onEdit/onDelete provided) */}
-                {(onEdit || onDelete) && (
-                    <div className="absolute top-2 right-2 flex gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
-                        {onEdit && (
-                            <button
-                                onClick={(e) => { e.stopPropagation(); onEdit(room); }}
-                                className="p-1.5 bg-white text-blue-600 rounded shadow-sm hover:bg-blue-50"
-                                title="แก้ไข"
-                            >
-                                <FaEdit size={12} />
-                            </button>
-                        )}
-                        {onDelete && (
-                            <button
-                                onClick={(e) => { e.stopPropagation(); onDelete(room._id); }}
-                                className="p-1.5 bg-white text-red-600 rounded shadow-sm hover:bg-red-50"
-                                title="ลบ"
-                            >
-                                <FaTrash size={12} />
-                            </button>
-                        )}
-                    </div>
-                )}
             </div>
 
             {/* Content */}
@@ -130,7 +107,7 @@ const RoomCard = ({ room, onBook, onEdit, onDelete, onViewDetails }) => {
                             }
                         }}
                         disabled={room.isActive === false}
-                        className={`w-full py-2 md:py-2.5 ${room.isActive !== false ? 'bg-green-700 text-white hover:bg-green-800 shadow-sm' : 'bg-gray-100 text-gray-500 cursor-not-allowed border border-gray-200'} font-semibold rounded-lg flex items-center justify-center gap-1.5 transition-colors text-xs md:text-sm`}
+                        className={`w-full py-2 md:py-2.5 ${room.isActive !== false ? 'bg-green-700 text-white hover:bg-green-800 shadow-sm' : 'bg-gray-100 text-gray-500 cursor-not-allowed border border-gray-200'} font-semibold rounded-lg flex items-center justify-center gap-1.5 transition-colors text-xs md:text-sm mb-2`}
                     >
                         {room.isActive !== false ? (
                             <>
@@ -144,6 +121,28 @@ const RoomCard = ({ room, onBook, onEdit, onDelete, onViewDetails }) => {
                             </>
                         )}
                     </button>
+                )}
+
+                {/* Admin Actions (Bottom) */}
+                {(onEdit || onDelete) && (
+                    <div className="flex gap-2 mt-auto pt-3 border-t border-gray-100/80">
+                        {onEdit && (
+                            <button
+                                onClick={(e) => { e.stopPropagation(); onEdit(room); }}
+                                className="flex-1 py-1.5 px-3 bg-white border border-gray-300 text-gray-700 hover:bg-gray-50 hover:border-gray-400 rounded-lg shadow-sm font-semibold flex items-center justify-center gap-2 transition-all duration-200 text-xs"
+                            >
+                                <FaEdit className="text-gray-500" size={13} /> แก้ไขข้อมูล
+                            </button>
+                        )}
+                        {onDelete && (
+                            <button
+                                onClick={(e) => { e.stopPropagation(); onDelete(room._id); }}
+                                className="flex-1 py-1.5 px-3 bg-white border border-red-200 text-red-600 hover:bg-red-50 hover:border-red-300 rounded-lg shadow-sm font-semibold flex items-center justify-center gap-2 transition-all duration-200 text-xs"
+                            >
+                                <FaTrash className="text-red-500" size={13} /> ลบห้องพัก
+                            </button>
+                        )}
+                    </div>
                 )}
             </div>
         </div>

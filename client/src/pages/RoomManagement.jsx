@@ -201,49 +201,52 @@ const RoomManagement = () => {
             {/* Modal */}
             {isModalOpen && (
                 <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 backdrop-blur-sm p-4">
-                    <div className="bg-white rounded-2xl shadow-xl w-full max-w-lg overflow-hidden animate-in fade-in zoom-in duration-200">
-                        <div className="px-6 py-4 border-b border-gray-100 flex justify-between items-center bg-gray-50">
+                    <div className="bg-white rounded-2xl shadow-xl w-full max-w-3xl max-h-[90vh] flex flex-col overflow-hidden animate-in fade-in zoom-in duration-200">
+                        <div className="px-6 py-4 border-b border-gray-100 flex justify-between items-center bg-gray-50 flex-shrink-0">
                             <h3 className="text-lg font-bold text-gray-800">{editingRoom ? 'แก้ไขห้องประชุม' : 'เพิ่มห้องประชุมใหม่'}</h3>
                             <button onClick={() => setIsModalOpen(false)} className="text-gray-400 hover:text-gray-600 transition">
                                 <FaTimes />
                             </button>
                         </div>
 
-                        <form onSubmit={handleSubmit} className="p-6 space-y-4">
-                            <div>
-                                <label className="block text-sm font-medium text-gray-700 mb-1">ชื่อห้อง</label>
-                                <input
-                                    type="text"
-                                    required
-                                    value={formData.name}
-                                    onChange={(e) => setFormData({ ...formData, name: e.target.value })}
-                                    className="w-full px-4 py-2 rounded-lg border border-gray-300 focus:outline-none focus:ring-2 focus:ring-primary/50"
-                                    placeholder="เช่น ห้องประชุม 1"
-                                />
+                        <form onSubmit={handleSubmit} className="p-6 space-y-4 overflow-y-auto flex-1">
+                            {/* Row 1: Name + Capacity */}
+                            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                                <div>
+                                    <label className="block text-sm font-medium text-gray-700 mb-1">ชื่อห้อง</label>
+                                    <input
+                                        type="text"
+                                        required
+                                        value={formData.name}
+                                        onChange={(e) => setFormData({ ...formData, name: e.target.value })}
+                                        className="w-full px-4 py-2 rounded-lg border border-gray-300 focus:outline-none focus:ring-2 focus:ring-primary/50"
+                                        placeholder="เช่น ห้องประชุม 1"
+                                    />
+                                </div>
+                                <div>
+                                    <label className="block text-sm font-medium text-gray-700 mb-1">ความจุ (คน)</label>
+                                    <input
+                                        type="number"
+                                        required
+                                        value={formData.capacity}
+                                        onChange={(e) => setFormData({ ...formData, capacity: e.target.value })}
+                                        className="w-full px-4 py-2 rounded-lg border border-gray-300 focus:outline-none focus:ring-2 focus:ring-primary/50"
+                                        placeholder="เช่น 10"
+                                    />
+                                </div>
                             </div>
 
-                            <div>
-                                <label className="block text-sm font-medium text-gray-700 mb-1">ความจุ (คน)</label>
-                                <input
-                                    type="number"
-                                    required
-                                    value={formData.capacity}
-                                    onChange={(e) => setFormData({ ...formData, capacity: e.target.value })}
-                                    className="w-full px-4 py-2 rounded-lg border border-gray-300 focus:outline-none focus:ring-2 focus:ring-primary/50"
-                                    placeholder="เช่น 10"
-                                />
-                            </div>
-
+                            {/* Row 2: Equipment */}
                             <div>
                                 <label className="block text-sm font-medium text-gray-700 mb-2">อุปกรณ์ในห้อง</label>
                                 <>
-                                    <div className="grid grid-cols-2 sm:grid-cols-3 gap-2">
+                                    <div className="grid grid-cols-2 sm:grid-cols-4 gap-2">
                                         {PRESET_EQUIPMENT.map(item => {
                                             const isChecked = presetSelected.includes(item);
                                             return (
                                                 <label
                                                     key={item}
-                                                    className={`flex items-center gap-2 px-3 py-2 rounded-lg border cursor-pointer transition-all duration-200
+                                                    className={`flex items-center gap-2 px-3 py-1.5 rounded-lg border cursor-pointer transition-all duration-200
                                                         ${isChecked
                                                             ? 'bg-primary/5 border-primary/40 text-primary ring-1 ring-primary/20'
                                                             : 'bg-white border-gray-200 text-gray-600 hover:border-gray-300 hover:bg-gray-50'
@@ -262,8 +265,8 @@ const RoomManagement = () => {
                                     </div>
 
                                     {/* อื่นๆ (Other) */}
-                                    <div className="mt-3">
-                                        <label className={`inline-flex items-center gap-2 px-3 py-2 rounded-lg border cursor-pointer transition-all duration-200
+                                    <div className="mt-2">
+                                        <label className={`inline-flex items-center gap-2 px-3 py-1.5 rounded-lg border cursor-pointer transition-all duration-200
                                                     ${isCustomOpen
                                                 ? 'bg-amber-50 border-amber-300 text-amber-700 ring-1 ring-amber-200'
                                                 : 'bg-white border-gray-200 text-gray-600 hover:border-gray-300'
@@ -283,11 +286,6 @@ const RoomManagement = () => {
                                                 value={customItems.join(', ')}
                                                 onChange={(e) => {
                                                     const newCustomText = e.target.value;
-                                                    // We construct the custom array based strictly on commas
-                                                    const newCustomArray = newCustomText.split(',').map(s => s.trim()).filter(Boolean);
-                                                    // We want to allow trailing commas and spaces while typing otherwise it's jarring,
-                                                    // so it's better to store just the raw string or manage via form state.
-                                                    // To preserve empty spaces/commas while typing, we just append exactly what they typed to presets
                                                     const presetsStr = presetSelected.join(', ');
                                                     setFormData({
                                                         ...formData,
@@ -303,62 +301,69 @@ const RoomManagement = () => {
                                 </>
                             </div>
 
-                            <div>
-                                <label className="block text-sm font-medium text-gray-700 mb-1">รูปภาพห้อง</label>
+                            {/* Row 3: Images + Description side by side */}
+                            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                                <div>
+                                    <label className="block text-sm font-medium text-gray-700 mb-1">รูปภาพห้อง</label>
 
-                                {/* Show Existing Images */}
-                                {existingImages.length > 0 && (
-                                    <div className="mb-3">
-                                        <p className="text-xs text-gray-500 mb-2">รูปภาพเดิม (คลิกที่กากบาทเพื่อลบ):</p>
-                                        <div className="flex flex-wrap gap-2">
-                                            {existingImages.map((img, index) => (
-                                                <div key={index} className="relative group w-20 h-20 rounded-lg overflow-hidden border border-gray-200">
-                                                    <img
-                                                        src={`http://localhost:5000/uploads/${img}`}
-                                                        alt={`Room ${index}`}
-                                                        className="w-full h-full object-cover"
-                                                    />
-                                                    <button
-                                                        type="button"
-                                                        onClick={() => setExistingImages(existingImages.filter((_, i) => i !== index))}
-                                                        className="absolute top-1 right-1 bg-red-500 text-white rounded-full p-1 opacity-0 group-hover:opacity-100 transition shadow-sm hover:bg-red-600"
-                                                    >
-                                                        <FaTimes size={10} />
-                                                    </button>
-                                                </div>
+                                    {/* Show Existing Images */}
+                                    {existingImages.length > 0 && (
+                                        <div className="mb-2">
+                                            <p className="text-xs text-gray-500 mb-1">รูปภาพเดิม (คลิกกากบาทเพื่อลบ):</p>
+                                            <div className="flex flex-wrap gap-2">
+                                                {existingImages.map((img, index) => (
+                                                    <div key={index} className="relative group w-16 h-16 rounded-lg overflow-hidden border border-gray-200">
+                                                        <img
+                                                            src={`http://localhost:5000/uploads/${img}`}
+                                                            alt={`Room ${index}`}
+                                                            className="w-full h-full object-cover"
+                                                        />
+                                                        <button
+                                                            type="button"
+                                                            onClick={() => setExistingImages(existingImages.filter((_, i) => i !== index))}
+                                                            className="absolute top-0.5 right-0.5 bg-red-500 text-white rounded-full p-0.5 opacity-0 group-hover:opacity-100 transition shadow-sm hover:bg-red-600"
+                                                        >
+                                                            <FaTimes size={8} />
+                                                        </button>
+                                                    </div>
+                                                ))}
+                                            </div>
+                                        </div>
+                                    )}
+
+                                    <label className="block text-xs text-gray-500 mb-1">เพิ่มรูปใหม่:</label>
+                                    <input
+                                        type="file"
+                                        multiple
+                                        accept="image/*"
+                                        onChange={handleImageChange}
+                                        className="w-full text-sm px-3 py-1.5 rounded-lg border border-gray-300 focus:outline-none focus:ring-2 focus:ring-primary/50"
+                                    />
+                                    {selectedImages.length > 0 && (
+                                        <div className="mt-1 flex flex-wrap gap-1">
+                                            {selectedImages.map((file, index) => (
+                                                <span key={index} className="text-xs bg-gray-100 px-2 py-0.5 rounded text-gray-600 truncate max-w-[120px]">
+                                                    {file.name}
+                                                </span>
                                             ))}
                                         </div>
-                                    </div>
-                                )}
+                                    )}
+                                </div>
 
-                                <label className="block text-xs text-gray-500 mb-1">เพิ่มรูปใหม่:</label>
-                                <input
-                                    type="file"
-                                    multiple
-                                    accept="image/*"
-                                    onChange={handleImageChange}
-                                    className="w-full px-4 py-2 rounded-lg border border-gray-300 focus:outline-none focus:ring-2 focus:ring-primary/50"
-                                />
-                                <div className="mt-2 flex flex-wrap gap-2">
-                                    {selectedImages.map((file, index) => (
-                                        <span key={index} className="text-xs bg-gray-100 px-2 py-1 rounded text-gray-600 truncate max-w-[150px]">
-                                            {file.name}
-                                        </span>
-                                    ))}
+                                <div className="flex flex-col">
+                                    <label className="block text-sm font-medium text-gray-700 mb-1">รายละเอียดเพิ่มเติม</label>
+                                    <textarea
+                                        value={formData.description}
+                                        onChange={(e) => setFormData({ ...formData, description: e.target.value })}
+                                        className="w-full px-4 py-3 rounded-xl border border-gray-200 bg-gray-50/50 focus:bg-white focus:outline-none focus:ring-2 focus:ring-primary/30 focus:border-primary/40 min-h-[120px] resize-none text-sm leading-relaxed transition-all"
+                                        placeholder="ระบุรายละเอียดเพิ่มเติมเกี่ยวกับห้อง เช่น ตำแหน่งที่ตั้ง ข้อจำกัดการใช้งาน..."
+                                    />
+                                    <p className="text-[11px] text-gray-400 mt-1">ข้อมูลนี้จะแสดงให้ผู้จองเห็นในรายละเอียดห้อง</p>
                                 </div>
                             </div>
 
-                            <div>
-                                <label className="block text-sm font-medium text-gray-700 mb-1">รายละเอียดเพิ่มเติม</label>
-                                <textarea
-                                    value={formData.description}
-                                    onChange={(e) => setFormData({ ...formData, description: e.target.value })}
-                                    className="w-full px-4 py-2 rounded-lg border border-gray-300 focus:outline-none focus:ring-2 focus:ring-primary/50 h-24 resize-none"
-                                    placeholder="รายละเอียดเกี่ยวกับห้อง..."
-                                />
-                            </div>
-
-                            <div className="pt-4 flex gap-3">
+                            {/* Buttons */}
+                            <div className="pt-4 mt-2 border-t border-gray-100 flex gap-3">
                                 <button
                                     type="button"
                                     onClick={() => setIsModalOpen(false)}

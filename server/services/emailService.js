@@ -139,10 +139,75 @@ const sendBookingCancelled = async (booking) => {
     await sendEmail(booking.user.email, subject, html);
 };
 
+const sendBanNotification = async (user, reason) => {
+    const subject = `🚫 บัญชีของคุณถูกระงับการใช้งาน`;
+    const html = `
+        <div style="font-family: 'Segoe UI', Arial, sans-serif; max-width: 600px; margin: 0 auto; padding: 0; border: 1px solid #e5e7eb; border-radius: 16px; overflow: hidden;">
+            <div style="background: linear-gradient(135deg, #dc2626, #b91c1c); padding: 30px 20px; text-align: center;">
+                <h2 style="color: #fff; margin: 0; font-size: 22px;">⚠️ บัญชีถูกระงับการใช้งาน</h2>
+            </div>
+            <div style="padding: 30px 24px;">
+                <p style="color: #374151; font-size: 15px; line-height: 1.6;">เรียนคุณ ${user.name || 'ผู้ใช้งาน'},</p>
+                <p style="color: #374151; font-size: 15px; line-height: 1.6;">บัญชีของคุณในระบบจองห้องประชุม ภาควิชาคอมพิวเตอร์ศึกษา ถูกระงับการใช้งานโดยเจ้าหน้าที่</p>
+                
+                ${reason ? `
+                <div style="background-color: #fef2f2; padding: 16px; border-radius: 10px; margin: 20px 0; border-left: 4px solid #dc2626;">
+                    <p style="margin: 0 0 6px 0; color: #991b1b; font-weight: bold; font-size: 13px;">📋 เหตุผล:</p>
+                    <p style="margin: 0; color: #374151; font-size: 14px; line-height: 1.5;">${reason}</p>
+                </div>
+                ` : ''}
+
+                <div style="background-color: #f9fafb; padding: 16px; border-radius: 10px; margin: 20px 0;">
+                    <p style="margin: 0; color: #6b7280; font-size: 13px;">📧 อีเมล: ${user.email}</p>
+                    <p style="margin: 6px 0 0 0; color: #6b7280; font-size: 13px;">📅 วันที่ระงับ: ${new Date().toLocaleString('th-TH', { year: 'numeric', month: 'long', day: 'numeric', hour: '2-digit', minute: '2-digit' })}</p>
+                </div>
+
+                <p style="color: #6b7280; font-size: 13px; line-height: 1.5;">หากคุณมีคำถามหรือต้องการอุทธรณ์ กรุณาติดต่อเจ้าหน้าที่ภาควิชาคอมพิวเตอร์ศึกษา</p>
+            </div>
+            <div style="background-color: #f9fafb; padding: 16px 24px; text-align: center; border-top: 1px solid #e5e7eb;">
+                <p style="margin: 0; color: #9ca3af; font-size: 11px;">ระบบจองห้องประชุม — ภาควิชาคอมพิวเตอร์ศึกษา KMUTNB</p>
+            </div>
+        </div>
+    `;
+    await sendEmail(user.email, subject, html);
+};
+
+const sendUnbanNotification = async (user) => {
+    const subject = `✅ บัญชีของคุณได้รับการปลดระงับแล้ว`;
+    const html = `
+        <div style="font-family: 'Segoe UI', Arial, sans-serif; max-width: 600px; margin: 0 auto; padding: 0; border: 1px solid #e5e7eb; border-radius: 16px; overflow: hidden;">
+            <div style="background: linear-gradient(135deg, #16a34a, #15803d); padding: 30px 20px; text-align: center;">
+                <h2 style="color: #fff; margin: 0; font-size: 22px;">✅ ปลดระงับบัญชีเรียบร้อยแล้ว</h2>
+            </div>
+            <div style="padding: 30px 24px;">
+                <p style="color: #374151; font-size: 15px; line-height: 1.6;">เรียนคุณ ${user.name || 'ผู้ใช้งาน'},</p>
+                <p style="color: #374151; font-size: 15px; line-height: 1.6;">บัญชีของคุณได้รับการปลดระงับแล้ว คุณสามารถเข้าสู่ระบบจองห้องประชุมได้ตามปกติแล้ว</p>
+                
+                <div style="background-color: #f0fdf4; padding: 16px; border-radius: 10px; margin: 20px 0; border-left: 4px solid #16a34a;">
+                    <p style="margin: 0; color: #166534; font-size: 14px; line-height: 1.5;">🎉 คุณสามารถเข้าสู่ระบบและจองห้องประชุมได้ตามปกติแล้ว</p>
+                </div>
+
+                <div style="background-color: #f9fafb; padding: 16px; border-radius: 10px; margin: 20px 0;">
+                    <p style="margin: 0; color: #6b7280; font-size: 13px;">📧 อีเมล: ${user.email}</p>
+                    <p style="margin: 6px 0 0 0; color: #6b7280; font-size: 13px;">📅 วันที่ปลดระงับ: ${new Date().toLocaleString('th-TH', { year: 'numeric', month: 'long', day: 'numeric', hour: '2-digit', minute: '2-digit' })}</p>
+                </div>
+
+                <p style="color: #6b7280; font-size: 13px; line-height: 1.5;">กรุณาปฏิบัติตามระเบียบการใช้งานอย่างเคร่งครัด</p>
+            </div>
+            <div style="background-color: #f9fafb; padding: 16px 24px; text-align: center; border-top: 1px solid #e5e7eb;">
+                <p style="margin: 0; color: #9ca3af; font-size: 11px;">ระบบจองห้องประชุม — ภาควิชาคอมพิวเตอร์ศึกษา KMUTNB</p>
+            </div>
+        </div>
+    `;
+    await sendEmail(user.email, subject, html);
+};
+
 module.exports = {
     sendBookingCreated,
     sendBookingApproved,
     sendBookingReminder,
     sendBookingModified,
-    sendBookingCancelled
+    sendBookingCancelled,
+    sendBanNotification,
+    sendUnbanNotification
 };
