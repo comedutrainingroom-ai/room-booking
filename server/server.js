@@ -49,7 +49,7 @@ io.on('connection', (socket) => {
 // Security Headers
 app.use(helmet({
     crossOriginResourcePolicy: { policy: 'cross-origin' }, // Allow serving uploads
-    crossOriginOpenerPolicy: false // Allow Firebase Auth popup (Google login)
+    crossOriginOpenerPolicy: { policy: 'unsafe-none' } // Allow Firebase Auth popup (Google login) window.opener
 }));
 
 // Rate Limiting
@@ -92,6 +92,7 @@ const sanitizeObject = (obj) => {
 app.use((req, res, next) => {
     if (req.body) sanitizeObject(req.body);
     if (req.params) sanitizeObject(req.params);
+    if (req.query) sanitizeObject(req.query);
     next();
 });
 

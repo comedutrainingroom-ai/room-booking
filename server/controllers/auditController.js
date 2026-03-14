@@ -32,7 +32,8 @@ const getAuditLogs = async (req, res) => {
             data: logs
         });
     } catch (error) {
-        res.status(500).json({ success: false, error: error.message });
+        console.error('Get Audit Logs Error:', error);
+        res.status(500).json({ success: false, error: 'Server Error' });
     }
 };
 

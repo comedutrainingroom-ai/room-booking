@@ -38,7 +38,7 @@ const createReport = async (req, res) => {
 
     } catch (error) {
         console.error('Create Report Error:', error);
-        res.status(500).json({ success: false, error: error.message });
+        res.status(500).json({ success: false, error: 'Server Error' });
     }
 };
 
@@ -155,7 +155,7 @@ const setRoomMaintenance = async (req, res) => {
         logAction({ action: 'report:set_maintenance', performedBy: req.user._id, targetType: 'room', targetId: report.room._id, details: isActive ? 'เปิดใช้งานห้อง' : 'ปิดห้องซ่อมบำรุง', req });
     } catch (error) {
         console.error('Set Maintenance Error:', error);
-        res.status(500).json({ success: false, error: error.message });
+        res.status(500).json({ success: false, error: 'Server Error' });
     }
 };
 

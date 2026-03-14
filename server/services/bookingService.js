@@ -9,13 +9,17 @@ const Booking = require('../models/Booking');
  * @returns {Promise<boolean>} - True if available, False if conflict exists
  */
 const checkRoomAvailability = async (roomId, startTime, endTime, excludeBookingId = null) => {
+    const start = new Date(startTime);
+    const end = new Date(endTime);
+
     const query = {
         room: roomId,
         status: { $in: ['approved', 'pending'] },
         $or: [
-            { startTime: { $lt: endTime, $gte: startTime } },
-            { endTime: { $gt: startTime, $lte: endTime } },
-            { startTime: { $lte: startTime }, endTime: { $gte: endTime } }
+            // Internal overlap: New booking starts while existing is active
+            { startTime: { $lt: end }, endTime: { $gt: start } },
+            // External overlap: Existing booking is inside new booking range
+            { startTime: { $gte: start }, endTime: { $lte: end } }
         ]
     };
 

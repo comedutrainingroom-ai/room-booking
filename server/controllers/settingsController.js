@@ -18,7 +18,8 @@ const getSettings = async (req, res) => {
             data: settings
         });
     } catch (error) {
-        res.status(500).json({ success: false, error: error.message });
+        console.error('Get Settings Error:', error);
+        res.status(500).json({ success: false, error: 'Server Error' });
     }
 };
 
@@ -29,10 +30,14 @@ const updateSettings = async (req, res) => {
     try {
         let settings = await Setting.findOne();
 
+        // Explicit field selection — prevents mass assignment
+        const { openTime, closeTime, maxBookingHours, maxBookingDays, weekendBooking } = req.body;
+        const updateData = { openTime, closeTime, maxBookingHours, maxBookingDays, weekendBooking };
+
         if (!settings) {
-            settings = await Setting.create(req.body);
+            settings = await Setting.create(updateData);
         } else {
-            settings = await Setting.findByIdAndUpdate(settings._id, req.body, {
+            settings = await Setting.findByIdAndUpdate(settings._id, updateData, {
                 new: true,
                 runValidators: true
             });
@@ -48,7 +53,8 @@ const updateSettings = async (req, res) => {
             logAction({ action: 'settings:update', performedBy: req.user._id, targetType: 'settings', targetId: settings._id, details: `แก้ไขการตั้งค่าระบบ`, req });
         }
     } catch (error) {
-        res.status(500).json({ success: false, error: error.message });
+        console.error('Update Settings Error:', error);
+        res.status(500).json({ success: false, error: 'Server Error' });
     }
 };
 

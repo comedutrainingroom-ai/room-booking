@@ -36,14 +36,26 @@ const getRooms = async (req, res) => {
 // @access  Public (should be private in real app)
 const createRoom = async (req, res) => {
     try {
-        // req.body.images will be populated by resizeImages middleware
-        const room = await Room.create(req.body);
+        // Explicit field selection — prevents mass assignment
+        const { name, capacity, type, description, amenities, location, floor, isActive } = req.body;
+        
+        const room = await Room.create({
+            name,
+            capacity,
+            type,
+            description,
+            amenities,
+            location,
+            floor,
+            isActive: isActive !== undefined ? isActive : true,
+            images: req.body.images || [] // Prepared by middleware
+        });
+
         res.status(201).json({
             success: true,
             data: room
         });
     } catch (error) {
-        console.error('Create Room Error:', error);
         if (error.code === 11000) {
             return res.status(400).json({ success: false, error: 'ชื่อห้องนี้มีอยู่ในระบบแล้ว กรุณาใช้ชื่ออื่น' });
         }
@@ -51,7 +63,8 @@ const createRoom = async (req, res) => {
             const messages = Object.values(error.errors).map(val => val.message);
             return res.status(400).json({ success: false, error: messages.join(', ') });
         }
-        res.status(500).json({ success: false, error: error.message });
+        console.error('Create Room Error:', error);
+        res.status(500).json({ success: false, error: 'Server Error' });
     }
 };
 
@@ -100,14 +113,28 @@ const updateRoom = async (req, res) => {
         const newImages = req.body.images || [];
         req.body.images = [...keepImages, ...newImages];
 
-        room = await Room.findByIdAndUpdate(req.params.id, req.body, {
+        // Update with explicit field selection
+        const { name, capacity, type, description, amenities, location, floor, isActive } = req.body;
+        
+        room = await Room.findByIdAndUpdate(req.params.id, {
+            name,
+            capacity,
+            type,
+            description,
+            amenities,
+            location,
+            floor,
+            isActive: isActive !== undefined ? isActive : room.isActive,
+            images: req.body.images // Prepared above as [...keepImages, ...newImages]
+        }, {
             new: true,
             runValidators: true
         });
 
         res.status(200).json({ success: true, data: room });
     } catch (error) {
-        res.status(500).json({ success: false, error: error.message });
+        console.error('Update Room Error:', error);
+        res.status(500).json({ success: false, error: 'Server Error' });
     }
 };
 

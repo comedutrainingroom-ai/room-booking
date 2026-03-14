@@ -79,8 +79,8 @@ const getStats = async (req, res) => {
             }
         });
     } catch (error) {
-        console.error('Dashboard stats error:', error);
-        res.status(500).json({ success: false, error: error.message });
+        console.error('Dashboard Stats Error:', error);
+        res.status(500).json({ success: false, error: 'Server Error' });
     }
 };
 
@@ -121,8 +121,8 @@ const getMonthlyData = async (req, res) => {
 
         res.status(200).json({ success: true, data: result });
     } catch (error) {
-        console.error('Monthly data error:', error);
-        res.status(500).json({ success: false, error: error.message });
+        console.error('Monthly Data Error:', error);
+        res.status(500).json({ success: false, error: 'Server Error' });
     }
 };
 
@@ -165,8 +165,8 @@ const getRoomUsage = async (req, res) => {
 
         res.status(200).json({ success: true, data: result });
     } catch (error) {
-        console.error('Room usage error:', error);
-        res.status(500).json({ success: false, error: error.message });
+        console.error('Room Usage Error:', error);
+        res.status(500).json({ success: false, error: 'Server Error' });
     }
 };
 
@@ -207,8 +207,8 @@ const getYearlyData = async (req, res) => {
 
         res.status(200).json({ success: true, data: result });
     } catch (error) {
-        console.error('Yearly data error:', error);
-        res.status(500).json({ success: false, error: error.message });
+        console.error('Yearly Data Error:', error);
+        res.status(500).json({ success: false, error: 'Server Error' });
     }
 };
 
@@ -244,8 +244,8 @@ const exportData = async (req, res) => {
 
         res.status(200).json({ success: true, data: exportData });
     } catch (error) {
-        console.error('Export data error:', error);
-        res.status(500).json({ success: false, error: error.message });
+        console.error('Export Data Error:', error);
+        res.status(500).json({ success: false, error: 'Server Error' });
     }
 };
 
