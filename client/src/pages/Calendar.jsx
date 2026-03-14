@@ -4,7 +4,8 @@ import { useAuth } from '../contexts/AuthContext';
 import { useSettings } from '../contexts/SettingsContext';
 import { useToast } from '../contexts/ToastContext';
 import api from '../services/api';
-import { FaTimes, FaClock, FaUser, FaBuilding, FaTag, FaChevronLeft, FaChevronRight, FaCalendarDay, FaListUl, FaCalendarAlt } from 'react-icons/fa';
+import { FaTimes, FaClock, FaUser, FaBuilding, FaTag, FaChevronLeft, FaChevronRight, FaCalendarDay, FaListUl, FaCalendarAlt, FaDownload } from 'react-icons/fa';
+import * as XLSX from 'xlsx';
 
 // Helper to get YYYY-MM-DD in local time
 const toLocalISOString = (date) => {
@@ -158,6 +159,23 @@ const Calendar = () => {
         }
     };
 
+    const handleDownloadTemplate = () => {
+        const wb = XLSX.utils.book_new();
+        const headers = [['Room', 'StartTime', 'EndTime', 'Subject', 'Teacher']];
+        const days = ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'];
+        
+        days.forEach(day => {
+            const ws = XLSX.utils.aoa_to_sheet(headers);
+            const wscols = [
+                {wch: 15}, {wch: 12}, {wch: 12}, {wch: 25}, {wch: 25}
+            ];
+            ws['!cols'] = wscols;
+            XLSX.utils.book_append_sheet(wb, ws, day);
+        });
+        
+        XLSX.writeFile(wb, 'import_schedule_template.xlsx');
+    };
+
     const handleImportSubmit = async (e) => {
         e.preventDefault();
         if (!importFile) return;
@@ -235,13 +253,9 @@ const Calendar = () => {
         return true;
     }, [settings, isAdmin]);
 
-    const handleDateClick = (dateStr) => {
-        const clickedDate = new Date(dateStr);
-        const today = new Date();
-        today.setHours(0, 0, 0, 0);
-
-        if (clickedDate < today) {
-            toast.warning('ไม่สามารถจองย้อนหลังได้');
+    const handleDateClick = (dateString) => {
+        const clickedDate = new Date(dateString);
+        if (!isDateBookable(clickedDate)) {
             return;
         }
 
@@ -265,7 +279,7 @@ const Calendar = () => {
             }
         }
 
-        navigate('/rooms');
+        navigate(`/rooms?date=${dateString}`);
     };
 
     const handleEventClick = (event) => {
@@ -459,8 +473,8 @@ const Calendar = () => {
                                 className={`
                                     relative min-h-[5.5rem] lg:min-h-[6.5rem] border-r border-b border-gray-100 p-1.5 lg:p-2
                                     transition-all duration-200
-                                    ${!bookable 
-                                        ? 'bg-gray-100/80 cursor-not-allowed opacity-60' 
+                                    ${!bookable
+                                        ? 'bg-gray-100/80 cursor-not-allowed opacity-60'
                                         : 'cursor-pointer group hover:bg-emerald-50/50 hover:shadow-inner'
                                     }
                                     ${cell.isCurrentMonth && bookable ? 'bg-white' : ''}
@@ -477,8 +491,8 @@ const Calendar = () => {
                                             ${cell.isToday
                                                 ? 'bg-primary text-white shadow-md shadow-primary/30'
                                                 : cell.isCurrentMonth
-                                                    ? !bookable 
-                                                        ? 'text-gray-400' 
+                                                    ? !bookable
+                                                        ? 'text-gray-400'
                                                         : isWeekend ? 'text-red-400 group-hover:bg-red-50' : 'text-gray-700 group-hover:bg-gray-100'
                                                     : 'text-gray-300'
                                             }
@@ -764,13 +778,22 @@ const Calendar = () => {
                                 <div className="mt-0.5"><FaTag /></div>
                                 <div>
                                     <p className="font-semibold mb-1">รูปแบบไฟล์ที่รองรับ</p>
-                                    <p className="opacity-90">ต้องมีคอลัมน์: Room, Day, StartTime, EndTime, Subject, Teacher</p>
+                                    <p className="opacity-90">ต้องมีคอลัมน์: Room, StartTime, EndTime, Subject, Teacher (ในแต่ละ Sheet รายวัน)</p>
                                 </div>
                             </div>
 
                             {/* Semester Date Range Inputs */}
                             <div className="mb-6">
-                                <label className="block text-sm font-semibold text-gray-700 mb-3">ช่วงเวลาภาคการศึกษา</label>
+                                <div className="flex justify-between items-center mb-3">
+                                    <label className="block text-sm font-semibold text-gray-700">ช่วงเวลาภาคการศึกษา</label>
+                                    <button
+                                        type="button"
+                                        onClick={handleDownloadTemplate}
+                                        className="text-xs text-primary hover:text-primary-dark font-medium px-3 py-1.5 bg-primary/10 hover:bg-primary/20 rounded-lg flex items-center gap-1.5 transition-colors"
+                                    >
+                                        <FaDownload /> โหลดเทมเพลต (7 วัน)
+                                    </button>
+                                </div>
                                 <div className="grid grid-cols-2 gap-4">
                                     <div className="bg-gray-50 p-3 rounded-xl border border-gray-100">
                                         <label className="block text-xs text-gray-500 mb-1">วันเริ่มเทอม</label>

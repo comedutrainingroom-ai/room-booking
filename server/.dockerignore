@@ -1,0 +1,10 @@
+node_modules
+npm-debug.log
+tests
+backup
+.env
+.env.local
+.git
+.gitignore
+.vscode
+test_xlsx.js

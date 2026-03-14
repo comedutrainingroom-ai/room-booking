@@ -314,7 +314,7 @@ const RoomManagement = () => {
                                                 {existingImages.map((img, index) => (
                                                     <div key={index} className="relative group w-16 h-16 rounded-lg overflow-hidden border border-gray-200">
                                                         <img
-                                                            src={`http://localhost:5000/uploads/${img}`}
+                                                            src={`/uploads/${img}`}
                                                             alt={`Room ${index}`}
                                                             className="w-full h-full object-cover"
                                                         />

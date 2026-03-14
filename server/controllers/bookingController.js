@@ -133,6 +133,11 @@ const createBooking = async (req, res) => {
             return res.status(400).json({ success: false, error: 'ห้องนี้ถูกจองแล้วในช่วงเวลาดังกล่าว' });
         }
 
+        // Auto approve if admin books the room
+        if (req.user.role === 'admin') {
+            req.body.status = 'approved';
+        }
+
         let booking = await Booking.create(req.body);
 
         // Populate room details for email
@@ -360,9 +365,16 @@ const importBookings = async (req, res) => {
         const Room = require('../models/Room');
 
         const workbook = xlsx.read(req.file.buffer, { type: 'buffer' });
-        const sheetName = workbook.SheetNames[0];
-        const sheet = workbook.Sheets[sheetName];
-        const data = xlsx.utils.sheet_to_json(sheet);
+        let data = [];
+        for (const sheetName of workbook.SheetNames) {
+            const sheet = workbook.Sheets[sheetName];
+            const sheetData = xlsx.utils.sheet_to_json(sheet);
+            sheetData.forEach((row, idx) => {
+                row._sheetName = sheetName;
+                row._originalRowNum = idx + 2;
+                data.push(row);
+            });
+        }
 
 
         let semesterStart = req.body.startDate ? new Date(req.body.startDate) : new Date();
@@ -393,12 +405,16 @@ const importBookings = async (req, res) => {
         // Let's use a simple map for speed if possible, but findOne is safer for exact match.
 
         for (const [index, row] of data.entries()) {
-            const rowNum = index + 2;
+            const rowNum = `Sheet '${row._sheetName}' Row ${row._originalRowNum}`;
             const normalizedRow = {};
-            Object.keys(row).forEach(key => normalizedRow[key.toLowerCase()] = row[key]);
+            Object.keys(row).forEach(key => {
+                if (key !== '_sheetName' && key !== '_originalRowNum') {
+                    normalizedRow[key.toLowerCase()] = row[key];
+                }
+            });
 
             const roomName = normalizedRow['room'];
-            const dayStr = normalizedRow['day']; // 'Monday'
+            const dayStr = normalizedRow['day'] || row._sheetName; // 'Monday' or fallback
             const dateStr = normalizedRow['date']; // Optional: Specific Date fallback
             const startTimeStr = normalizedRow['starttime']; // HH:mm
             const endTimeStr = normalizedRow['endtime']; // HH:mm

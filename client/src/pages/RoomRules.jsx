@@ -40,7 +40,7 @@ const RoomRules = () => {
     ];
 
     return (
-        <div className="p-4 md:p-8 max-w-4xl mx-auto animate-fade-in">
+        <div className="p-4 md:p-8 max-w-4xl mx-auto">
             {/* Header */}
             <div className="text-center mb-6 md:mb-12">
                 <div className="inline-flex items-center justify-center w-16 h-16 md:w-20 md:h-20 rounded-full bg-primary/10 text-primary text-2xl md:text-3xl mb-4">
@@ -55,7 +55,7 @@ const RoomRules = () => {
                 {rules.map((rule, index) => (
                     <div
                         key={index}
-                        className={`${rule.bgColor} ${rule.borderColor} border rounded-xl md:rounded-2xl p-3 md:p-6 transition-transform hover:-translate-y-1 hover:shadow-lg`}
+                        className={`${rule.bgColor} ${rule.borderColor} border rounded-xl md:rounded-2xl p-3 md:p-6 transition-all hover:shadow-md hover:border-primary/30`}
                     >
                         <div className="flex items-start gap-2.5 md:gap-4">
                             <div className="p-2 md:p-3 rounded-lg md:rounded-xl bg-white shadow-sm text-lg md:text-2xl">

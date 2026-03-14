@@ -14,6 +14,7 @@ server/uploads/
 
 # Backup data
 server/backup/
+db_backup/
 
 # Build output
 client/dist/

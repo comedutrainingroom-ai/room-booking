@@ -15,6 +15,7 @@ const connectDB = require('./config/db');
 dotenv.config({ path: path.join(__dirname, '.env') });
 
 const app = express();
+app.set('trust proxy', 1); // Trust first proxy (Nginx) for correct Rate Limiting IPs
 const httpServer = http.createServer(app);
 
 // Socket.io Setup
@@ -114,6 +115,11 @@ app.use('/api/audit-logs', require('./routes/auditRoutes'));
 // Start Scheduler
 const startScheduler = require('./cron/scheduler');
 startScheduler();
+
+// Health Check (used by Docker & Nginx)
+app.get('/api/health', (req, res) => {
+    res.json({ status: 'ok', timestamp: new Date().toISOString() });
+});
 
 app.get('/', (req, res) => {
     res.send('API is running...');

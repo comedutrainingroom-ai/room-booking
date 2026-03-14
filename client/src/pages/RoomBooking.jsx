@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { useParams, useNavigate } from 'react-router-dom';
+import { useParams, useNavigate, useLocation } from 'react-router-dom';
 import api from '../services/api';
 import BookingModal from '../components/BookingModal';
 import { useToast } from '../contexts/ToastContext';
@@ -9,13 +9,23 @@ import { FaArrowLeft, FaUsers, FaCalendarAlt, FaChevronLeft, FaChevronRight, FaT
 const RoomBooking = () => {
     const { id } = useParams();
     const navigate = useNavigate();
+    const location = useLocation();
     const toast = useToast();
     const { settings } = useSettings();
+
+    // Read date from query params (passed from Calendar → RoomSelection)
+    const queryDate = new URLSearchParams(location.search).get('date');
 
     const [room, setRoom] = useState(null);
     const [bookings, setBookings] = useState([]);
     const [loading, setLoading] = useState(true);
-    const [selectedDate, setSelectedDate] = useState(new Date());
+    const [selectedDate, setSelectedDate] = useState(() => {
+        if (queryDate) {
+            const parsed = new Date(queryDate + 'T00:00:00');
+            if (!isNaN(parsed.getTime())) return parsed;
+        }
+        return new Date();
+    });
 
     // Selection State
     const [selectionStart, setSelectionStart] = useState(null);
@@ -31,7 +41,7 @@ const RoomBooking = () => {
 
     useEffect(() => {
         fetchRoomData();
-    }, [id, selectedDate]);
+    }, [id]);
 
     const fetchRoomData = async () => {
         try {

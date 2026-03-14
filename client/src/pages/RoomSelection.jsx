@@ -3,7 +3,7 @@ import { FaBuilding, FaSearch, FaFilter, FaTimes, FaUsers, FaCalendarPlus } from
 import api from '../services/api';
 import { useToast } from '../contexts/ToastContext';
 import RoomCard from '../components/RoomCard';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, useLocation } from 'react-router-dom';
 
 const RoomSelection = () => {
     const [rooms, setRooms] = useState([]);
@@ -13,7 +13,11 @@ const RoomSelection = () => {
     const [selectedRoom, setSelectedRoom] = useState(null);
 
     const navigate = useNavigate();
+    const location = useLocation();
     const toast = useToast();
+
+    // Read date from query params (passed from Calendar page)
+    const queryDate = new URLSearchParams(location.search).get('date');
 
     useEffect(() => {
         fetchRooms();
@@ -32,7 +36,8 @@ const RoomSelection = () => {
     };
 
     const handleBookRoom = (room) => {
-        navigate(`/book-room/${room._id}`);
+        const datePart = queryDate ? `?date=${queryDate}` : '';
+        navigate(`/book-room/${room._id}${datePart}`);
     };
 
     // Filter rooms
@@ -127,11 +132,11 @@ const RoomSelection = () => {
             {/* Room Details Modal */}
             {selectedRoom && (
                 <div 
-                    className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/50 backdrop-blur-sm animate-fadeIn"
+                    className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/50 backdrop-blur-sm animate-backdrop-fade"
                     onClick={() => setSelectedRoom(null)}
                 >
                     <div 
-                        className="bg-white rounded-2xl shadow-xl w-full max-w-3xl max-h-[90vh] overflow-hidden flex flex-col md:flex-row animate-slideUp"
+                        className="bg-white rounded-2xl shadow-xl w-full max-w-3xl max-h-[90vh] overflow-hidden flex flex-col md:flex-row animate-modal-slideUp"
                         onClick={(e) => e.stopPropagation()}
                     >
                         {/* Modal Image Section */}

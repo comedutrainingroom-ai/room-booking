@@ -1,0 +1,70 @@
+# =============================================================
+#  Docker Compose — Room Booking System (ภาควิชาคอมพิวเตอร์)
+#  Services: MongoDB + Express API + React Client + Nginx Proxy
+# =============================================================
+
+services:
+  # ── MongoDB ──
+  mongo:
+    image: mongo:7
+    container_name: booking-mongo
+    restart: unless-stopped
+    ports:
+      - "27017:27017"
+    volumes:
+      - mongo_data:/data/db
+    networks:
+      - booking-network
+
+  # ── Express API Server ──
+  server:
+    build:
+      context: ./server
+      dockerfile: Dockerfile
+    container_name: booking-server
+    restart: unless-stopped
+    env_file:
+      - ./server/.env
+    environment:
+      - MONGO_URI=mongodb://mongo:27017/room_booking_v2
+      - CLIENT_URL=http://localhost
+    volumes:
+      - ./server/uploads:/app/uploads
+      - ./server/config/serviceAccountKey.json:/app/config/serviceAccountKey.json:ro
+    depends_on:
+      - mongo
+    networks:
+      - booking-network
+
+  # ── React Client (built & served by internal Nginx) ──
+  client:
+    build:
+      context: ./client
+      dockerfile: Dockerfile
+    container_name: booking-client
+    restart: unless-stopped
+    networks:
+      - booking-network
+
+  # ── Nginx Reverse Proxy (Entry Point) ──
+  nginx:
+    build:
+      context: ./nginx
+      dockerfile: Dockerfile
+    container_name: booking-nginx
+    restart: unless-stopped
+    ports:
+      - "80:80"
+    depends_on:
+      - server
+      - client
+    networks:
+      - booking-network
+
+volumes:
+  mongo_data:
+    driver: local
+
+networks:
+  booking-network:
+    driver: bridge

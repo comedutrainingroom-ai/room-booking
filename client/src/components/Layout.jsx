@@ -138,7 +138,7 @@ const Layout = ({ children }) => {
                 <div className={`
                     fixed md:sticky top-14 z-30 
                     h-[calc(100vh-3.5rem)]
-                    transition-all duration-500 ease-[cubic-bezier(0.16,1,0.3,1)]
+                    transition-all duration-300 ease-out
                     overflow-hidden bg-white
                     ${isSidebarOpen 
                         ? 'translate-x-0 w-64 shadow-2xl md:shadow-none bg-white/95 backdrop-blur-md border-r border-gray-100/50 md:min-w-[16rem] opacity-100' 
@@ -151,12 +151,12 @@ const Layout = ({ children }) => {
 
                 {/* Overlay for mobile when sidebar is open */}
                 <div
-                    className={`fixed inset-0 bg-black/40 backdrop-blur-[2px] z-20 md:hidden transition-all duration-500 ease-[cubic-bezier(0.16,1,0.3,1)] ${isSidebarOpen ? 'opacity-100 pointer-events-auto' : 'opacity-0 pointer-events-none'}`}
+                    className={`fixed inset-0 bg-black/40 backdrop-blur-[2px] z-20 md:hidden transition-all duration-300 ease-out ${isSidebarOpen ? 'opacity-100 pointer-events-auto' : 'opacity-0 pointer-events-none'}`}
                     onClick={toggleSidebar}
                     style={{ top: '3.5rem' }} // Below navbar
                 ></div>
 
-                <main className={`flex-grow bg-gray-50 transition-all duration-500 ease-[cubic-bezier(0.16,1,0.3,1)] w-full relative flex flex-col overflow-hidden`}>
+                <main className={`flex-grow bg-gray-50 transition-all duration-300 ease-out w-full relative flex flex-col overflow-hidden`}>
                     {/* Logo Watermark - conditional based on route */}
                     <LogoWatermark />
 

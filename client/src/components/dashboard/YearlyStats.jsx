@@ -120,7 +120,7 @@ const YearlyStats = ({ bookings }) => {
 
             {/* Area Chart */}
             <div className="flex-1 w-full min-h-[180px] mb-6">
-                <ResponsiveContainer width="100%" height="100%" minHeight={180}>
+                <ResponsiveContainer width="100%" height="100%" minHeight={180} debounce={500}>
                     <AreaChart data={yearlyData.chartData} margin={{ top: 10, right: 10, left: -20, bottom: 0 }}>
                         <defs>
                             <linearGradient id="colorBookings" x1="0" y1="0" x2="0" y2="1">
@@ -151,6 +151,7 @@ const YearlyStats = ({ bookings }) => {
                             fillOpacity={1}
                             fill="url(#colorBookings)"
                             activeDot={{ r: 5, strokeWidth: 2, stroke: '#fff' }}
+                            isAnimationActive={false}
                         />
                     </AreaChart>
                 </ResponsiveContainer>
@@ -161,7 +162,7 @@ const YearlyStats = ({ bookings }) => {
                 <div className="border-t border-gray-100 pt-4">
                     <div className="text-sm font-medium text-gray-600 mb-2">สัดส่วนสถานะการจอง</div>
                     <div className="h-[150px]">
-                        <ResponsiveContainer width="100%" height="100%" minHeight={150}>
+                        <ResponsiveContainer width="100%" height="100%" minHeight={150} debounce={500}>
                             <PieChart>
                                 <Pie
                                     data={statusData}
@@ -172,6 +173,7 @@ const YearlyStats = ({ bookings }) => {
                                     paddingAngle={3}
                                     dataKey="value"
                                     nameKey="name"
+                                    isAnimationActive={false}
                                 >
                                     {statusData.map((entry, index) => (
                                         <Cell key={`cell-${index}`} fill={COLORS[index % COLORS.length]} />

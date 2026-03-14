@@ -10,7 +10,7 @@ import {
 const AccordionItem = ({ icon, title, children, defaultOpen = false }) => {
     const [isOpen, setIsOpen] = useState(defaultOpen);
     return (
-        <div className="border border-gray-100 rounded-2xl overflow-hidden transition-all hover:shadow-md">
+        <div className="border border-gray-100 rounded-2xl overflow-hidden transition-colors hover:border-primary/30">
             <button
                 onClick={() => setIsOpen(!isOpen)}
                 className={`w-full flex items-center gap-3 md:gap-4 p-3.5 md:p-5 text-left transition-all ${isOpen ? 'bg-primary/5' : 'bg-white hover:bg-gray-50'}`}
@@ -46,7 +46,7 @@ const UserGuide = () => {
     const { settings } = useSettings();
 
     return (
-        <div className="p-4 md:p-8 max-w-4xl mx-auto animate-fade-in">
+        <div className="p-4 md:p-8 max-w-4xl mx-auto">
             {/* Header */}
             <div className="text-center mb-6 md:mb-12">
                 <div className="inline-flex items-center justify-center w-12 h-12 md:w-20 md:h-20 rounded-full bg-primary/10 text-primary text-xl md:text-3xl mb-3 md:mb-4">

@@ -139,7 +139,7 @@ const HistoryTableView = ({ bookings, onCancel, settings, isAdmin }) => {
                             <div>
                                 {new Date(booking.startTime).toLocaleDateString('th-TH', { day: 'numeric', month: 'short', year: 'numeric' })}
                             </div>
-                            
+
                             {!isAdmin && (
                                 <div className="flex gap-2">
                                     {booking.status === 'pending' && (

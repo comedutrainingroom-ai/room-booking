@@ -107,7 +107,7 @@ const MonthlyStats = ({ bookings }) => {
             {statusData.length > 0 && (
                 <div className="mt-4 border-t border-gray-100 pt-4">
                     <div className="text-sm font-medium text-gray-600 mb-2">สถานะการจอง</div>
-                    <ResponsiveContainer width="100%" height={150}>
+                    <ResponsiveContainer width="100%" height={150} debounce={500}>
                         <PieChart>
                             <Pie
                                 data={statusData}
@@ -118,6 +118,7 @@ const MonthlyStats = ({ bookings }) => {
                                 paddingAngle={3}
                                 dataKey="value"
                                 nameKey="name"
+                                isAnimationActive={false}
                             >
                                 {statusData.map((entry, index) => (
                                     <Cell key={`cell-${index}`} fill={COLORS[index % COLORS.length]} />
