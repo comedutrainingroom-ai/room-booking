@@ -160,13 +160,22 @@ const verifyAdminPin = async (req, res) => {
             return res.status(403).json({ success: false, error: 'ไม่มีสิทธิ์เข้าถึง' });
         }
 
-        // Compare with server-side PIN
+        // Compare PIN using timing-safe comparison to prevent timing attacks
         const adminPin = process.env.ADMIN_PIN;
         if (!adminPin) {
             console.error('ADMIN_PIN environment variable is not set!');
             return res.status(500).json({ success: false, error: 'Server configuration error' });
         }
-        if (pin === adminPin) {
+
+        const crypto = require('crypto');
+        const pinBuffer = Buffer.from(pin);
+        const adminPinBuffer = Buffer.from(adminPin);
+
+        // Buffers must be same length for timingSafeEqual — if lengths differ, PIN is wrong
+        const pinMatch = pinBuffer.length === adminPinBuffer.length &&
+            crypto.timingSafeEqual(pinBuffer, adminPinBuffer);
+
+        if (pinMatch) {
             return res.status(200).json({ success: true, message: 'PIN verified' });
         } else {
             return res.status(401).json({ success: false, error: 'PIN ไม่ถูกต้อง' });

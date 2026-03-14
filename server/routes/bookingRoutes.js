@@ -1,17 +1,29 @@
 const express = require('express');
+const path = require('path');
 const { getBookings, createBooking, updateBooking, deleteBooking } = require('../controllers/bookingController');
 const { protect, admin } = require('../middleware/authMiddleware');
 
 const router = express.Router();
 
 router.route('/')
-    .get(getBookings) // Public - anyone can view bookings
+    .get(protect, getBookings) // Protected - must be logged in to view bookings
     .post(protect, createBooking); // Must be logged in to create
 
-// Setup multer for memory storage (buffer access)
+// Setup multer for Excel import — restrict to .xlsx/.xls, max 5MB
 const multer = require('multer');
 const storage = multer.memoryStorage();
-const upload = multer({ storage: storage });
+const upload = multer({
+    storage: storage,
+    limits: { fileSize: 5 * 1024 * 1024 }, // 5MB max
+    fileFilter: (req, file, cb) => {
+        const allowed = /xlsx|xls/;
+        if (allowed.test(path.extname(file.originalname).toLowerCase())) {
+            cb(null, true);
+        } else {
+            cb(new Error('Excel files only (.xlsx, .xls)'));
+        }
+    }
+});
 
 router.route('/import')
     .post(protect, admin, upload.single('file'), require('../controllers/bookingController').importBookings)

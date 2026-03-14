@@ -9,8 +9,6 @@ services:
     image: mongo:7
     container_name: booking-mongo
     restart: unless-stopped
-    ports:
-      - "27017:27017"
     volumes:
       - mongo_data:/data/db
     networks:

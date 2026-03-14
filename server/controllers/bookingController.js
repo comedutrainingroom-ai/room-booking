@@ -10,34 +10,22 @@ const { logAction } = require('../services/auditService');
 // @access  Public
 const getBookings = async (req, res) => {
     try {
-        let query;
+        // Whitelist allowed filter fields — prevents NoSQL operator injection via URL
+        const allowedFilters = {};
 
-        // Copy req.query
-        const reqQuery = { ...req.query };
+        if (req.query.room)   allowedFilters.room = req.query.room;
+        if (req.query.status) allowedFilters.status = req.query.status;
+        if (req.query.email)  allowedFilters['user.email'] = req.query.email;
 
-        // Fields to exclude
-        const removeFields = ['select', 'sort', 'page', 'limit'];
-
-        // Loop over removeFields and delete them from reqQuery
-        removeFields.forEach(param => delete reqQuery[param]);
-
-        // Support filtering by email (map 'email' query param to 'user.email' path in DB)
-        if (reqQuery.email) {
-            reqQuery['user.email'] = reqQuery.email;
-            delete reqQuery.email;
+        // Non-admin users can only see their own bookings
+        if (req.user.role !== 'admin') {
+            allowedFilters['user.email'] = req.user.email;
         }
 
-        // Create query string
-        let queryStr = JSON.stringify(reqQuery);
-
-        // Finding resource
-        query = Booking.find(JSON.parse(queryStr)).populate({
+        const bookings = await Booking.find(allowedFilters).populate({
             path: 'room',
             select: 'name capacity'
         });
-
-        // Executing query
-        const bookings = await query;
 
         res.status(200).json({
             success: true,
@@ -45,6 +33,7 @@ const getBookings = async (req, res) => {
             data: bookings
         });
     } catch (error) {
+        console.error('getBookings Error:', error);
         res.status(500).json({ success: false, error: 'Server Error' });
     }
 };
@@ -133,12 +122,24 @@ const createBooking = async (req, res) => {
             return res.status(400).json({ success: false, error: 'ห้องนี้ถูกจองแล้วในช่วงเวลาดังกล่าว' });
         }
 
-        // Auto approve if admin books the room
-        if (req.user.role === 'admin') {
-            req.body.status = 'approved';
-        }
+        // Determine status — only admin can self-approve; students always get 'pending'
+        const bookingStatus = req.user.role === 'admin' ? 'approved' : 'pending';
 
-        let booking = await Booking.create(req.body);
+        // Explicit field selection — prevents mass assignment (e.g., student sending status:'approved')
+        let booking = await Booking.create({
+            room,
+            startTime,
+            endTime,
+            topic: req.body.topic,
+            note: req.body.note,
+            attendees: req.body.attendees,
+            user: {
+                name: req.user.name,
+                email: req.user.email,
+                department: req.user.faculty || req.user.department || '',
+            },
+            status: bookingStatus,
+        });
 
         // Populate room details for email
         booking = await booking.populate('room');
@@ -169,7 +170,8 @@ const createBooking = async (req, res) => {
         if (io) io.to('admin-room').emit('booking:created', { bookingId: booking._id, topic: booking.topic });
 
     } catch (error) {
-        res.status(500).json({ success: false, error: error.message });
+        console.error('createBooking Error:', error);
+        res.status(500).json({ success: false, error: 'Server Error' });
     }
 };
 
@@ -311,7 +313,8 @@ const updateBooking = async (req, res) => {
         if (io) io.to('admin-room').emit('booking:updated', { bookingId: booking._id, status: booking.status });
 
     } catch (error) {
-        res.status(500).json({ success: false, error: error.message });
+        console.error('updateBooking Error:', error);
+        res.status(500).json({ success: false, error: 'Server Error' });
     }
 };
 
