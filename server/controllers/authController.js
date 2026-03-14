@@ -92,8 +92,8 @@ const googleLogin = async (req, res) => {
         logAction({ action: 'user:login', performedBy: user._id, targetType: 'user', targetId: user._id, details: `เข้าสู่ระบบ: ${email}`, req });
 
     } catch (error) {
-        console.error('Auth Error:', error);
-        res.status(500).json({ success: false, error: error.message });
+        console.error('Google Login Error:', error);
+        res.status(500).json({ success: false, error: 'Server Error' });
     }
 };
 
@@ -111,7 +111,8 @@ const getCurrentUser = async (req, res) => {
 
         res.status(200).json({ success: true, data: user });
     } catch (error) {
-        res.status(500).json({ success: false, error: error.message });
+        console.error('Get Current User Error:', error);
+        res.status(500).json({ success: false, error: 'Server Error' });
     }
 };
 
@@ -140,7 +141,7 @@ const updateProfile = async (req, res) => {
         res.status(200).json({ success: true, data: user });
     } catch (error) {
         console.error('Update Profile Error:', error);
-        res.status(500).json({ success: false, error: error.message });
+        res.status(500).json({ success: false, error: 'Server Error' });
     }
 };
 
@@ -182,7 +183,7 @@ const verifyAdminPin = async (req, res) => {
         }
     } catch (error) {
         console.error('Verify PIN Error:', error);
-        res.status(500).json({ success: false, error: error.message });
+        res.status(500).json({ success: false, error: 'Server Error' });
     }
 };
 
