@@ -34,3 +34,6 @@ npm-debug.log*
 
 # Misc
 .gemini/
+
+# Sensitive deployment docs
+DEPLOY_GUIDE.md
