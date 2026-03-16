@@ -7,7 +7,7 @@ const SocketContext = createContext(null);
 export const useSocket = () => useContext(SocketContext);
 
 export const SocketProvider = ({ children }) => {
-    const { dbUser } = useAuth();
+    const { currentUser, dbUser } = useAuth();
     const [socket, setSocket] = useState(null);
 
     useEffect(() => {
@@ -43,11 +43,34 @@ export const SocketProvider = ({ children }) => {
 
     // Join admin room when user is an admin
     useEffect(() => {
-        if (socket && dbUser?.role === 'admin') {
-            socket.emit('join-admin');
-            console.log('[Socket.io] Requested to join admin-room');
+        if (!socket || !currentUser || dbUser?.role !== 'admin') {
+            return undefined;
         }
-    }, [socket, dbUser]);
+
+        let isActive = true;
+
+        const requestAdminJoin = async () => {
+            try {
+                const token = await currentUser.getIdToken();
+                if (!isActive) {
+                    return;
+                }
+
+                socket.emit('join-admin', { token });
+                console.log('[Socket.io] Requested to join admin-room');
+            } catch (error) {
+                console.error('[Socket.io] Failed to authorize admin-room access', error);
+            }
+        };
+
+        requestAdminJoin();
+        socket.on('connect', requestAdminJoin);
+
+        return () => {
+            isActive = false;
+            socket.off('connect', requestAdminJoin);
+        };
+    }, [socket, currentUser, dbUser?.role]);
 
     const value = useMemo(() => ({ socket }), [socket]);
 

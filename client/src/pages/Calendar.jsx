@@ -138,7 +138,8 @@ const Calendar = () => {
                         phone: booking.user?.phone,
                         department: department,
                         note: booking.note,
-                        isImported: booking.isImported
+                        isImported: booking.isImported,
+                        visibility: booking.visibility || 'full'
                     };
                 });
             setEvents(validBookings);
@@ -292,7 +293,8 @@ const Calendar = () => {
             status: event.status,
             phone: event.phone,
             department: event.department,
-            note: event.note
+            note: event.note,
+            visibility: event.visibility
         });
     };
 
@@ -922,6 +924,12 @@ const Calendar = () => {
                                 </div>
                             </div>
 
+                            {selectedEvent.visibility === 'limited' ? (
+                                <div className="rounded-xl border border-gray-200 bg-gray-50 p-4 text-sm text-gray-600">
+                                    Booking details are visible only to the booking owner and admins.
+                                </div>
+                            ) : (
+                                <>
                             {/* User */}
                             <div className="flex items-start gap-3">
                                 <div className="w-10 h-10 bg-purple-50 rounded-lg flex items-center justify-center flex-shrink-0">
@@ -946,6 +954,8 @@ const Calendar = () => {
                                     <p className="font-semibold text-gray-800">{selectedEvent.topic}</p>
                                 </div>
                             </div>
+                                </>
+                            )}
                         </div>
 
                         {/* Footer */}

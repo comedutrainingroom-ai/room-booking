@@ -5,6 +5,33 @@ const { sendBookingCreated, sendBookingApproved, sendBookingModified, sendBookin
 const { checkRoomAvailability, validateBookingTime, isUrgentBooking } = require('../services/bookingService');
 const { logAction } = require('../services/auditService');
 
+const buildBookingResponseForViewer = (booking, viewer) => {
+    const plainBooking = typeof booking.toObject === 'function' ? booking.toObject() : booking;
+    const viewerEmail = viewer?.email?.toLowerCase().trim();
+    const bookingOwnerEmail = plainBooking.user?.email?.toLowerCase().trim();
+    const canViewFullDetails = viewer?.role === 'admin' || (viewerEmail && viewerEmail === bookingOwnerEmail);
+
+    if (canViewFullDetails) {
+        return {
+            ...plainBooking,
+            visibility: 'full'
+        };
+    }
+
+    return {
+        _id: plainBooking._id,
+        room: plainBooking.room,
+        startTime: plainBooking.startTime,
+        endTime: plainBooking.endTime,
+        status: plainBooking.status,
+        createdAt: plainBooking.createdAt,
+        isImported: plainBooking.isImported,
+        visibility: 'limited',
+        topic: plainBooking.isImported ? 'Scheduled use' : 'Reserved',
+        user: {}
+    };
+};
+
 // @desc    Get all bookings
 // @route   GET /api/bookings
 // @access  Public (Authenticated)
@@ -15,20 +42,34 @@ const getBookings = async (req, res) => {
 
         if (req.query.room)   allowedFilters.room = req.query.room;
         if (req.query.status) allowedFilters.status = req.query.status;
-        if (req.query.email)  allowedFilters['user.email'] = req.query.email;
+        if (req.query.email) {
+            const requestedEmail = req.query.email.toLowerCase().trim();
+            const viewerEmail = req.user.email.toLowerCase().trim();
 
-        // NOTE: Everyone can see all bookings to know room availability in the calendar.
-        // We removed the restrictive 'if (req.user.role !== "admin")' filter.
+            if (req.user.role !== 'admin' && requestedEmail !== viewerEmail) {
+                return res.status(403).json({
+                    success: false,
+                    error: 'Not authorized to filter another user bookings'
+                });
+            }
+
+            allowedFilters['user.email'] = requestedEmail;
+        }
+
+        // Everyone can see occupied time slots for room availability.
+        // Non-admin viewers only receive full details for their own bookings.
 
         const bookings = await Booking.find(allowedFilters).populate({
             path: 'room',
             select: 'name capacity'
         });
 
+        const visibleBookings = bookings.map((booking) => buildBookingResponseForViewer(booking, req.user));
+
         res.status(200).json({
             success: true,
-            count: bookings.length,
-            data: bookings
+            count: visibleBookings.length,
+            data: visibleBookings
         });
     } catch (error) {
         console.error('getBookings Error:', error);

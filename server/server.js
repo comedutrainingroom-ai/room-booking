@@ -10,6 +10,8 @@ const helmet = require('helmet');
 const rateLimit = require('express-rate-limit');
 const { Server } = require('socket.io');
 const connectDB = require('./config/db');
+const User = require('./models/User');
+const firebaseAdmin = require('./config/firebaseAdmin');
 
 // Load env vars
 dotenv.config({ path: path.join(__dirname, '.env') });
@@ -51,9 +53,34 @@ io.on('connection', (socket) => {
     console.log(`[Socket.io] Client connected: ${socket.id}`);
 
     // Admin joins a dedicated room for notifications
-    socket.on('join-admin', () => {
-        socket.join('admin-room');
-        console.log(`[Socket.io] ${socket.id} joined admin-room`);
+    socket.on('join-admin', async ({ token } = {}) => {
+        if (!token) {
+            socket.emit('admin:join:denied', { error: 'Missing token' });
+            return;
+        }
+
+        try {
+            const decodedToken = await firebaseAdmin.auth().verifyIdToken(token);
+            const email = decodedToken.email?.toLowerCase().trim();
+
+            if (!email) {
+                socket.emit('admin:join:denied', { error: 'Invalid token payload' });
+                return;
+            }
+
+            const user = await User.findOne({ email }).select('role isBanned');
+            if (!user || user.role !== 'admin' || user.isBanned) {
+                socket.emit('admin:join:denied', { error: 'Not authorized as admin' });
+                return;
+            }
+
+            socket.join('admin-room');
+            socket.emit('admin:join:confirmed');
+            console.log(`[Socket.io] ${socket.id} joined admin-room`);
+        } catch (error) {
+            console.error(`[Socket.io] Admin join denied for ${socket.id}: ${error.message}`);
+            socket.emit('admin:join:denied', { error: 'Admin authorization failed' });
+        }
     });
 
     socket.on('disconnect', () => {

@@ -138,8 +138,8 @@ describe('Server API Tests', async () => {
     describe('Booking API', async () => {
         let testRoom;
 
-        async function seedData() {
-            await User.create({ email: 'test@kmutnb.ac.th', name: 'Test User', role: 'admin' });
+        async function seedData(role = 'admin') {
+            await User.create({ email: 'test@kmutnb.ac.th', name: 'Test User', role });
             testRoom = await Room.create({ name: 'Room A101', capacity: 30, isActive: true });
         }
 
@@ -235,6 +235,69 @@ describe('Server API Tests', async () => {
             assert.strictEqual(res.status, 200);
             const count = await Booking.countDocuments();
             assert.strictEqual(count, 0);
+        });
+    });
+
+    describe('Booking Privacy', async () => {
+        let testRoom;
+
+        async function seedStudentData() {
+            await User.create({ email: 'test@kmutnb.ac.th', name: 'Test User', role: 'student' });
+            testRoom = await Room.create({ name: 'Room Privacy', capacity: 25, isActive: true });
+        }
+
+        it('GET /api/bookings â€” should limit other user details for students', async () => {
+            await seedStudentData();
+
+            await Booking.create({
+                room: testRoom._id,
+                topic: 'My Booking',
+                note: 'Owner note',
+                user: { name: 'Test User', email: 'test@kmutnb.ac.th', department: 'CS' },
+                startTime: new Date('2026-04-01T09:00:00'),
+                endTime: new Date('2026-04-01T10:00:00'),
+                status: 'pending'
+            });
+
+            await Booking.create({
+                room: testRoom._id,
+                topic: 'Secret Meeting',
+                note: 'Hidden note',
+                user: { name: 'Other User', email: 'other@kmutnb.ac.th', department: 'Math' },
+                startTime: new Date('2026-04-01T10:00:00'),
+                endTime: new Date('2026-04-01T11:00:00'),
+                status: 'approved'
+            });
+
+            const res = await request(app)
+                .get('/api/bookings')
+                .set('Authorization', 'Bearer valid-token');
+
+            assert.strictEqual(res.status, 200);
+            assert.strictEqual(res.body.count, 2);
+
+            const ownBooking = res.body.data.find((booking) => booking.topic === 'My Booking');
+            const otherBooking = res.body.data.find((booking) => booking.topic === 'Reserved');
+
+            assert.ok(ownBooking);
+            assert.strictEqual(ownBooking.visibility, 'full');
+            assert.strictEqual(ownBooking.note, 'Owner note');
+
+            assert.ok(otherBooking);
+            assert.strictEqual(otherBooking.visibility, 'limited');
+            assert.strictEqual(otherBooking.user.email, undefined);
+            assert.strictEqual(otherBooking.note, undefined);
+        });
+
+        it('GET /api/bookings â€” should block students from filtering another email', async () => {
+            await seedStudentData();
+
+            const res = await request(app)
+                .get('/api/bookings?email=other@kmutnb.ac.th')
+                .set('Authorization', 'Bearer valid-token');
+
+            assert.strictEqual(res.status, 403);
+            assert.strictEqual(res.body.success, false);
         });
     });
 
