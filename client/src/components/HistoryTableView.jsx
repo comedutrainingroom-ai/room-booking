@@ -100,7 +100,7 @@ const HistoryTableView = ({ bookings, onCancel, settings, isAdmin }) => {
 
             {/* Mobile Card View */}
             <div className="md:hidden divide-y divide-gray-100">
-                {bookings.map((booking, index) => (
+                {bookings.map((booking) => (
                     <div key={booking._id} className="p-4 space-y-3">
                         <div className="flex justify-between items-start gap-2">
                             <div>

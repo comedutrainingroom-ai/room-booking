@@ -38,7 +38,7 @@ const updateSettings = async (req, res) => {
             settings = await Setting.create(updateData);
         } else {
             settings = await Setting.findByIdAndUpdate(settings._id, updateData, {
-                new: true,
+                returnDocument: 'after',
                 runValidators: true
             });
         }

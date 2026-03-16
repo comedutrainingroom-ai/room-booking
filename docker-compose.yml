@@ -24,8 +24,9 @@ services:
     env_file:
       - ./server/.env
     environment:
+      - NODE_ENV=production
       - MONGO_URI=mongodb://mongo:27017/room_booking_v2
-      - CLIENT_URL=http://localhost
+      - GOOGLE_APPLICATION_CREDENTIALS=/app/config/serviceAccountKey.json
     volumes:
       - ./server/uploads:/app/uploads
       - ./server/config/serviceAccountKey.json:/app/config/serviceAccountKey.json:ro

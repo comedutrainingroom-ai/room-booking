@@ -15,18 +15,6 @@ export const AuthProvider = ({ children }) => {
     const [loading, setLoading] = useState(true);
     const [isAdminUnlocked, setIsAdminUnlocked] = useState(false); // 2nd Factor for Admin
 
-    const loginWithGoogle = useCallback(async () => {
-        try {
-            const result = await signInWithPopup(auth, googleProvider);
-            // Sync with backend immediately after login
-            const syncResult = await syncUserWithBackend(result.user);
-            return syncResult;
-        } catch (error) {
-            console.error("Error signing in with Google", error);
-            throw error;
-        }
-    }, []);
-
     const syncUserWithBackend = useCallback(async (firebaseUser) => {
         try {
             // Get Firebase ID Token for server-side verification
@@ -69,6 +57,18 @@ export const AuthProvider = ({ children }) => {
             return { success: false, error: error.message };
         }
     }, []);
+
+    const loginWithGoogle = useCallback(async () => {
+        try {
+            const result = await signInWithPopup(auth, googleProvider);
+            // Sync with backend immediately after login
+            const syncResult = await syncUserWithBackend(result.user);
+            return syncResult;
+        } catch (error) {
+            console.error("Error signing in with Google", error);
+            throw error;
+        }
+    }, [syncUserWithBackend]);
 
     const logout = useCallback(() => {
         setDbUser(null);
@@ -115,7 +115,7 @@ export const AuthProvider = ({ children }) => {
         });
 
         return unsubscribe;
-    }, []);
+    }, [syncUserWithBackend]);
 
     const isAdmin = dbUser?.role === 'admin';
 

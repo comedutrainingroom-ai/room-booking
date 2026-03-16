@@ -66,12 +66,11 @@ const RoomManagement = () => {
 
     const presetSelected = currentEquipmentItems.filter(item => PRESET_EQUIPMENT.includes(item));
     const customItems = currentEquipmentItems.filter(item => !PRESET_EQUIPMENT.includes(item));
-    const hasCustom = customItems.length > 0;
 
     // Sync custom open state when editing a room
     useEffect(() => {
         setIsCustomOpen(customItems.length > 0);
-    }, [editingRoom, formData.equipment]);
+    }, [customItems.length]);
 
     const handleEdit = (room) => {
         setEditingRoom(room);

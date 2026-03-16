@@ -1,29 +1,72 @@
 const admin = require('firebase-admin');
+const fs = require('fs');
 const path = require('path');
 
-// Initialize Firebase Admin
-// Option 1: Use service account JSON file (recommended for production)
-// Download from Firebase Console -> Project Settings -> Service Accounts -> Generate new private key
 const serviceAccountPath = path.join(__dirname, 'serviceAccountKey.json');
 
-try {
-    const serviceAccount = require(serviceAccountPath);
-    admin.initializeApp({
-        credential: admin.credential.cert(serviceAccount)
-    });
-    console.log('Firebase Admin initialized with service account');
-} catch (error) {
-    // Option 2: Use default credentials (for development/testing)
-    // This will work if GOOGLE_APPLICATION_CREDENTIALS env var is set
-    // or if running on Google Cloud
-    console.warn('Service account not found. Firebase Admin running without verification.');
-    console.warn('To enable token verification, add serviceAccountKey.json to config folder.');
-
-    // Initialize without credentials for development
-    // Token verification will be skipped but app will run
-    if (!admin.apps.length) {
-        admin.initializeApp();
+const isReadableFile = (filePath) => {
+    try {
+        return fs.statSync(filePath).isFile();
+    } catch (error) {
+        return false;
     }
-}
+};
 
-module.exports = admin;
+const readServiceAccount = (filePath) => {
+    const raw = fs.readFileSync(filePath, 'utf8');
+    return JSON.parse(raw);
+};
+
+const initializeWithCredential = (credential, source) => {
+    if (!admin.apps.length) {
+        admin.initializeApp({ credential });
+    }
+
+    console.log(`Firebase Admin initialized using ${source}`);
+};
+
+const initializeFirebaseAdmin = () => {
+    const jsonFromEnv = process.env.FIREBASE_SERVICE_ACCOUNT_JSON;
+    const applicationCredentialsPath = process.env.GOOGLE_APPLICATION_CREDENTIALS;
+
+    try {
+        if (jsonFromEnv) {
+            const serviceAccount = JSON.parse(jsonFromEnv);
+            initializeWithCredential(admin.credential.cert(serviceAccount), 'FIREBASE_SERVICE_ACCOUNT_JSON');
+            return admin;
+        }
+
+        if (isReadableFile(serviceAccountPath)) {
+            const serviceAccount = readServiceAccount(serviceAccountPath);
+            initializeWithCredential(admin.credential.cert(serviceAccount), 'serviceAccountKey.json');
+            return admin;
+        }
+
+        if (applicationCredentialsPath) {
+            if (!isReadableFile(applicationCredentialsPath)) {
+                throw new Error(`GOOGLE_APPLICATION_CREDENTIALS points to a missing file: ${applicationCredentialsPath}`);
+            }
+
+            const serviceAccount = readServiceAccount(applicationCredentialsPath);
+            initializeWithCredential(admin.credential.cert(serviceAccount), 'GOOGLE_APPLICATION_CREDENTIALS');
+            return admin;
+        }
+    } catch (error) {
+        if (process.env.NODE_ENV === 'production') {
+            throw error;
+        }
+
+        console.warn(`Firebase Admin initialization warning: ${error.message}`);
+    }
+
+    if (process.env.NODE_ENV === 'production') {
+        throw new Error(
+            'Firebase Admin credentials are missing. Configure serviceAccountKey.json, FIREBASE_SERVICE_ACCOUNT_JSON, or GOOGLE_APPLICATION_CREDENTIALS before starting the server.'
+        );
+    }
+
+    console.warn('Firebase Admin credentials not found. Auth routes will fail until Firebase credentials are configured.');
+    return admin;
+};
+
+module.exports = initializeFirebaseAdmin();

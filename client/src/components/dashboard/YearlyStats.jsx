@@ -4,6 +4,21 @@ import { AreaChart, Area, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContai
 
 const COLORS = ['#8b5cf6', '#ef4444', '#9ca3af']; // Purple, Red, Gray
 
+const YearlyTooltip = ({ active, payload, label }) => {
+    if (active && payload && payload.length) {
+        return (
+            <div className="bg-white p-3 border border-gray-200 shadow-sm rounded-lg">
+                <p className="text-sm font-bold text-gray-800">{label}</p>
+                <p className="text-xs text-emerald-600 font-medium">
+                    {payload[0].value} à¸à¸²à¸£à¸ˆà¸­à¸‡
+                </p>
+            </div>
+        );
+    }
+
+    return null;
+};
+
 const YearlyStats = ({ bookings }) => {
     const currentYear = new Date().getFullYear();
 
@@ -58,7 +73,7 @@ const YearlyStats = ({ bookings }) => {
     ].filter(item => item.value > 0);
 
     // Custom Tooltip
-    const CustomTooltip = ({ active, payload, label }) => {
+    const _CustomTooltip = ({ active, payload, label }) => {
         if (active && payload && payload.length) {
             return (
                 <div className="bg-white p-3 border border-gray-200 shadow-sm rounded-lg">
@@ -142,7 +157,7 @@ const YearlyStats = ({ bookings }) => {
                             tickLine={false}
                             allowDecimals={false}
                         />
-                        <Tooltip content={<CustomTooltip />} />
+                        <Tooltip content={<YearlyTooltip />} />
                         <Area
                             type="monotone"
                             dataKey="bookings"

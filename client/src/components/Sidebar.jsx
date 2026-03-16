@@ -3,7 +3,7 @@ import { FaCalendarAlt, FaClipboardCheck, FaHistory, FaChartLine, FaCog, FaBuild
 
 import { useAuth } from '../contexts/AuthContext';
 
-const Sidebar = ({ isOpen }) => {
+const Sidebar = () => {
     const location = useLocation();
     const { isAdmin, isAdminUnlocked } = useAuth();
 

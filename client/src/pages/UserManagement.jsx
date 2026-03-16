@@ -1,6 +1,6 @@
 import { useState, useEffect, useCallback, useMemo } from 'react';
 import api from '../services/api';
-import { FaUsers, FaSearch, FaUserShield, FaUser, FaBan, FaCheck, FaTrash, FaCrown } from 'react-icons/fa';
+import { FaUsers, FaSearch, FaBan, FaCheck, FaTrash } from 'react-icons/fa';
 import { useToast } from '../contexts/ToastContext';
 import { useAuth } from '../contexts/AuthContext';
 
@@ -13,11 +13,7 @@ const UserManagement = () => {
     const [showBanConfirm, setShowBanConfirm] = useState(null);
     const [banReason, setBanReason] = useState('');
     const toast = useToast();
-    const { user: currentUser } = useAuth();
-
-    useEffect(() => {
-        fetchUsers();
-    }, []);
+    const { currentUser } = useAuth();
 
     const fetchUsers = useCallback(async () => {
         try {
@@ -31,6 +27,10 @@ const UserManagement = () => {
         }
         setLoading(false);
     }, [toast]);
+
+    useEffect(() => {
+        fetchUsers();
+    }, [fetchUsers]);
 
     const handleRoleChange = useCallback(async (userId, newRole) => {
         setActionLoading(userId);

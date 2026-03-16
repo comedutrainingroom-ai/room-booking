@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import { useNavigate } from 'react-router-dom';
 import api from '../services/api';
 import { FaExclamationTriangle, FaPaperPlane, FaBuilding, FaTools, FaCheckCircle } from 'react-icons/fa';
@@ -16,11 +16,7 @@ const ReportIssue = () => {
         roomId: ''
     });
 
-    useEffect(() => {
-        fetchRooms();
-    }, []);
-
-    const fetchRooms = async () => {
+    const fetchRooms = useCallback(async () => {
         try {
             const res = await api.get('/rooms');
             if (res.data.success) {
@@ -29,10 +25,15 @@ const ReportIssue = () => {
         } catch (error) {
             console.error("Failed to fetch rooms", error);
         }
-    };
+    }, []);
+
+    useEffect(() => {
+        fetchRooms();
+    }, [fetchRooms]);
 
     const handleChange = (e) => {
-        setFormData({ ...formData, [e.target.name]: e.target.value });
+        const { name, value } = e.target;
+        setFormData((prev) => ({ ...prev, [name]: value }));
     };
 
     const handleSubmit = async (e) => {

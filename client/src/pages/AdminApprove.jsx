@@ -1,6 +1,6 @@
 import { useState, useEffect, useCallback } from 'react';
 import api from '../services/api';
-import { FaCheck, FaTimes, FaCalendarAlt, FaClock, FaUser, FaBuilding, FaEdit, FaSave, FaBan, FaFilter } from 'react-icons/fa';
+import { FaCheck, FaTimes, FaCalendarAlt, FaClock, FaUser, FaBuilding, FaEdit, FaSave, FaBan } from 'react-icons/fa';
 import { useToast } from '../contexts/ToastContext';
 
 const AdminApprove = () => {

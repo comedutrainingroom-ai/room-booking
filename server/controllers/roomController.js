@@ -127,7 +127,7 @@ const updateRoom = async (req, res) => {
             isActive: isActive !== undefined ? isActive : room.isActive,
             images: req.body.images // Prepared above as [...keepImages, ...newImages]
         }, {
-            new: true,
+            returnDocument: 'after',
             runValidators: true
         });
 

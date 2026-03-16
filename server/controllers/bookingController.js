@@ -279,7 +279,7 @@ const updateBooking = async (req, res) => {
         }
 
         let booking = await Booking.findByIdAndUpdate(req.params.id, req.body, {
-            new: true,
+            returnDocument: 'after',
             runValidators: true
         }).populate('room');
 

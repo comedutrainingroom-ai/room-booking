@@ -1,4 +1,4 @@
-import { useState, useEffect, useMemo } from 'react';
+import { useState, useEffect, useMemo, useCallback } from 'react';
 import api from '../services/api';
 import { useAuth } from '../contexts/AuthContext';
 import { useSettings } from '../contexts/SettingsContext';
@@ -21,11 +21,7 @@ const History = () => {
     const [currentPage, setCurrentPage] = useState(1);
     const itemsPerPage = 20;
 
-    useEffect(() => {
-        fetchMyBookings();
-    }, []);
-
-    const fetchMyBookings = async () => {
+    const fetchMyBookings = useCallback(async () => {
         try {
             // Admin sees all bookings, students see only their own
             const url = isAdmin ? '/bookings' : `/bookings?email=${currentUser.email}`;
@@ -47,7 +43,11 @@ const History = () => {
             console.error("Error fetching history", error);
             setLoading(false);
         }
-    };
+    }, [currentUser, isAdmin]);
+
+    useEffect(() => {
+        fetchMyBookings();
+    }, [fetchMyBookings]);
 
     // Student can cancel their own pending bookings
     const handleCancelBooking = async (bookingId) => {
@@ -194,7 +194,7 @@ const History = () => {
                     ) : (
                         <>
                             <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
-                                {paginatedSchedules.map((schedule, idx) => (
+                                {paginatedSchedules.map((schedule) => (
                                     <div key={schedule._id} className="bg-white rounded-xl shadow-sm border border-emerald-100 p-4 hover:shadow-md transition-shadow relative overflow-hidden group">
                                         <div className="absolute top-0 left-0 w-1 h-full bg-emerald-500"></div>
                                         <div className="flex justify-between items-start mb-3">

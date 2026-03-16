@@ -1,8 +1,3 @@
-import ExcelJS from 'exceljs';
-import { saveAs } from 'file-saver';
-import jsPDF from 'jspdf';
-import autoTable from 'jspdf-autotable';
-
 // Helper: Format date in Thai
 const formatDateThai = (date) => {
     return new Date(date).toLocaleDateString('th-TH', {
@@ -69,6 +64,10 @@ const calculateStats = (bookings) => {
 
 // Export to Excel using exceljs
 export const exportToExcel = async (bookings, filename = 'booking_report', reportTitle = 'รายงานสรุปการจองห้องประชุม', scope = 'all') => {
+    const [{ default: ExcelJS }, { saveAs }] = await Promise.all([
+        import('exceljs'),
+        import('file-saver')
+    ]);
     const today = new Date();
     const workbook = new ExcelJS.Workbook();
     workbook.creator = 'Room Booking System';
@@ -328,6 +327,10 @@ const loadFonts = async (doc) => {
 
 // Export to PDF
 export const exportToPDF = async (bookings, filename = 'booking_report', reportTitle = 'Booking Summary Report', scope = 'all') => {
+    const [{ default: jsPDF }, { default: autoTable }] = await Promise.all([
+        import('jspdf'),
+        import('jspdf-autotable')
+    ]);
     const stats = calculateStats(bookings);
     const today = new Date();
     const doc = new jsPDF('p', 'mm', 'a4');

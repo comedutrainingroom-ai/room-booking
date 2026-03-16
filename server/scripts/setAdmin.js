@@ -28,7 +28,7 @@ const setAdmin = async () => {
                     name: email.split('@')[0] // Default name from email
                 }
             },
-            { new: true, upsert: true, setDefaultsOnInsert: true }
+            { returnDocument: 'after', upsert: true, setDefaultsOnInsert: true }
         );
 
         console.log(`Success! User ${user.name} (${user.email}) is now an Admin.`);

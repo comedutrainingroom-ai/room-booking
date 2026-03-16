@@ -12,10 +12,6 @@ const AdminReports = () => {
     const [confirmResolve, setConfirmResolve] = useState(null); // reportId to confirm
     const toast = useToast();
 
-    useEffect(() => {
-        fetchReports();
-    }, []);
-
     const fetchReports = useCallback(async () => {
         try {
             const res = await api.get('/reports');
@@ -27,6 +23,10 @@ const AdminReports = () => {
         }
         setLoading(false);
     }, []);
+
+    useEffect(() => {
+        fetchReports();
+    }, [fetchReports]);
 
     const handleMaintenance = useCallback(async (reportId, isActive) => {
         setActionLoading(reportId);

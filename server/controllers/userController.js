@@ -36,7 +36,7 @@ const updateUserRole = async (req, res) => {
         const user = await User.findByIdAndUpdate(
             req.params.id,
             { role },
-            { new: true, runValidators: true }
+            { returnDocument: 'after', runValidators: true }
         );
 
         if (!user) {
@@ -72,7 +72,7 @@ const toggleBanUser = async (req, res) => {
         const user = await User.findByIdAndUpdate(
             req.params.id,
             { isBanned },
-            { new: true, runValidators: true }
+            { returnDocument: 'after', runValidators: true }
         );
 
         if (!user) {

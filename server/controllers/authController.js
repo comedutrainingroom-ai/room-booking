@@ -71,7 +71,7 @@ const googleLogin = async (req, res) => {
                 $set: updateData,
                 $setOnInsert: setOnInsert
             },
-            { new: true, upsert: true, setDefaultsOnInsert: true }
+            { returnDocument: 'after', upsert: true, setDefaultsOnInsert: true }
         );
 
         // Check if user is banned

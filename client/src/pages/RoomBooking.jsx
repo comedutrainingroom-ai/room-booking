@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import { useParams, useNavigate, useLocation } from 'react-router-dom';
 import api from '../services/api';
 import BookingModal from '../components/BookingModal';
@@ -39,11 +39,7 @@ const RoomBooking = () => {
     const openTime = settings?.openTime || '08:00';
     const closeTime = settings?.closeTime || '20:00';
 
-    useEffect(() => {
-        fetchRoomData();
-    }, [id]);
-
-    const fetchRoomData = async () => {
+    const fetchRoomData = useCallback(async () => {
         try {
             setLoading(true);
             const [roomRes, bookingsRes] = await Promise.all([
@@ -59,7 +55,11 @@ const RoomBooking = () => {
         } finally {
             setLoading(false);
         }
-    };
+    }, [id, toast]);
+
+    useEffect(() => {
+        fetchRoomData();
+    }, [fetchRoomData]);
 
     const generateTimeSlots = () => {
         const slots = [];

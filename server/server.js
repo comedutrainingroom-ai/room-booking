@@ -14,6 +14,21 @@ const connectDB = require('./config/db');
 // Load env vars
 dotenv.config({ path: path.join(__dirname, '.env') });
 
+const validateRequiredEnv = () => {
+    if (process.env.NODE_ENV !== 'production') {
+        return;
+    }
+
+    const requiredEnv = ['CLIENT_URL', 'MONGO_URI', 'ADMIN_PIN'];
+    const missingEnv = requiredEnv.filter((key) => !process.env[key]);
+
+    if (missingEnv.length > 0) {
+        throw new Error(`Missing required environment variables: ${missingEnv.join(', ')}`);
+    }
+};
+
+validateRequiredEnv();
+
 const app = express();
 app.set('trust proxy', 1); // Trust first proxy (Nginx) for correct Rate Limiting IPs
 const httpServer = http.createServer(app);

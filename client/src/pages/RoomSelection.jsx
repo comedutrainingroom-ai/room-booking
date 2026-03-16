@@ -1,4 +1,4 @@
-import { useState, useEffect, useMemo } from 'react';
+import { useState, useEffect, useMemo, useCallback } from 'react';
 import { FaBuilding, FaSearch, FaFilter, FaTimes, FaUsers, FaCalendarPlus } from 'react-icons/fa';
 import api from '../services/api';
 import { useToast } from '../contexts/ToastContext';
@@ -19,11 +19,7 @@ const RoomSelection = () => {
     // Read date from query params (passed from Calendar page)
     const queryDate = new URLSearchParams(location.search).get('date');
 
-    useEffect(() => {
-        fetchRooms();
-    }, []);
-
-    const fetchRooms = async () => {
+    const fetchRooms = useCallback(async () => {
         try {
             const res = await api.get('/rooms');
             setRooms(res.data.data);
@@ -33,7 +29,11 @@ const RoomSelection = () => {
         } finally {
             setLoading(false);
         }
-    };
+    }, [toast]);
+
+    useEffect(() => {
+        fetchRooms();
+    }, [fetchRooms]);
 
     const handleBookRoom = (room) => {
         const datePart = queryDate ? `?date=${queryDate}` : '';

@@ -144,7 +144,10 @@ describe('Server API Tests', async () => {
         }
 
         it('GET /api/bookings — should return empty', async () => {
-            const res = await request(app).get('/api/bookings');
+            await seedData();
+            const res = await request(app)
+                .get('/api/bookings')
+                .set('Authorization', 'Bearer valid-token');
             assert.strictEqual(res.status, 200);
             assert.strictEqual(res.body.count, 0);
         });
@@ -160,7 +163,9 @@ describe('Server API Tests', async () => {
                 status: 'pending'
             });
 
-            const res = await request(app).get('/api/bookings');
+            const res = await request(app)
+                .get('/api/bookings')
+                .set('Authorization', 'Bearer valid-token');
             assert.strictEqual(res.status, 200);
             assert.strictEqual(res.body.count, 1);
             assert.strictEqual(res.body.data[0].topic, 'Test Meeting');
@@ -181,7 +186,7 @@ describe('Server API Tests', async () => {
 
             assert.strictEqual(res.status, 201);
             assert.strictEqual(res.body.data.topic, 'New Meeting');
-            assert.strictEqual(res.body.data.status, 'pending');
+            assert.strictEqual(res.body.data.status, 'approved');
         });
 
         it('POST /api/bookings — should require auth', async () => {

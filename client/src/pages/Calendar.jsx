@@ -71,7 +71,6 @@ const Calendar = () => {
     const [viewMode, setViewMode] = useState(window.innerWidth < 768 ? 'list' : 'month');
     const [weekStart, setWeekStart] = useState(getStartOfWeek(new Date()));
     const [isTransitioning, setIsTransitioning] = useState(false);
-    const [slideDirection, setSlideDirection] = useState('');
 
     // Event Detail Modal State
     const [selectedEvent, setSelectedEvent] = useState(null);
@@ -347,7 +346,6 @@ const Calendar = () => {
 
     // ── Calendar Navigation ──
     const navigateMonth = (direction) => {
-        setSlideDirection(direction > 0 ? 'slide-left' : 'slide-right');
         setIsTransitioning(true);
         setTimeout(() => {
             setCurrentDate(prev => {
@@ -355,13 +353,11 @@ const Calendar = () => {
                 d.setMonth(d.getMonth() + direction);
                 return d;
             });
-            setSlideDirection('');
             setIsTransitioning(false);
         }, 150);
     };
 
     const navigateWeek = (direction) => {
-        setSlideDirection(direction > 0 ? 'slide-left' : 'slide-right');
         setIsTransitioning(true);
         setTimeout(() => {
             setWeekStart(prev => {
@@ -369,7 +365,6 @@ const Calendar = () => {
                 d.setDate(d.getDate() + direction * 7);
                 return d;
             });
-            setSlideDirection('');
             setIsTransitioning(false);
         }, 150);
     };
@@ -441,7 +436,6 @@ const Calendar = () => {
 
     // ── Render: Month View ──
     const renderMonthView = () => {
-        const today = new Date();
         const MAX_EVENTS_SHOWN = 2;
 
         return (

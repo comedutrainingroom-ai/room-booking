@@ -9,7 +9,6 @@ const Settings = () => {
     const toast = useToast();
     const [activeTab, setActiveTab] = useState('general');
     const [loading, setLoading] = useState(false);
-    const [fetching, setFetching] = useState(true);
 
     // Initial State
     const [settings, setSettings] = useState({
@@ -44,8 +43,6 @@ const Settings = () => {
                 }
             } catch (error) {
                 console.error("Error fetching settings:", error);
-            } finally {
-                setFetching(false);
             }
         };
         fetchSettings();

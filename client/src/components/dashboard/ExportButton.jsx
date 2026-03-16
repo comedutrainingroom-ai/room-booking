@@ -1,6 +1,5 @@
 import { useState, useRef, useEffect } from 'react';
 import { FaFileExport, FaFileExcel, FaFilePdf, FaChevronDown, FaCalendarDay, FaCalendarAlt, FaCalendar } from 'react-icons/fa';
-import { exportToExcel, exportToPDF } from '../../services/exportService';
 import { useToast } from '../../contexts/ToastContext';
 
 const ExportButton = ({ bookings }) => {
@@ -66,6 +65,7 @@ const ExportButton = ({ bookings }) => {
         const filename = `booking_report_${scope}`;
 
         try {
+            const { exportToExcel, exportToPDF } = await import('../../services/exportService');
             if (type === 'excel') {
                 await exportToExcel(filtered, filename, title, scope);
             } else if (type === 'pdf') {
