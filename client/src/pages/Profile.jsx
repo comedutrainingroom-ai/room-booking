@@ -53,8 +53,10 @@ const Profile = () => {
 
     return (
         <div className="w-full h-full px-0 sm:px-4 py-6 sm:py-8">
-            <h1 className="text-2xl md:text-3xl font-bold text-gray-800 mb-1 md:mb-2">ข้อมูลส่วนตัว</h1>
-            <p className="text-gray-500 text-sm md:text-base mb-6 md:mb-8">จัดการข้อมูลของคุณเพื่อให้ผู้ดูแลระบบติดต่อได้สะดวก</p>
+            <h1 className="text-xl md:text-2xl font-extrabold text-gray-900">
+                ข้อมูลส่วนตัว
+            </h1>
+            <p className="text-gray-400 mt-1 text-xs md:text-base mb-6">จัดการข้อมูลของคุณเพื่อให้ผู้ดูแลระบบติดต่อได้สะดวก</p>
 
             <div className="bg-white rounded-2xl shadow-sm border border-gray-100 overflow-hidden">
                 <div className="bg-green-50/50 p-4 md:p-6 flex flex-col items-center border-b border-gray-100">
@@ -71,7 +73,7 @@ const Profile = () => {
                     <span className="text-sm text-gray-500">{currentUser?.email}</span>
                     <span className={`mt-2 px-3 py-1 rounded-full text-xs font-bold uppercase tracking-wider
                         ${dbUser?.role === 'admin' ? 'bg-yellow-100 text-yellow-700' : 'bg-green-100 text-green-700'}`}>
-                        {dbUser?.role === 'admin' ? '👑 ผู้ดูแลระบบ' : '🎓 นักศึกษา'}
+                        {dbUser?.role === 'admin' ? 'ผู้ดูแลระบบ' : 'นักศึกษา'}
                     </span>
                 </div>
 
@@ -169,7 +171,7 @@ const Profile = () => {
 
                     {success && (
                         <div className="bg-green-50 text-green-700 px-4 py-3 rounded-xl text-center font-medium animate-in fade-in slide-in-from-bottom-2">
-                            บันทึกข้อมูลเรียบร้อยแล้ว! ✅
+                            บันทึกข้อมูลเรียบร้อยแล้ว!
                         </div>
                     )}
                 </form>

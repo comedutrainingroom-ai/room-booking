@@ -107,7 +107,7 @@ const RoomCard = ({ room, onBook, onEdit, onDelete, onViewDetails }) => {
                             }
                         }}
                         disabled={room.isActive === false}
-                        className={`w-full py-2 md:py-2.5 ${room.isActive !== false ? 'bg-green-700 text-white hover:bg-green-800 shadow-sm' : 'bg-gray-100 text-gray-500 cursor-not-allowed border border-gray-200'} font-semibold rounded-lg flex items-center justify-center gap-1.5 transition-colors text-xs md:text-sm mb-2`}
+                        className={`w-full py-2 md:py-2.5 ${room.isActive !== false ? 'bg-gray-900 text-white hover:bg-emerald-600 shadow-md hover:shadow-lg' : 'bg-gray-100 text-gray-500 cursor-not-allowed border border-gray-200'} font-semibold rounded-lg flex items-center justify-center gap-1.5 transition-all duration-300 text-xs md:text-sm mb-2 active:scale-[0.97]`}
                     >
                         {room.isActive !== false ? (
                             <>

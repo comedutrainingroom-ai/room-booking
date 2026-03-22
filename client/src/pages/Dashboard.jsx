@@ -1,7 +1,7 @@
 import { useState, useEffect, useCallback } from 'react';
 import api from '../services/api';
 import { Link } from 'react-router-dom';
-import { FaClock, FaBuilding } from 'react-icons/fa';
+import { FaClock, FaBuilding, FaChartBar } from 'react-icons/fa';
 
 // Import Dashboard Components
 import DailyStats from '../components/dashboard/DailyStats';
@@ -52,8 +52,10 @@ const Dashboard = () => {
             {/* Header */}
             <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
                 <div>
-                    <h1 className="text-2xl md:text-3xl font-bold text-gray-800">Dashboard</h1>
-                    <p className="text-gray-500 mt-1">ภาพรวมสถิติการจองห้องประชุม</p>
+                    <h1 className="text-xl md:text-2xl font-extrabold text-gray-900">
+                        Dashboard
+                    </h1>
+                    <p className="text-gray-400 mt-1 text-xs md:text-base">ภาพรวมสถิติการจองห้องประชุม</p>
                 </div>
                 <div className="flex gap-3 w-full md:w-auto">
                     <ExportButton bookings={bookings} />

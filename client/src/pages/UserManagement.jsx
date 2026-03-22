@@ -103,10 +103,10 @@ const UserManagement = () => {
             {/* Header */}
             <div className="flex flex-col md:flex-row justify-between items-start md:items-center mb-8 gap-4">
                 <div>
-                    <h1 className="text-2xl font-bold text-gray-800 flex items-center gap-2">
-                        <FaUsers className="text-primary" /> จัดการสมาชิก
+                    <h1 className="text-xl md:text-2xl font-extrabold text-gray-900">
+                        จัดการสมาชิก
                     </h1>
-                    <p className="text-gray-500 text-sm mt-1">ดูและจัดการสมาชิกในระบบ</p>
+                    <p className="text-gray-400 mt-1 text-xs md:text-base">ดูและจัดการสมาชิกในระบบ</p>
                 </div>
 
                 <div className="relative w-full md:w-64">
@@ -363,23 +363,28 @@ const UserManagement = () => {
 
             {/* Confirm Delete Modal */}
             {showConfirm && (
-                <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50">
-                    <div className="bg-white rounded-2xl p-6 max-w-sm w-full mx-4 shadow-xl">
-                        <h3 className="text-lg font-bold text-gray-800 mb-2">ยืนยันการลบ</h3>
-                        <p className="text-gray-500 text-sm mb-6">คุณต้องการลบผู้ใช้นี้หรือไม่? การดำเนินการนี้ไม่สามารถย้อนกลับได้</p>
-                        <div className="flex gap-3">
+                <div className="fixed inset-0 bg-black/40 backdrop-blur-sm flex items-center justify-center z-50 p-4" onClick={() => setShowConfirm(null)}>
+                    <div className="bg-white rounded-xl max-w-sm w-full mx-4 shadow-xl overflow-hidden" onClick={e => e.stopPropagation()}>
+                        {/* Red accent bar */}
+                        <div className="h-1 bg-red-500 w-full" />
+                        <div className="p-6">
+                            <h3 className="text-lg font-bold text-gray-900 mb-1">ยืนยันการลบ</h3>
+                            <p className="text-gray-500 text-sm">คุณต้องการลบผู้ใช้นี้หรือไม่? การดำเนินการนี้ไม่สามารถย้อนกลับได้</p>
+                        </div>
+                        <div className="border-t border-gray-100" />
+                        <div className="flex justify-end gap-3 px-6 py-4">
                             <button
                                 onClick={() => setShowConfirm(null)}
-                                className="flex-1 px-4 py-2 bg-gray-100 text-gray-700 rounded-xl font-medium hover:bg-gray-200 transition-colors"
+                                className="px-5 py-2 text-gray-600 text-sm font-semibold rounded-lg hover:bg-gray-100 transition-colors"
                             >
                                 ยกเลิก
                             </button>
                             <button
                                 onClick={() => handleDelete(showConfirm)}
                                 disabled={actionLoading === showConfirm}
-                                className="flex-1 px-4 py-2 bg-red-500 text-white rounded-xl font-medium hover:bg-red-600 transition-colors disabled:opacity-50"
+                                className="px-5 py-2 bg-red-500 text-white text-sm font-semibold rounded-lg hover:bg-red-600 transition-colors disabled:opacity-50"
                             >
-                                {actionLoading === showConfirm ? 'กำลังลบ...' : 'ลบ'}
+                                {actionLoading === showConfirm ? 'กำลังลบ...' : 'ยืนยัน'}
                             </button>
                         </div>
                     </div>

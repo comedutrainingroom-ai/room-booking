@@ -162,9 +162,14 @@ const RoomManagement = () => {
     if (loading) return <div className="p-8 text-center">กำลังโหลดข้อมูล...</div>;
 
     return (
-        <div className="p-4 md:p-8">
-            <div className="flex flex-col md:flex-row justify-between items-center mb-6 gap-4">
-                <h1 className="text-2xl font-bold text-gray-800">จัดการห้องประชุม</h1>
+        <div className="w-full h-full px-0 sm:px-4 py-6 sm:py-8">
+            <div className="flex flex-col md:flex-row justify-between items-start md:items-center mb-6 gap-4">
+                <div>
+                    <h1 className="text-xl md:text-2xl font-extrabold text-gray-900">
+                        จัดการห้องประชุม
+                    </h1>
+                    <p className="text-gray-400 mt-1 text-xs md:text-base">เพิ่ม แก้ไข หรือลบห้องในระบบ</p>
+                </div>
                 <button
                     onClick={handleAddNew}
                     className="bg-primary text-white px-4 py-2 rounded-lg flex items-center gap-2 hover:bg-green-700 transition shadow-sm"

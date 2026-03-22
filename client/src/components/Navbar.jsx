@@ -236,18 +236,46 @@ const Navbar = ({ toggleSidebar }) => {
     const newReports = Math.max(0, notifications.reports - seenCounts.reports);
     const totalNew = newBookings + newReports;
     const displayBadge = totalNew + unreadCount;
+    const hasPendingNotifications = notifications.bookings > 0 || notifications.reports > 0;
 
     // Notification item config
     const notiConfig = {
-        'booking:created': { icon: <FaCalendarPlus />, gradient: 'from-emerald-500 to-teal-600', label: 'การจองใหม่' },
-        'booking:updated': { icon: <FaCheckCircle />, gradient: 'from-blue-500 to-indigo-600', label: 'อัพเดทการจอง' },
-        'booking:deleted': { icon: <FaTimesCircle />, gradient: 'from-gray-400 to-gray-500', label: 'ยกเลิกการจอง' },
-        'report:created': { icon: <FaExclamationTriangle />, gradient: 'from-red-500 to-rose-600', label: 'แจ้งซ่อม' },
-        'report:updated': { icon: <FaCheckCircle />, gradient: 'from-amber-500 to-orange-600', label: 'อัพเดทแจ้งซ่อม' }
+        'booking:created': { icon: <FaCalendarPlus />, iconClass: 'border border-slate-200 bg-slate-50 text-slate-600', label: 'คำขอจอง' },
+        'booking:updated': { icon: <FaCheckCircle />, iconClass: 'border border-slate-200 bg-slate-50 text-slate-600', label: 'อัปเดตการจอง' },
+        'booking:deleted': { icon: <FaTimesCircle />, iconClass: 'border border-slate-200 bg-slate-50 text-slate-600', label: 'ยกเลิกการจอง' },
+        'report:created': { icon: <FaExclamationTriangle />, iconClass: 'border border-slate-200 bg-slate-50 text-slate-600', label: 'แจ้งซ่อม' },
+        'report:updated': { icon: <FaCheckCircle />, iconClass: 'border border-slate-200 bg-slate-50 text-slate-600', label: 'อัปเดตแจ้งซ่อม' }
     };
 
+    const pendingSummaryCards = [
+        {
+            key: 'bookings',
+            title: 'คำขอจองห้อง',
+            description: 'รายการรอการอนุมัติจากผู้ใช้งาน',
+            total: notifications.bookings,
+            newCount: newBookings,
+            link: '/approve',
+            icon: <FaCalendarPlus className="text-sm" />,
+            iconClass: 'border border-slate-200 bg-slate-50 text-slate-600',
+            badgeClass: 'border-slate-200 bg-slate-100 text-slate-700',
+            statusClass: 'text-slate-700'
+        },
+        {
+            key: 'reports',
+            title: 'แจ้งซ่อม',
+            description: 'รายการปัญหาที่รอการตรวจสอบและดำเนินการ',
+            total: notifications.reports,
+            newCount: newReports,
+            link: '/admin/reports',
+            icon: <FaExclamationTriangle className="text-sm" />,
+            iconClass: 'border border-slate-200 bg-slate-50 text-slate-600',
+            badgeClass: 'border-slate-200 bg-slate-100 text-slate-700',
+            statusClass: 'text-slate-700'
+        }
+    ].filter(({ total }) => total > 0);
+
     return (
-        <nav className="bg-primary/95 backdrop-blur-md shadow-sm z-50 sticky top-0 h-14 transition-all duration-300">
+        <nav className="bg-primary/95 backdrop-blur-md shadow-sm z-50 sticky top-0 h-14 transition-shadow duration-300">
             <div className="w-full h-full px-4 md:px-6">
                 <div className="flex justify-between items-center h-full">
                     <div className="flex items-center gap-3 md:gap-4">
@@ -276,93 +304,89 @@ const Navbar = ({ toggleSidebar }) => {
                                 >
                                     <FaBell className={`text-lg transition-transform duration-300 ${bellShake ? 'animate-[bellRing_0.8s_ease-in-out]' : ''} ${isNotiDropdownOpen ? 'scale-110' : ''}`} />
                                     {displayBadge > 0 && (
-                                        <span className="absolute -top-0.5 -right-0.5 w-5 h-5 bg-gradient-to-r from-red-500 to-rose-600 text-white text-[10px] font-bold flex items-center justify-center rounded-full border-2 border-primary shadow-lg animate-pulse">
+                                        <span className="absolute -top-0.5 -right-0.5 flex h-5 w-5 items-center justify-center rounded-full border-2 border-primary bg-red-500 text-[10px] font-bold text-white shadow-lg">
                                             {displayBadge > 9 ? '9+' : displayBadge}
                                         </span>
                                     )}
                                 </button>
 
-                                {/* Notification Dropdown — Modern Design */}
+                                {/* Notification Dropdown */}
                                 {isNotiDropdownOpen && (
-                                    <div className="absolute right-0 sm:right-0 mt-3 w-[calc(100vw-2rem)] sm:w-[360px] bg-white/95 backdrop-blur-xl rounded-2xl shadow-2xl border border-gray-100/80 overflow-hidden ring-1 ring-black/5 z-50 animate-scaleIn -right-2">
-                                        {/* Header */}
-                                        <div className="px-5 py-3.5 border-b border-gray-100 flex justify-between items-center bg-gradient-to-r from-gray-50 to-white">
-                                            <div className="flex items-center gap-2">
-                                                <h3 className="font-bold text-gray-800">การแจ้งเตือน</h3>
-                                                {displayBadge > 0 && (
-                                                    <span className="bg-gradient-to-r from-red-500 to-rose-600 text-white text-[10px] px-2 py-0.5 rounded-full font-bold shadow-sm">
-                                                        {displayBadge > 9 ? '9+' : displayBadge}
-                                                    </span>
-                                                )}
-                                            </div>
-                                            {unreadCount > 0 && (
-                                                <button
-                                                    onClick={markAllRead}
-                                                    className="text-[11px] text-primary hover:text-primary-dark font-semibold flex items-center gap-1 transition-colors"
-                                                >
-                                                    <FaCheck className="text-[8px]" /> อ่านทั้งหมด
-                                                </button>
-                                            )}
-                                        </div>
-
+                                    <div className="absolute -right-2 right-0 z-50 mt-4 w-[calc(100vw-2rem)] overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-xl ring-1 ring-slate-900/5 sm:w-[380px] animate-scaleIn">
                                         {/* Pending Summary Cards */}
-                                        {(notifications.bookings > 0 || notifications.reports > 0) && (
-                                            <div className="p-3 border-b border-gray-100 space-y-2">
-                                                {notifications.bookings > 0 && (
-                                                    <Link
-                                                        to="/approve"
-                                                        onClick={() => setIsNotiDropdownOpen(false)}
-                                                        className={`flex items-center gap-3 p-3 rounded-xl transition-all duration-200 group
-                                                            ${newBookings > 0 ? 'bg-gradient-to-r from-emerald-50 to-teal-50 hover:from-emerald-100 hover:to-teal-100 shadow-sm' : 'hover:bg-gray-50'}`}
-                                                    >
-                                                        <div className={`w-10 h-10 rounded-xl flex items-center justify-center flex-shrink-0 group-hover:scale-110 transition-transform shadow-sm
-                                                            ${newBookings > 0 ? 'bg-gradient-to-br from-emerald-500 to-teal-600 text-white' : 'bg-gray-100 text-gray-400'}`}>
-                                                            <FaCalendarPlus className="text-sm" />
-                                                        </div>
-                                                        <div className="flex-grow min-w-0">
-                                                            <p className={`text-sm font-bold ${newBookings > 0 ? 'text-gray-900' : 'text-gray-600'}`}>คำขอจองห้อง</p>
-                                                            <p className={`text-xs ${newBookings > 0 ? 'text-emerald-600 font-medium' : 'text-gray-400'}`}>
-                                                                {newBookings > 0 ? `🔔 ${newBookings} รายการใหม่` : 'ไม่มีรายการใหม่'}
-                                                                <span className="text-gray-400 ml-1">(รวม {notifications.bookings} รอดำเนินการ)</span>
-                                                            </p>
-                                                        </div>
-                                                        {newBookings > 0 && <span className="w-2.5 h-2.5 bg-emerald-500 rounded-full animate-pulse flex-shrink-0" />}
-                                                    </Link>
-                                                )}
+                                        {hasPendingNotifications && (
+                                            <div className="border-b border-slate-200 px-3.5 py-3.5">
+                                                <div className="grid gap-2.5">
+                                                    {pendingSummaryCards.map((card) => {
+                                                        const hasNewItems = card.newCount > 0;
 
-                                                {notifications.reports > 0 && (
-                                                    <Link
-                                                        to="/admin/reports"
-                                                        onClick={() => setIsNotiDropdownOpen(false)}
-                                                        className={`flex items-center gap-3 p-3 rounded-xl transition-all duration-200 group
-                                                            ${newReports > 0 ? 'bg-gradient-to-r from-red-50 to-rose-50 hover:from-red-100 hover:to-rose-100 shadow-sm' : 'hover:bg-gray-50'}`}
-                                                    >
-                                                        <div className={`w-10 h-10 rounded-xl flex items-center justify-center flex-shrink-0 group-hover:scale-110 transition-transform shadow-sm
-                                                            ${newReports > 0 ? 'bg-gradient-to-br from-red-500 to-rose-600 text-white' : 'bg-gray-100 text-gray-400'}`}>
-                                                            <FaExclamationTriangle className="text-sm" />
-                                                        </div>
-                                                        <div className="flex-grow min-w-0">
-                                                            <p className={`text-sm font-bold ${newReports > 0 ? 'text-gray-900' : 'text-gray-600'}`}>แจ้งซ่อม</p>
-                                                            <p className={`text-xs ${newReports > 0 ? 'text-red-600 font-medium' : 'text-gray-400'}`}>
-                                                                {newReports > 0 ? `🔔 ${newReports} รายการใหม่` : 'ไม่มีรายการใหม่'}
-                                                                <span className="text-gray-400 ml-1">(รวม {notifications.reports} รอดำเนินการ)</span>
-                                                            </p>
-                                                        </div>
-                                                        {newReports > 0 && <span className="w-2.5 h-2.5 bg-red-500 rounded-full animate-pulse flex-shrink-0" />}
-                                                    </Link>
-                                                )}
+                                                        return (
+                                                            <Link
+                                                                key={card.key}
+                                                                to={card.link}
+                                                                onClick={() => setIsNotiDropdownOpen(false)}
+                                                                className="group rounded-xl border border-slate-200 px-3.5 py-3 transition-colors duration-200 hover:bg-slate-50"
+                                                            >
+                                                                <div className="flex items-start gap-3">
+                                                                    <div className={`mt-0.5 flex h-10 w-10 items-center justify-center rounded-xl ${card.iconClass}`}>
+                                                                        {card.icon}
+                                                                    </div>
+                                                                    <div className="min-w-0 flex-1">
+                                                                        <div className="flex items-start justify-between gap-2">
+                                                                            <div className="min-w-0">
+                                                                                <div className="flex items-center gap-2">
+                                                                                    <p className="truncate text-sm font-semibold text-slate-900">{card.title}</p>
+                                                                                    {hasNewItems && (
+                                                                                        <span className={`inline-flex items-center rounded-full border px-2 py-0.5 text-[10px] font-medium ${card.badgeClass}`}>
+                                                                                            {card.newCount} ใหม่
+                                                                                        </span>
+                                                                                    )}
+                                                                                </div>
+                                                                                <p className="mt-1 text-[11px] text-slate-500">
+                                                                                    {card.description}
+                                                                                </p>
+                                                                            </div>
+                                                                        </div>
+                                                                        <div className="mt-2 flex items-center gap-2 text-[11px]">
+                                                                            <span className={`font-medium ${hasNewItems ? card.statusClass : 'text-slate-500'}`}>
+                                                                                {hasNewItems ? `${card.newCount} รายการใหม่` : 'ไม่มีรายการใหม่'}
+                                                                            </span>
+                                                                            <span className="text-slate-300">•</span>
+                                                                            <span className="text-slate-500">{card.total} รอดำเนินการ</span>
+                                                                        </div>
+                                                                    </div>
+                                                                </div>
+                                                            </Link>
+                                                        );
+                                                    })}
+                                                </div>
                                             </div>
                                         )}
 
                                         {/* Recent Activity Feed */}
-                                        <div className="max-h-[320px] overflow-y-auto">
+                                        <div className="max-h-[340px] overflow-y-auto bg-white">
                                             {notiItems.length > 0 ? (
-                                                <div className="p-2">
-                                                    <p className="text-[10px] font-bold text-gray-400 uppercase tracking-wider px-3 py-2">กิจกรรมล่าสุด</p>
-                                                    {notiItems.map((item, idx) => {
-                                                        const config = notiConfig[item.type] || notiConfig['booking:created'];
-                                                        return (
-                                                            <Link
+                                                <div className="px-3.5 py-3">
+                                                    <div className="mb-2 flex items-center justify-between px-1">
+                                                        <div className="flex items-center gap-2">
+                                                            <p className="text-[10px] font-medium uppercase tracking-[0.18em] text-slate-400">กิจกรรมล่าสุด</p>
+                                                            <span className="text-[10px] font-medium text-slate-400">{notiItems.length} รายการ</span>
+                                                        </div>
+                                                        {unreadCount > 0 && (
+                                                            <button
+                                                                onClick={markAllRead}
+                                                                className="inline-flex items-center gap-1.5 text-[11px] font-medium text-slate-500 transition hover:text-slate-800"
+                                                            >
+                                                                <FaCheck className="text-[9px]" /> อ่านทั้งหมด
+                                                            </button>
+                                                        )}
+                                                    </div>
+                                                    <div className="space-y-2">
+                                                        {notiItems.map((item, idx) => {
+                                                            const config = notiConfig[item.type] || notiConfig['booking:created'];
+
+                                                            return (
+                                                                <Link
                                                                 key={item.id}
                                                                 to={item.link}
                                                                 onClick={() => {
@@ -370,34 +394,50 @@ const Navbar = ({ toggleSidebar }) => {
                                                                     setNotiItems(prev => prev.map(n => n.id === item.id ? { ...n, read: true } : n));
                                                                     setUnreadCount(prev => item.read ? prev : Math.max(0, prev - 1));
                                                                 }}
-                                                                className={`flex items-start gap-3 p-3 rounded-xl transition-all duration-200 group mb-1
-                                                                    ${!item.read ? 'bg-blue-50/50 hover:bg-blue-50' : 'hover:bg-gray-50'}`}
-                                                                style={{ animationDelay: `${idx * 50}ms` }}
-                                                            >
-                                                                <div className={`w-8 h-8 rounded-lg bg-gradient-to-br ${config.gradient} flex items-center justify-center text-white text-xs flex-shrink-0 shadow-sm group-hover:scale-110 transition-transform mt-0.5`}>
-                                                                    {config.icon}
-                                                                </div>
-                                                                <div className="flex-1 min-w-0">
-                                                                    <div className="flex items-center gap-2">
-                                                                        <span className="text-[10px] font-bold text-gray-400 uppercase tracking-wider">{config.label}</span>
-                                                                        {!item.read && <span className="w-1.5 h-1.5 bg-blue-500 rounded-full" />}
+                                                                    className={`group flex items-start gap-3 rounded-xl border px-3.5 py-3 transition-colors duration-200 hover:bg-slate-50 ${
+                                                                        !item.read
+                                                                            ? 'border-slate-300 bg-slate-50/70'
+                                                                            : 'border-slate-200 bg-white'
+                                                                    }`}
+                                                                    style={{ animationDelay: `${idx * 50}ms` }}
+                                                                >
+                                                                    <div className={`mt-0.5 flex h-9 w-9 items-center justify-center rounded-xl ${config.iconClass}`}>
+                                                                        {config.icon}
                                                                     </div>
-                                                                    <p className="text-sm font-semibold text-gray-800 truncate">{item.title}</p>
-                                                                    <p className="text-[11px] text-gray-400 mt-0.5">{getRelativeTime(item.time)}</p>
-                                                                </div>
-                                                            </Link>
-                                                        );
-                                                    })}
-                                                </div>
-                                            ) : notifications.bookings === 0 && notifications.reports === 0 ? (
-                                                <div className="p-10 text-center flex flex-col items-center">
-                                                    <div className="w-16 h-16 rounded-2xl bg-gradient-to-br from-gray-100 to-gray-50 flex items-center justify-center mb-3">
-                                                        <FaBell className="text-gray-300 text-xl" />
+                                                                    <div className="min-w-0 flex-1">
+                                                                        <div className="flex items-center gap-2">
+                                                                            <span className="text-[10px] font-medium uppercase tracking-[0.16em] text-slate-400">{config.label}</span>
+                                                                            {!item.read && <span className="h-1.5 w-1.5 rounded-full bg-slate-400" />}
+                                                                        </div>
+                                                                        <p className="mt-1 truncate text-sm font-semibold text-slate-900">{item.title}</p>
+                                                                        {item.message && (
+                                                                            <p className="mt-1 text-xs text-slate-500">{item.message}</p>
+                                                                        )}
+                                                                        <p className="mt-2 text-[11px] text-slate-400">{getRelativeTime(item.time)}</p>
+                                                                    </div>
+                                                                </Link>
+                                                            );
+                                                        })}
                                                     </div>
-                                                    <p className="text-sm font-semibold text-gray-400">ไม่มีการแจ้งเตือน</p>
-                                                    <p className="text-xs text-gray-300 mt-1">เมื่อมีคำขอจองหรือแจ้งซ่อมใหม่<br />จะแสดงที่นี่</p>
                                                 </div>
-                                            ) : null}
+                                            ) : !hasPendingNotifications ? (
+                                                <div className="flex flex-col items-center px-6 py-10 text-center">
+                                                    <div className="mb-3 flex h-12 w-12 items-center justify-center rounded-xl border border-slate-200 bg-slate-50">
+                                                        <FaBell className="text-xl text-slate-300" />
+                                                    </div>
+                                                    <p className="text-sm font-semibold text-slate-700">ไม่มีการแจ้งเตือนที่ต้องดำเนินการ</p>
+                                                    <p className="mt-1 text-xs text-slate-400">
+                                                        เมื่อมีคำขอจองห้องหรือแจ้งซ่อมใหม่
+                                                        <br />
+                                                        ระบบจะแสดงรายการที่นี่
+                                                    </p>
+                                                </div>
+                                            ) : (
+                                                <div className="px-6 py-8 text-center">
+                                                    <p className="text-sm font-semibold text-slate-600">ไม่มีประวัติกิจกรรมล่าสุด</p>
+                                                    <p className="mt-1 text-xs text-slate-400">รายการใหม่ที่เข้ามาจะปรากฏในส่วนนี้</p>
+                                                </div>
+                                            )}
                                         </div>
                                     </div>
                                 )}

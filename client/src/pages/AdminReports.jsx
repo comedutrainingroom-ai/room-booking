@@ -1,6 +1,6 @@
 import { useState, useEffect, useCallback, useMemo } from 'react';
 import api from '../services/api';
-import { FaExclamationTriangle, FaTools, FaBuilding, FaClock, FaCheckCircle, FaSearch, FaWrench, FaCheck, FaHistory } from 'react-icons/fa';
+import { FaExclamationTriangle, FaTools, FaBuilding, FaClock, FaCheckCircle, FaSearch, FaWrench, FaCheck, FaHistory, FaBan } from 'react-icons/fa';
 import { useToast } from '../contexts/ToastContext';
 
 const AdminReports = () => {
@@ -60,7 +60,7 @@ const AdminReports = () => {
             case 'resolved':
                 return <span className="px-2 py-1 rounded-full text-xs font-bold bg-green-100 text-green-700 border border-green-200 flex items-center gap-1 w-fit"><FaCheckCircle /> ซ่อมเสร็จ</span>;
             case 'rejected':
-                return <span className="px-2 py-1 rounded-full text-xs font-bold bg-gray-100 text-gray-700 border border-gray-200 flex items-center gap-1 w-fit">❌ ปฏิเสธ</span>;
+                return <span className="px-2 py-1 rounded-full text-xs font-bold bg-gray-100 text-gray-700 border border-gray-200 flex items-center gap-1 w-fit"><FaBan /> ปฏิเสธ</span>;
             case 'pending':
             default:
                 return <span className="px-2 py-1 rounded-full text-xs font-bold bg-blue-100 text-blue-700 border border-blue-200 flex items-center gap-1 w-fit"><FaClock /> รอดำเนินการ</span>;
@@ -110,10 +110,10 @@ const AdminReports = () => {
         <div className="w-full h-full px-0 sm:px-4 py-6 sm:py-8">
             <div className="flex flex-col md:flex-row justify-between items-start md:items-center mb-6 gap-4">
                 <div>
-                    <h1 className="text-2xl font-bold text-gray-800 flex items-center gap-2">
-                        <FaTools className="text-red-500" /> จัดการแจ้งซ่อม (Admin)
+                    <h1 className="text-xl md:text-2xl font-extrabold text-gray-900">
+                        จัดการแจ้งซ่อม
                     </h1>
-                    <p className="text-gray-500 text-sm mt-1">รายการแจ้งปัญหาทั้งหมดจากผู้ใช้งาน</p>
+                    <p className="text-gray-400 mt-1 text-xs md:text-base">รายการแจ้งปัญหาทั้งหมดจากผู้ใช้งาน</p>
                 </div>
 
                 <div className="relative w-full md:w-64">
@@ -212,7 +212,7 @@ const AdminReports = () => {
                                                     <div>
                                                         {report.room ? report.room.name : <span className="text-gray-400 italic">พื้นที่ส่วนกลาง</span>}
                                                         {report.room && report.room.isActive === false && (
-                                                            <span className="ml-2 text-xs text-red-500 font-bold">🔒 ปิดซ่อม</span>
+                                                            <span className="ml-2 text-xs text-red-500 font-bold">|ปิดซ่อม</span>
                                                         )}
                                                     </div>
                                                 </div>
@@ -327,7 +327,7 @@ const AdminReports = () => {
                                         <FaBuilding className="text-gray-400 text-[10px]" />
                                         {report.room ? report.room.name : 'พื้นที่ส่วนกลาง'}
                                         {report.room && report.room.isActive === false && (
-                                            <span className="text-red-500 font-bold">🔒</span>
+                                            <span className="text-red-500 font-bold text-[10px]">|ปิด</span>
                                         )}
                                     </span>
                                     <span className="text-gray-300">·</span>

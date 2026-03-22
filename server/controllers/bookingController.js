@@ -28,7 +28,10 @@ const buildBookingResponseForViewer = (booking, viewer) => {
         isImported: plainBooking.isImported,
         visibility: 'limited',
         topic: plainBooking.isImported ? 'Scheduled use' : 'Reserved',
-        user: {}
+        user: {
+            name: plainBooking.user?.name || '',
+            department: plainBooking.user?.department || ''
+        }
     };
 };
 

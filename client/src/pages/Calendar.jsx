@@ -4,7 +4,7 @@ import { useAuth } from '../contexts/AuthContext';
 import { useSettings } from '../contexts/SettingsContext';
 import { useToast } from '../contexts/ToastContext';
 import api from '../services/api';
-import { FaTimes, FaClock, FaUser, FaBuilding, FaTag, FaChevronLeft, FaChevronRight, FaCalendarDay, FaListUl, FaCalendarAlt, FaDownload } from 'react-icons/fa';
+import { FaTimes, FaClock, FaUser, FaBuilding, FaTag, FaChevronLeft, FaChevronRight, FaCalendarDay, FaListUl, FaCalendarAlt, FaDownload, FaPhone, FaStickyNote, FaGraduationCap } from 'react-icons/fa';
 import * as XLSX from 'xlsx';
 
 // Helper to get YYYY-MM-DD in local time
@@ -345,6 +345,68 @@ const Calendar = () => {
     const canCancel = selectedEvent && selectedEvent.status !== 'cancelled' &&
         (isAdmin || (currentUser?.email === selectedEvent.user?.email));
     const canDelete = isAdmin;
+    const isLimitedSelectedEvent = selectedEvent?.visibility === 'limited';
+    const selectedEventStatusMeta = selectedEvent
+        ? selectedEvent.status === 'pending'
+            ? {
+                label: 'รอการอนุมัติ',
+                dot: 'bg-amber-500',
+                badge: 'border-amber-200 bg-amber-50 text-amber-700',
+                statusNote: 'รายการนี้กำลังรอการตรวจสอบจากผู้ดูแลระบบ'
+            }
+            : {
+                label: 'ยืนยันแล้ว',
+                dot: 'bg-emerald-600',
+                badge: 'border-emerald-200 bg-emerald-50 text-emerald-700',
+                statusNote: 'รายการนี้ยืนยันเรียบร้อยแล้ว'
+            }
+        : null;
+    const selectedEventDateLabel = selectedEvent ? formatDate(selectedEvent.start) : '';
+    const selectedEventTimeLabel = selectedEvent ? `${formatTime(selectedEvent.start)} – ${formatTime(selectedEvent.end)}` : '';
+    const limitedSelectedEventDetails = selectedEvent ? [
+        {
+            label: 'วันที่จอง',
+            value: selectedEventDateLabel,
+            icon: FaCalendarAlt
+        },
+        {
+            label: 'เวลาที่จอง',
+            value: selectedEventTimeLabel,
+            icon: FaClock
+        },
+        {
+            label: 'ชื่อผู้จอง',
+            value: selectedEvent.user?.name || 'ไม่ระบุ',
+            icon: FaUser
+        },
+        {
+            label: 'สาขา',
+            value: selectedEvent.department || 'ไม่ระบุ',
+            icon: FaGraduationCap
+        }
+    ] : [];
+    const selectedEventDetails = selectedEvent ? [
+        {
+            label: 'ห้องที่จอง',
+            value: selectedEvent.room?.name || 'ไม่ระบุ',
+            icon: FaBuilding
+        },
+        {
+            label: 'ผู้จอง',
+            value: selectedEvent.user?.name || 'ไม่ระบุ',
+            icon: FaUser
+        },
+        {
+            label: 'สาขา',
+            value: selectedEvent.department || 'ไม่ระบุ',
+            icon: FaGraduationCap
+        },
+        ...(selectedEvent.phone ? [{
+            label: 'ติดต่อ',
+            value: selectedEvent.phone,
+            icon: FaPhone
+        }] : [])
+    ] : [];
 
     // ── Calendar Navigation ──
     const navigateMonth = (direction) => {
@@ -875,113 +937,149 @@ const Calendar = () => {
 
             {/* ── Event Detail Modal ── */}
             {selectedEvent && (
-                <div className="fixed inset-0 z-[120] flex items-center justify-center p-4 animate-in fade-in duration-200">
+                <div className="fixed inset-0 z-[120] flex items-center justify-center p-3 sm:p-4">
+                    {/* Backdrop */}
                     <div
-                        className="absolute inset-0 bg-black/50 backdrop-blur-sm"
+                        className="absolute inset-0 bg-stone-950/35 backdrop-blur-sm animate-backdrop-fade"
                         onClick={() => setSelectedEvent(null)}
                     />
-                    <div className="relative bg-white rounded-2xl shadow-2xl w-full max-w-md overflow-hidden">
-                        {/* Header */}
-                        <div className={`p-5 ${selectedEvent.status === 'pending' ? 'bg-yellow-500' : 'bg-primary'} text-white`}>
-                            <button
-                                onClick={() => setSelectedEvent(null)}
-                                className="absolute top-3 right-3 p-2 bg-white/20 hover:bg-white/30 rounded-full transition-all"
-                            >
-                                <FaTimes />
-                            </button>
-                            <div className="flex items-center gap-2 mb-2">
-                                <span className={`px-2 py-0.5 text-xs font-bold rounded ${selectedEvent.status === 'pending' ? 'bg-yellow-600' : 'bg-green-600'}`}>
-                                    {selectedEvent.status === 'pending' ? 'รอการอนุมัติ' : 'อนุมัติแล้ว'}
-                                </span>
-                            </div>
-                            <h2 className="text-xl font-bold">{selectedEvent.topic}</h2>
-                            <p className="text-white/80 text-sm mt-1">{formatDate(selectedEvent.start)}</p>
-                        </div>
 
-                        {/* Content */}
-                        <div className="p-5 space-y-4">
-                            {/* Time */}
-                            <div className="flex items-start gap-3">
-                                <div className="w-10 h-10 bg-primary/10 rounded-lg flex items-center justify-center flex-shrink-0">
-                                    <FaClock className="text-primary" />
-                                </div>
-                                <div>
-                                    <p className="text-sm text-gray-500">เวลา</p>
-                                    <p className="font-semibold text-gray-800">
-                                        {formatTime(selectedEvent.start)} - {formatTime(selectedEvent.end)}
-                                    </p>
-                                </div>
-                            </div>
+                    {/* Modal Card */}
+                    <div
+                        className="relative flex max-h-[90vh] w-full max-w-[520px] flex-col overflow-hidden rounded-[28px] border border-stone-200 bg-white text-stone-900 animate-modal-slideUp"
+                        style={{ boxShadow: '0 24px 70px -32px rgba(15, 23, 42, 0.35)' }}
+                    >
+                        {/* ── Header ── */}
+                        <div className="flex-shrink-0 border-b border-stone-200 px-5 pb-5 pt-5 sm:px-6 sm:pt-6">
+                            <div className="flex items-start justify-between gap-4">
+                                <div className="min-w-0">
+                                    <h2 className="max-w-[24rem] break-words text-[1.8rem] font-bold leading-tight tracking-[-0.04em] text-stone-900 sm:text-[2rem]">
+                                        {isLimitedSelectedEvent ? 'ข้อมูลการจอง' : selectedEvent.topic}
+                                    </h2>
 
-                            {/* Room */}
-                            <div className="flex items-start gap-3">
-                                <div className="w-10 h-10 bg-blue-50 rounded-lg flex items-center justify-center flex-shrink-0">
-                                    <FaBuilding className="text-blue-500" />
-                                </div>
-                                <div>
-                                    <p className="text-sm text-gray-500">ห้องที่จอง</p>
-                                    <p className="font-semibold text-gray-800">{selectedEvent.room?.name || 'ไม่ระบุ'}</p>
-                                </div>
-                            </div>
+                                    {isLimitedSelectedEvent ? (
+                                        <p className="mt-3 text-sm leading-6 text-stone-500">
+                                            แสดงข้อมูลพื้นฐานของผู้จองสำหรับผู้ใช้งานทั่วไป
+                                        </p>
+                                    ) : (
+                                        <>
+                                            <div className="mt-4">
+                                                <span className={`inline-flex items-center gap-2 rounded-full border px-3 py-1 text-xs font-medium ${selectedEventStatusMeta?.badge}`}>
+                                                    <span className={`h-2 w-2 rounded-full ${selectedEventStatusMeta?.dot}`} />
+                                                    {selectedEventStatusMeta?.label}
+                                                </span>
+                                            </div>
 
-                            {selectedEvent.visibility === 'limited' ? (
-                                <div className="rounded-xl border border-gray-200 bg-gray-50 p-4 text-sm text-gray-600">
-                                    Booking details are visible only to the booking owner and admins.
-                                </div>
-                            ) : (
-                                <>
-                            {/* User */}
-                            <div className="flex items-start gap-3">
-                                <div className="w-10 h-10 bg-purple-50 rounded-lg flex items-center justify-center flex-shrink-0">
-                                    <FaUser className="text-purple-500" />
-                                </div>
-                                <div>
-                                    <p className="text-sm text-gray-500">ผู้จอง</p>
-                                    <p className="font-semibold text-gray-800">{selectedEvent.user?.name || 'ไม่ระบุ'}</p>
-                                    {selectedEvent.department && (
-                                        <p className="text-sm text-gray-500">{selectedEvent.department}</p>
+                                            <div className="mt-4 flex flex-col gap-2 text-sm text-stone-500">
+                                                <div className="flex items-center gap-2">
+                                                    <FaCalendarAlt className="text-xs text-stone-400" />
+                                                    <span>{selectedEventDateLabel}</span>
+                                                </div>
+                                                <div className="flex items-center gap-2">
+                                                    <FaClock className="text-xs text-stone-400" />
+                                                    <span className="tabular-nums">{selectedEventTimeLabel}</span>
+                                                </div>
+                                            </div>
+
+                                            <p className="mt-4 text-xs text-stone-400">
+                                                {selectedEventStatusMeta?.statusNote}
+                                            </p>
+                                        </>
                                     )}
                                 </div>
-                            </div>
 
-                            {/* Topic */}
-                            <div className="flex items-start gap-3">
-                                <div className="w-10 h-10 bg-orange-50 rounded-lg flex items-center justify-center flex-shrink-0">
-                                    <FaTag className="text-orange-500" />
-                                </div>
-                                <div>
-                                    <p className="text-sm text-gray-500">หัวข้อการอบรม</p>
-                                    <p className="font-semibold text-gray-800">{selectedEvent.topic}</p>
-                                </div>
+                                <button
+                                    onClick={() => setSelectedEvent(null)}
+                                    className="grid h-10 w-10 flex-shrink-0 place-items-center rounded-2xl border border-stone-200 bg-white text-stone-500 transition-all duration-200 hover:border-stone-300 hover:text-stone-800"
+                                >
+                                    <FaTimes className="text-sm" />
+                                </button>
                             </div>
-                                </>
+                        </div>
+
+                        {/* ── Content ── */}
+                        <div className="overflow-y-auto px-5 py-4 sm:px-6 sm:py-5 custom-scrollbar">
+                            {isLimitedSelectedEvent ? (
+                                <div className="overflow-hidden rounded-2xl border border-stone-200">
+                                    <div className="grid divide-y divide-stone-200">
+                                        {limitedSelectedEventDetails.map(({ label, value, icon: Icon }) => (
+                                            <div
+                                                key={label}
+                                                className="grid gap-2 px-4 py-3.5 sm:grid-cols-[auto_minmax(0,1fr)] sm:items-center sm:gap-4 sm:px-5"
+                                            >
+                                                <div className="flex items-center gap-2 text-xs font-medium text-stone-500">
+                                                    <Icon className="text-stone-400" />
+                                                    <span>{label}</span>
+                                                </div>
+                                                <div className="min-w-0 break-words text-sm font-medium text-stone-900 sm:text-right">
+                                                    {value}
+                                                </div>
+                                            </div>
+                                        ))}
+                                    </div>
+                                </div>
+                            ) : (
+                                <div className="space-y-1">
+                                    <div className="overflow-hidden rounded-2xl border border-stone-200">
+                                        <div className="grid divide-y divide-stone-200">
+                                            {selectedEventDetails.map(({ label, value, icon: Icon }) => (
+                                                <div
+                                                    key={label}
+                                                    className="grid gap-2 px-4 py-3.5 sm:grid-cols-[auto_minmax(0,1fr)] sm:items-center sm:gap-4 sm:px-5"
+                                                >
+                                                    <div className="flex items-center gap-2 text-xs font-medium text-stone-500">
+                                                        <Icon className="text-stone-400" />
+                                                        <span>{label}</span>
+                                                    </div>
+                                                    <div className="min-w-0 break-words text-sm font-medium text-stone-900 sm:text-right">
+                                                        {value}
+                                                    </div>
+                                                </div>
+                                            ))}
+                                        </div>
+                                    </div>
+
+                                    {selectedEvent.note && (
+                                        <div className="border-t border-stone-200 pt-4">
+                                            <div className="flex items-center gap-2 text-xs font-medium text-stone-500">
+                                                <FaStickyNote className="text-stone-400" />
+                                                <span>หมายเหตุ</span>
+                                            </div>
+                                            <p className="mt-2 whitespace-pre-line text-sm leading-7 text-stone-700">
+                                                {selectedEvent.note}
+                                            </p>
+                                        </div>
+                                    )}
+                                </div>
                             )}
                         </div>
 
-                        {/* Footer */}
-                        <div className="p-4 border-t border-gray-100 bg-gray-50 flex gap-2">
-                            {canCancel && (
+                        {/* ── Footer ── */}
+                        <div className="flex-shrink-0 border-t border-stone-200 px-5 py-4 sm:px-6">
+                            <div className="flex flex-col gap-2 sm:flex-row sm:justify-end">
+                                {canCancel && (
+                                    <button
+                                        onClick={handleCancelBooking}
+                                        className="inline-flex w-full items-center justify-center rounded-xl border border-amber-200 bg-amber-50 px-5 py-2.5 text-sm font-semibold text-amber-700 shadow-sm transition-all duration-200 hover:border-amber-300 hover:bg-amber-100 active:scale-[0.98] sm:w-auto"
+                                    >
+                                        ยกเลิกการจอง
+                                    </button>
+                                )}
+                                {canDelete && (
+                                    <button
+                                        onClick={handleDeleteBooking}
+                                        className="inline-flex w-full items-center justify-center rounded-xl border border-rose-200 bg-rose-50 px-5 py-2.5 text-sm font-semibold text-rose-700 shadow-sm transition-all duration-200 hover:border-rose-300 hover:bg-rose-100 active:scale-[0.98] sm:w-auto"
+                                    >
+                                        ลบรายการ
+                                    </button>
+                                )}
                                 <button
-                                    onClick={handleCancelBooking}
-                                    className="flex-1 py-2.5 bg-orange-100 hover:bg-orange-200 text-orange-700 font-semibold rounded-xl transition-all"
+                                    onClick={() => setSelectedEvent(null)}
+                                    className="inline-flex w-full items-center justify-center rounded-xl border border-stone-200 bg-white px-5 py-2.5 text-sm font-semibold text-stone-700 shadow-sm transition-all duration-200 hover:border-stone-300 hover:bg-stone-50 active:scale-[0.98] sm:w-auto"
                                 >
-                                    ยกเลิกการจอง
+                                    ปิด
                                 </button>
-                            )}
-                            {canDelete && (
-                                <button
-                                    onClick={handleDeleteBooking}
-                                    className="flex-1 py-2.5 bg-red-100 hover:bg-red-200 text-red-700 font-semibold rounded-xl transition-all"
-                                >
-                                    ลบรายการ
-                                </button>
-                            )}
-                            <button
-                                onClick={() => setSelectedEvent(null)}
-                                className="flex-1 py-2.5 bg-gray-200 hover:bg-gray-300 text-gray-700 font-semibold rounded-xl transition-all"
-                            >
-                                ปิด
-                            </button>
+                            </div>
                         </div>
                     </div>
                 </div>

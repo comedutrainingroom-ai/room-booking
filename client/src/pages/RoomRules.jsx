@@ -10,104 +10,85 @@ const RoomRules = () => {
 
     const rules = [
         {
-            icon: <FaClock className="text-blue-500" />,
+            icon: <FaClock />,
             title: 'เวลาทำการ',
-            description: `เปิดให้จอง ${settings.openTime || '08:00'} - ${settings.closeTime || '20:00'} น.`,
-            bgColor: 'bg-blue-50',
-            borderColor: 'border-blue-200'
+            value: `${settings.openTime || '08:00'} - ${settings.closeTime || '20:00'} น.`,
         },
         {
-            icon: <FaHourglass className="text-purple-500" />,
-            title: 'ระยะเวลาการจองสูงสุด',
-            description: `สามารถจองได้สูงสุด ${settings.maxBookingHours || 4} ชั่วโมงต่อครั้ง`,
-            bgColor: 'bg-purple-50',
-            borderColor: 'border-purple-200'
+            icon: <FaHourglass />,
+            title: 'จองสูงสุดต่อครั้ง',
+            value: `${settings.maxBookingHours || 4} ชั่วโมง`,
         },
         {
-            icon: <FaCalendarAlt className="text-green-500" />,
-            title: 'การจองล่วงหน้า',
-            description: `สามารถจองล่วงหน้าได้ไม่เกิน ${settings.maxBookingDays || 30} วัน`,
-            bgColor: 'bg-green-50',
-            borderColor: 'border-green-200'
+            icon: <FaCalendarAlt />,
+            title: 'จองล่วงหน้าได้',
+            value: `ไม่เกิน ${settings.maxBookingDays || 30} วัน`,
         },
         {
-            icon: <FaCalendarWeek className="text-orange-500" />,
+            icon: <FaCalendarWeek />,
             title: 'วันเสาร์-อาทิตย์',
-            description: settings.weekendBooking ? '✅ อนุญาตให้จองในวันเสาร์-อาทิตย์' : '❌ ไม่อนุญาตให้จองในวันเสาร์-อาทิตย์',
-            bgColor: settings.weekendBooking ? 'bg-green-50' : 'bg-red-50',
-            borderColor: settings.weekendBooking ? 'border-green-200' : 'border-red-200'
+            value: settings.weekendBooking ? 'อนุญาต' : 'ไม่อนุญาต',
         }
     ];
 
+    const practices = [
+        'กรุณามาถึงก่อนเวลาจองอย่างน้อย 5 นาที',
+        'ดูแลความสะอาดเรียบร้อยของห้องหลังใช้งาน',
+        'ปิดไฟ แอร์ และอุปกรณ์ต่างๆ ก่อนออกจากห้อง',
+        'หากไม่สามารถมาใช้งานได้ กรุณาแจ้งยกเลิกล่วงหน้า',
+        'หากพบปัญหาอุปกรณ์ชำรุด กรุณาแจ้งผ่านระบบ "แจ้งปัญหา"',
+    ];
+
     return (
-        <div className="p-4 md:p-8 max-w-4xl mx-auto">
+        <div className="w-full h-full px-0 sm:px-4 py-6 sm:py-8 max-w-4xl mx-auto">
             {/* Header */}
-            <div className="text-center mb-6 md:mb-12">
-                <div className="inline-flex items-center justify-center w-16 h-16 md:w-20 md:h-20 rounded-full bg-primary/10 text-primary text-2xl md:text-3xl mb-4">
-                    <FaBook />
+            <div className="mb-8 md:mb-12">
+                <div className="flex items-center gap-3 mb-1">
+                    <FaBook className="text-emerald-600 text-lg md:text-xl" />
+                    <h1 className="text-xl md:text-2xl font-extrabold text-gray-900">กฎระเบียบการใช้ห้อง</h1>
                 </div>
-                <h1 className="text-2xl md:text-3xl font-bold text-gray-800 mb-2">กฎระเบียบการใช้ห้อง</h1>
-                <p className="text-gray-500 text-sm md:text-base">ข้อควรปฏิบัติในการจองและใช้งานห้องประชุม</p>
+                <p className="text-gray-400 text-sm md:text-base ml-8 md:ml-9">ข้อควรปฏิบัติในการจองและใช้งานห้องประชุม</p>
             </div>
 
-            {/* Rules Cards */}
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-3 md:gap-6 mb-6 md:mb-12">
-                {rules.map((rule, index) => (
-                    <div
-                        key={index}
-                        className={`${rule.bgColor} ${rule.borderColor} border rounded-xl md:rounded-2xl p-3 md:p-6 transition-all hover:shadow-md hover:border-primary/30`}
-                    >
-                        <div className="flex items-start gap-2.5 md:gap-4">
-                            <div className="p-2 md:p-3 rounded-lg md:rounded-xl bg-white shadow-sm text-lg md:text-2xl">
+            {/* Rules — clean table-like layout */}
+            <div className="bg-white rounded-xl border border-gray-100 shadow-sm overflow-hidden mb-8 md:mb-12">
+                <div className="px-4 md:px-6 py-3 md:py-4 border-b border-gray-100">
+                    <h2 className="text-sm font-bold text-gray-800 uppercase tracking-wide">เงื่อนไขการจอง</h2>
+                </div>
+                <div className="divide-y divide-gray-100">
+                    {rules.map((rule, index) => (
+                        <div key={index} className="flex items-center gap-3 md:gap-4 px-4 md:px-6 py-3 md:py-4 hover:bg-gray-50 transition-colors">
+                            <div className="text-gray-400 text-sm md:text-base">
                                 {rule.icon}
                             </div>
-                            <div>
-                                <h3 className="font-bold text-gray-800 text-sm md:text-lg mb-0.5 md:mb-1">{rule.title}</h3>
-                                <p className="text-gray-600 text-xs md:text-base">{rule.description}</p>
-                            </div>
+                            <div className="flex-1 text-sm md:text-base text-gray-600">{rule.title}</div>
+                            <div className="text-sm md:text-base font-semibold text-gray-900">{rule.value}</div>
                         </div>
-                    </div>
-                ))}
+                    ))}
+                </div>
             </div>
 
-            {/* Additional Info */}
-            <div className="bg-gradient-to-r from-primary/5 to-primary/10 rounded-xl md:rounded-2xl p-3 md:p-8 border border-primary/20">
-                <div className="flex items-start gap-2.5 md:gap-4">
-                    <div className="p-2 md:p-3 rounded-lg md:rounded-xl bg-primary/10 text-primary text-base md:text-xl">
-                        <FaInfoCircle />
-                    </div>
-                    <div>
-                        <h3 className="font-bold text-gray-800 text-sm md:text-lg mb-2 md:mb-3">ข้อปฏิบัติทั่วไป</h3>
-                        <ul className="space-y-1.5 md:space-y-2 text-gray-600 text-xs md:text-base">
-                            <li className="flex items-center gap-2">
-                                <span className="text-primary">•</span>
-                                กรุณามาถึงก่อนเวลาจองอย่างน้อย 5 นาที
+            {/* Practices */}
+            <div className="bg-white rounded-xl border border-gray-100 shadow-sm overflow-hidden">
+                <div className="px-4 md:px-6 py-3 md:py-4 border-b border-gray-100">
+                    <h2 className="text-sm font-bold text-gray-800 uppercase tracking-wide">ข้อปฏิบัติทั่วไป</h2>
+                </div>
+                <div className="px-4 md:px-6 py-4 md:py-5">
+                    <ol className="space-y-2.5 md:space-y-3">
+                        {practices.map((item, index) => (
+                            <li key={index} className="flex items-start gap-3 text-sm md:text-base text-gray-600">
+                                <span className="text-xs font-bold text-gray-300 mt-0.5 w-5 shrink-0 text-right">{index + 1}.</span>
+                                {item}
                             </li>
-                            <li className="flex items-center gap-2">
-                                <span className="text-primary">•</span>
-                                ดูแลความสะอาดเรียบร้อยของห้องหลังใช้งาน
-                            </li>
-                            <li className="flex items-center gap-2">
-                                <span className="text-primary">•</span>
-                                ปิดไฟ แอร์ และอุปกรณ์ต่างๆ ก่อนออกจากห้อง
-                            </li>
-                            <li className="flex items-center gap-2">
-                                <span className="text-primary">•</span>
-                                หากไม่สามารถมาใช้งานได้ กรุณาแจ้งยกเลิกล่วงหน้า
-                            </li>
-                            <li className="flex items-center gap-2">
-                                <span className="text-primary">•</span>
-                                หากพบปัญหาอุปกรณ์ชำรุด กรุณาแจ้งผ่านระบบ "แจ้งปัญหา"
-                            </li>
-                        </ul>
-                    </div>
+                        ))}
+                    </ol>
                 </div>
             </div>
 
             {/* Contact Info */}
             {settings.contactEmail && (
-                <div className="mt-4 md:mt-8 text-center text-gray-500 text-xs md:text-sm">
-                    <p>หากมีข้อสงสัย ติดต่อ: <a href={`mailto:${settings.contactEmail}`} className="text-primary hover:underline">{settings.contactEmail}</a></p>
+                <div className="mt-6 md:mt-10 text-center text-gray-400 text-xs md:text-sm">
+                    <p>หากมีข้อสงสัย ติดต่อ: <a href={`mailto:${settings.contactEmail}`} className="text-gray-600 hover:text-gray-900 underline underline-offset-2">{settings.contactEmail}</a></p>
                 </div>
             )}
         </div>

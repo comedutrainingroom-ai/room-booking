@@ -4,10 +4,30 @@
     <meta charset="UTF-8" />
     <link rel="icon" type="image/svg+xml" href="/vite.svg" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
-    <meta name="theme-color" content="#10b981" />
+    <meta name="theme-color" content="#16a34a" />
     <meta name="mobile-web-app-capable" content="yes" />
     <meta name="apple-mobile-web-app-status-bar-style" content="default" />
     <title>Room Booking System</title>
+    <script>
+      (function () {
+        var defaultColor = '#16a34a';
+        var storageKey = 'app:themeColor';
+
+        try {
+          var storedColor = localStorage.getItem(storageKey) || defaultColor;
+          document.documentElement.style.setProperty('--color-primary', storedColor);
+          document.documentElement.style.filter = storedColor === '#333333' ? 'grayscale(100%)' : 'none';
+
+          var metaTheme = document.querySelector('meta[name="theme-color"]');
+          if (metaTheme) {
+            metaTheme.setAttribute('content', storedColor);
+          }
+        } catch (error) {
+          document.documentElement.style.setProperty('--color-primary', defaultColor);
+          document.documentElement.style.filter = 'none';
+        }
+      })();
+    </script>
   </head>
   <body>
     <div id="root"></div>

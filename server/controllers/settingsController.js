@@ -31,8 +31,8 @@ const updateSettings = async (req, res) => {
         let settings = await Setting.findOne();
 
         // Explicit field selection — prevents mass assignment
-        const { openTime, closeTime, maxBookingHours, maxBookingDays, weekendBooking } = req.body;
-        const updateData = { openTime, closeTime, maxBookingHours, maxBookingDays, weekendBooking };
+        const { systemName, contactEmail, themeColor, openTime, closeTime, maxBookingHours, maxBookingDays, weekendBooking, requireApproval, maintenanceMode } = req.body;
+        const updateData = { systemName, contactEmail, themeColor, openTime, closeTime, maxBookingHours, maxBookingDays, weekendBooking, requireApproval, maintenanceMode };
 
         if (!settings) {
             settings = await Setting.create(updateData);

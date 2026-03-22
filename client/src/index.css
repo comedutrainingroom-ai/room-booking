@@ -2,7 +2,7 @@
 @import "tailwindcss";
 
 @theme {
-    --color-primary: #10b981;
+    --color-primary: #16a34a;
     /* Emerald 500 - More vibrant functionality */
     --color-primary-dark: #047857;
     /* Emerald 700 */

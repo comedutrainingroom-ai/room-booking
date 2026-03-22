@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react';
 import api from '../services/api';
 import { Link } from 'react-router-dom';
-import { FaCalendarAlt, FaSearch, FaUsers, FaPlug, FaBuilding, FaRegImage, FaRegFrown, FaLock } from 'react-icons/fa';
+import { FaCalendarAlt, FaSearch, FaUsers, FaPlug, FaRegImage, FaRegFrown, FaLock } from 'react-icons/fa';
 
 const Home = () => {
     const [rooms, setRooms] = useState([]);
@@ -32,56 +32,64 @@ const Home = () => {
 
     return (
         <div className="space-y-6 md:space-y-10">
-            {/* Hero Section with Animated Gradient Background */}
-            <div className="relative overflow-hidden rounded-2xl md:rounded-3xl shadow-premium">
-                {/* Animated Gradient Orbs */}
-                <div className="absolute inset-0 overflow-hidden">
-                    <div className="absolute -top-20 -left-20 w-72 h-72 bg-gradient-to-br from-green-400/40 to-cyan-400/30 rounded-full blur-3xl animate-float animate-pulse-glow"></div>
-                    <div className="absolute -bottom-20 -right-20 w-80 h-80 bg-gradient-to-tl from-emerald-400/30 to-teal-400/20 rounded-full blur-3xl animate-float-delay"></div>
-                    <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-96 h-96 bg-gradient-to-r from-green-300/20 to-cyan-300/20 rounded-full blur-3xl animate-pulse-glow"></div>
-                </div>
+            {/* Hero Banner */}
+            <div className="relative overflow-hidden rounded-2xl md:rounded-3xl shadow-premium bg-white">
+                {/* Dot Grid Background */}
+                <div className="absolute inset-0 opacity-[0.03]" style={{ backgroundImage: 'radial-gradient(circle, #000 1px, transparent 1px)', backgroundSize: '20px 20px' }}></div>
 
-                {/* Content */}
-                <div className="relative glass p-4 sm:p-10 md:p-12 flex flex-col md:flex-row items-center justify-between gap-6 md:gap-10">
-                    <div className="max-w-2xl text-center md:text-left">
-                        <h1 className="text-2xl sm:text-4xl md:text-5xl font-bold text-gray-800 mb-3 sm:mb-5 leading-tight">
-                            ยินดีต้อนรับสู่
-                            <br />
-                            <span className="gradient-text">ระบบจองห้องอบรม</span>
-                        </h1>
-                        <p className="text-gray-600 text-sm sm:text-lg md:text-xl leading-relaxed mb-4 sm:mb-8">
-                            จัดการการจองห้องประชุมได้อย่างง่ายดาย สะดวก และรวดเร็ว
-                            พร้อมตรวจสอบสถานะห้องว่างได้ทันที
-                        </p>
-                        <div className="flex flex-col sm:flex-row flex-wrap gap-3 sm:gap-4 justify-center md:justify-start">
-                            <Link
-                                to="/calendar"
-                                className="group relative w-full sm:w-auto inline-flex items-center justify-center gap-2 md:gap-3 bg-gradient-to-r from-green-600 to-emerald-500 text-white px-5 sm:px-8 py-2.5 sm:py-4 rounded-xl md:rounded-2xl font-semibold shadow-lg hover:shadow-xl hover:shadow-green-200/50 transition-all duration-300 hover:-translate-y-1 text-sm md:text-base"
-                            >
-                                <FaCalendarAlt className="text-lg group-hover:animate-bounce" />
-                                ดูปฏิทินการจอง
-                            </Link>
-                            <Link
-                                to="/rooms"
-                                className="inline-flex w-full sm:w-auto items-center justify-center gap-2 md:gap-3 px-5 sm:px-8 py-2.5 sm:py-4 rounded-xl md:rounded-2xl font-semibold text-green-700 bg-white/80 hover:bg-white border border-green-200 hover:border-green-300 transition-all duration-300 hover:-translate-y-1 shadow-sm hover:shadow-md text-sm md:text-base"
-                            >
-                                <FaSearch />
-                                ค้นหาห้องว่าง
-                            </Link>
-                        </div>
-                    </div>
+                {/* Diagonal Accent */}
+                <div className="absolute -right-20 -top-20 w-80 h-80 bg-emerald-500/5 rounded-full blur-[60px]"></div>
 
-                    {/* Hero Illustration */}
-                    <div className="hidden lg:flex relative">
-                        <div className="w-56 h-56 bg-gradient-to-br from-green-100 to-emerald-50 rounded-full flex items-center justify-center shadow-inner">
-                            <FaBuilding className="text-7xl text-green-600 opacity-80" />
+                <div className="relative flex flex-col md:flex-row">
+                    {/* Left Accent Bar */}
+                    <div className="hidden md:block w-1.5 bg-gradient-to-b from-emerald-500 via-emerald-400 to-transparent shrink-0"></div>
+
+                    {/* Main Content */}
+                    <div className="flex-1 p-5 sm:p-8 md:p-10 lg:p-12">
+                        {/* Top Label */}
+                        <div className="flex items-center gap-2 mb-4 md:mb-6">
+                            <span className="inline-block w-6 h-px bg-emerald-500"></span>
+                            <span className="text-[10px] md:text-xs font-bold uppercase tracking-[0.2em] text-emerald-600">ภาควิชาคอมพิวเตอร์ศึกษา</span>
                         </div>
-                        {/* Floating badges */}
-                        <div className="absolute -top-2 -right-2 bg-white rounded-xl shadow-lg px-4 py-2 animate-float">
-                            <span className="text-green-600 font-bold text-sm">✓ ว่าง</span>
-                        </div>
-                        <div className="absolute -bottom-2 -left-4 bg-white rounded-xl shadow-lg px-4 py-2 animate-float-delay">
-                            <span className="text-gray-600 font-medium text-sm">5 ห้อง</span>
+
+                        <div className="flex flex-col lg:flex-row lg:items-end lg:justify-between gap-6 lg:gap-12">
+                            {/* Text Block */}
+                            <div className="max-w-xl">
+                                <h1 className="text-2xl sm:text-3xl md:text-[2.75rem] md:leading-[1.15] font-extrabold text-gray-900 mb-3 md:mb-4 tracking-tight">
+                                    ระบบจองห้อง<span className="text-emerald-600">อบรม</span>
+                                </h1>
+                                <p className="text-gray-500 text-sm md:text-base leading-relaxed max-w-md mb-5 md:mb-7">
+                                    จัดการจองห้องอบรมได้สะดวกรวดเร็ว พร้อมตรวจสอบสถานะห้องว่างได้ทันที
+                                </p>
+                                <div className="flex flex-col sm:flex-row gap-3">
+                                    <Link
+                                        to="/calendar"
+                                        className="group inline-flex items-center justify-center gap-2 bg-gray-900 hover:bg-emerald-600 text-white px-6 py-3 rounded-xl font-semibold transition-all duration-300 text-sm shadow-md hover:shadow-lg active:scale-[0.97]"
+                                    >
+                                        <FaCalendarAlt className="text-sm opacity-70 group-hover:opacity-100 transition-opacity" />
+                                        ดูปฏิทินการจอง
+                                    </Link>
+                                    <Link
+                                        to="/rooms"
+                                        className="inline-flex items-center justify-center gap-2 px-6 py-3 rounded-xl font-semibold text-gray-700 bg-gray-50 hover:bg-gray-100 border border-gray-200 transition-all duration-300 text-sm active:scale-[0.97]"
+                                    >
+                                        <FaSearch className="text-xs" />
+                                        ค้นหาห้องว่าง
+                                    </Link>
+                                </div>
+                            </div>
+
+                            {/* Right Side — Compact Stats */}
+                            <div className="hidden lg:flex items-end gap-3 shrink-0 pb-1">
+                                <div className="flex flex-col items-center px-5 py-4 rounded-xl bg-emerald-50/80 border border-emerald-100">
+                                    <span className="text-3xl font-black text-emerald-600 leading-none">{rooms.length}</span>
+                                    <span className="text-[10px] font-semibold uppercase tracking-wider text-emerald-500/80 mt-1">ห้อง</span>
+                                </div>
+                                <div className="flex flex-col items-center px-5 py-4 rounded-xl bg-gray-50 border border-gray-100">
+                                    <span className="text-3xl font-black text-gray-700 leading-none">{rooms.filter(r => r.isActive !== false).length}</span>
+                                    <span className="text-[10px] font-semibold uppercase tracking-wider text-gray-400 mt-1">พร้อมใช้</span>
+                                </div>
+                            </div>
                         </div>
                     </div>
                 </div>
@@ -173,7 +181,7 @@ const Home = () => {
                             ) : (
                                 <Link
                                     to="/calendar"
-                                    className="block w-full py-2.5 md:py-3.5 text-center rounded-lg md:rounded-xl bg-gradient-to-r from-gray-900 to-gray-700 text-white font-semibold hover:from-green-600 hover:to-emerald-500 transition-all duration-300 shadow-md hover:shadow-lg text-sm md:text-base"
+                                    className="group block w-full py-2.5 md:py-3.5 text-center rounded-lg md:rounded-xl bg-gray-900 hover:bg-emerald-600 text-white font-semibold transition-all duration-300 text-sm md:text-base shadow-md hover:shadow-lg active:scale-[0.97]"
                                 >
                                     จองห้องนี้ทันที
                                 </Link>

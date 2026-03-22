@@ -70,8 +70,10 @@ const RoomSelection = () => {
         <div className="w-full h-full px-0 sm:px-4 py-4 sm:py-8">
             {/* Header */}
             <div className="mb-6">
-                <h1 className="text-2xl md:text-3xl font-bold text-gray-800 mb-2">เลือกห้องอบรม</h1>
-                <p className="text-gray-500">เลือกห้องที่ต้องการและทำการจองได้ทันที</p>
+                <h1 className="text-xl md:text-2xl font-extrabold text-gray-900">
+                    เลือกห้องอบรม
+                </h1>
+                <p className="text-gray-400 mt-1 text-xs md:text-base">เลือกห้องที่ต้องการและทำการจองได้ทันที</p>
             </div>
 
             {/* Search & Filter */}
@@ -211,7 +213,7 @@ const RoomSelection = () => {
                             <div className="mt-auto pt-6 border-t border-gray-100">
                                 <button
                                     onClick={() => handleBookRoom(selectedRoom)}
-                                    className="w-full py-3.5 bg-gradient-to-r from-primary to-emerald-500 hover:from-emerald-500 hover:to-primary text-white font-bold rounded-xl flex items-center justify-center gap-2 transition-all shadow-md hover:shadow-lg hover:-translate-y-0.5 active:translate-y-0"
+                                    className="w-full py-3.5 bg-gray-900 hover:bg-emerald-600 text-white font-bold rounded-xl flex items-center justify-center gap-2 transition-all duration-300 shadow-md hover:shadow-lg active:scale-[0.97]"
                                 >
                                     <FaCalendarPlus className="text-lg" />
                                     ดำเนินการจองห้องนี้

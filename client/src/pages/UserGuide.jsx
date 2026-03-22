@@ -46,7 +46,7 @@ const UserGuide = () => {
     const { settings } = useSettings();
 
     return (
-        <div className="p-4 md:p-8 max-w-4xl mx-auto">
+        <div className="w-full h-full px-0 sm:px-4 py-6 sm:py-8 max-w-4xl mx-auto">
             {/* Header */}
             <div className="text-center mb-6 md:mb-12">
                 <div className="inline-flex items-center justify-center w-12 h-12 md:w-20 md:h-20 rounded-full bg-primary/10 text-primary text-xl md:text-3xl mb-3 md:mb-4">
@@ -82,7 +82,7 @@ const UserGuide = () => {
                             <StepItem number="3" title="เลือกบัญชี @kmutnb.ac.th" description="ใช้อีเมลมหาวิทยาลัย เช่น s66xxxxx@email.kmutnb.ac.th" />
                         </div>
                         <div className="bg-yellow-50 border border-yellow-200 rounded-xl p-4 text-sm text-yellow-700">
-                            ⚠️ <strong>หมายเหตุ:</strong> ไม่สามารถใช้ Gmail ส่วนตัวได้ ต้องเป็นอีเมลของมหาวิทยาลัยเท่านั้น
+                            <FaExclamationTriangle className="inline text-yellow-500 mr-1.5 text-xs relative -top-px" /><strong>หมายเหตุ:</strong> ไม่สามารถใช้ Gmail ส่วนตัวได้ ต้องเป็นอีเมลของมหาวิทยาลัยเท่านั้น
                         </div>
                     </div>
                 </AccordionItem>
@@ -121,7 +121,7 @@ const UserGuide = () => {
                         </div>
 
                         <div className="bg-amber-50 border border-amber-200 rounded-xl p-4 text-sm text-amber-700">
-                            💡 <strong>เคล็ดลับ:</strong> ช่องสีเทาคือเวลาที่ถูกจองแล้ว ช่องสีขาวคือเวลาที่ว่าง
+                            <FaInfoCircle className="inline text-amber-500 mr-1.5 text-xs relative -top-px" /><strong>เคล็ดลับ:</strong> ช่องสีเทาคือเวลาที่ถูกจองแล้ว ช่องสีขาวคือเวลาที่ว่าง
                         </div>
                     </div>
                 </AccordionItem>
@@ -144,11 +144,11 @@ const UserGuide = () => {
                             </div>
                             <div className="bg-gray-50 p-3 md:p-4 rounded-lg md:rounded-xl">
                                 <div className="text-xs text-gray-400 font-bold uppercase mb-1">วันเสาร์-อาทิตย์</div>
-                                <div className="text-lg font-bold text-gray-800">{settings?.weekendBooking ? '✅ จองได้' : '❌ ไม่อนุญาต'}</div>
+                                <div className="text-lg font-bold text-gray-800">{settings?.weekendBooking ? 'จองได้' : 'ไม่อนุญาต'}</div>
                             </div>
                         </div>
                         <p className="text-sm text-gray-500">
-                            📌 เงื่อนไขอาจเปลี่ยนแปลงตามที่ผู้ดูแลระบบกำหนด ดูรายละเอียดเพิ่มเติมที่{' '}
+                            <FaInfoCircle className="inline text-gray-400 mr-1 text-xs relative -top-px" />เงื่อนไขอาจเปลี่ยนแปลงตามที่ผู้ดูแลระบบกำหนด ดูรายละเอียดเพิ่มเติมที่{' '}
                             <Link to="/room-rules" className="text-primary hover:underline font-medium">กฎระเบียบการใช้ห้อง</Link>
                         </p>
                     </div>
@@ -188,7 +188,7 @@ const UserGuide = () => {
                             <StepItem number="3" title='กดปุ่ม "ยกเลิกการจอง"' description="ยืนยันการยกเลิก" />
                         </div>
                         <div className="bg-red-50 border border-red-200 rounded-xl p-4 text-sm text-red-700">
-                            ⚠️ <strong>สำคัญ:</strong> สามารถยกเลิกได้เฉพาะการจองที่สถานะเป็น <strong>"PENDING"</strong> เท่านั้น
+                            <FaExclamationTriangle className="inline text-red-500 mr-1.5 text-xs relative -top-px" /><strong>สำคัญ:</strong> สามารถยกเลิกได้เฉพาะการจองที่สถานะเป็น <strong>"PENDING"</strong> เท่านั้น
                             หากอนุมัติแล้ว ให้ติดต่อผู้ดูแลระบบเพื่อยกเลิก
                         </div>
                     </div>
@@ -218,7 +218,7 @@ const UserGuide = () => {
                             <StepItem number="3" title="กดบันทึก" description="ข้อมูลจะถูกบันทึกลงระบบ" />
                         </div>
                         <div className="bg-blue-50 border border-blue-200 rounded-xl p-4 text-sm text-blue-700">
-                            💡 <strong>แนะนำ:</strong> กรอกเบอร์โทรไว้ เพื่อให้ผู้ดูแลระบบติดต่อได้กรณีมีปัญหาเกี่ยวกับการจอง
+                            <FaInfoCircle className="inline text-blue-500 mr-1.5 text-xs relative -top-px" /><strong>แนะนำ:</strong> กรอกเบอร์โทรไว้ เพื่อให้ผู้ดูแลระบบติดต่อได้กรณีมีปัญหาเกี่ยวกับการจอง
                         </div>
                     </div>
                 </AccordionItem>

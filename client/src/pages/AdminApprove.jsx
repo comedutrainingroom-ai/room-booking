@@ -159,11 +159,14 @@ const AdminApprove = () => {
     if (loading) return <div className="p-8 text-center">กำลังโหลดข้อมูล...</div>;
 
     return (
-        <div className="p-4 md:p-8">
+        <div className="w-full h-full px-0 sm:px-4 py-6 sm:py-8">
             <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4 mb-6">
-                <h1 className="text-xl md:text-2xl font-bold text-gray-800 flex items-center gap-2">
-                    <FaCalendarAlt className="text-primary" /> จัดการคำขอจอง
-                </h1>
+                <div>
+                    <h1 className="text-xl md:text-2xl font-extrabold text-gray-900">
+                        จัดการคำขอจอง
+                    </h1>
+                    <p className="text-gray-400 mt-1 text-xs md:text-base">อนุมัติหรือปฏิเสธคำขอจองห้อง</p>
+                </div>
 
                 {/* Filter Tabs */}
                 <div className="flex items-center gap-2 bg-gray-100 p-1 rounded-lg">

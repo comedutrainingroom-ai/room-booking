@@ -106,16 +106,15 @@ const History = () => {
     if (loading) return <div className="p-8 text-center text-gray-500">กำลังโหลดประวัติ...</div>;
 
     return (
-        <div className="p-4 md:p-8 w-full h-full">
+        <div className="w-full h-full px-0 sm:px-4 py-6 sm:py-8">
             <div className="flex flex-col gap-3 md:gap-4 mb-4 md:mb-8">
                 {/* Header Row */}
                 <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-3 md:gap-4">
                     <div>
-                        <h1 className="text-xl md:text-3xl font-bold text-gray-800 flex items-center gap-2 md:gap-3">
-                            <span className="bg-primary/10 p-2 md:p-3 rounded-xl md:rounded-2xl text-primary text-sm md:text-base"><FaHistory /></span>
+                        <h1 className="text-xl md:text-2xl font-extrabold text-gray-900">
                             ประวัติการทำงาน
                         </h1>
-                        <p className="text-gray-500 mt-1 md:mt-2 ml-1 text-xs md:text-base">{isAdmin ? 'รายการในระบบทั้งหมด' : 'รายการของคุณทั้งหมด'}</p>
+                        <p className="text-gray-400 mt-1 text-xs md:text-base">{isAdmin ? 'รายการในระบบทั้งหมด' : 'รายการของคุณทั้งหมด'}</p>
                     </div>
 
                     <div className="flex flex-col items-end gap-3 w-full md:w-auto">

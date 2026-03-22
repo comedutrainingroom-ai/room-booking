@@ -72,92 +72,54 @@ const Toast = ({ id, type, message, onClose }) => {
 const ConfirmModal = ({ title, message, type, onConfirm, onCancel }) => {
     const config = {
         warning: {
-            iconBg: 'bg-amber-100',
-            icon: <FaExclamationTriangle className="w-8 h-8 text-amber-600" />,
-            confirmBtn: 'bg-amber-600 hover:bg-amber-700'
+            accent: 'bg-amber-500',
+            confirmBtn: 'bg-gray-900 hover:bg-gray-800',
         },
         danger: {
-            iconBg: 'bg-red-100',
-            icon: <FaTimes className="w-8 h-8 text-red-600" />,
-            confirmBtn: 'bg-red-600 hover:bg-red-700'
+            accent: 'bg-red-500',
+            confirmBtn: 'bg-red-600 hover:bg-red-700',
         },
         info: {
-            iconBg: 'bg-blue-100',
-            icon: <FaInfoCircle className="w-8 h-8 text-blue-600" />,
-            confirmBtn: 'bg-blue-600 hover:bg-blue-700'
+            accent: 'bg-emerald-500',
+            confirmBtn: 'bg-gray-900 hover:bg-gray-800',
         }
     };
 
-    const { iconBg, icon, confirmBtn } = config[type] || config.warning;
+    const { accent, confirmBtn } = config[type] || config.warning;
 
     return (
         <div className="fixed inset-0 z-[9999] flex items-center justify-center p-4">
             {/* Backdrop */}
             <div
-                className="absolute inset-0 bg-gray-950/70 backdrop-blur-md"
+                className="absolute inset-0 bg-black/40 backdrop-blur-sm"
                 onClick={onCancel}
             ></div>
 
             {/* Modal */}
-            <div className={`
-                relative
-                bg-white
-                rounded-xl
-                shadow-xl
-                max-w-sm w-full
-                overflow-hidden
-                border border-gray-100
-            `}>
-                {/* Content */}
-                <div className="relative p-6 pt-8">
-                    {/* Icon */}
-                    <div className="flex justify-center mb-5">
-                        <div className={`
-                            ${iconBg}
-                            w-16 h-16 rounded-full
-                            flex items-center justify-center
-                        `}>
-                            {icon}
-                        </div>
-                    </div>
+            <div className="relative bg-white rounded-lg shadow-lg max-w-sm w-full overflow-hidden border border-gray-200">
+                {/* Accent bar */}
+                <div className={`h-1 w-full ${accent}`}></div>
 
-                    {/* Title */}
-                    <h3 className="text-xl font-bold text-gray-800 text-center mb-2">
+                {/* Content */}
+                <div className="p-6">
+                    <h3 className="text-lg font-extrabold text-gray-900 mb-1">
                         {title}
                     </h3>
-
-                    {/* Message */}
-                    <p className="text-gray-500 text-center text-sm leading-relaxed mb-8">
+                    <p className="text-gray-500 text-sm leading-relaxed mb-6">
                         {message}
                     </p>
 
                     {/* Actions */}
-                    <div className="flex gap-3">
+                    <div className="flex gap-3 justify-end">
                         <button
                             onClick={onCancel}
-                            className="
-                                flex-1 px-4 py-2.5
-                                rounded-lg
-                                border border-gray-300
-                                bg-white
-                                text-gray-700 font-medium
-                                hover:bg-gray-50
-                                transition-all duration-200
-                                text-sm
-                            "
+                            className="px-5 py-2 text-sm font-medium text-gray-600 hover:text-gray-800 transition-colors"
                         >
                             ยกเลิก
                         </button>
                         <button
                             onClick={onConfirm}
-                            className={`
-                                flex-1 px-4 py-2.5
-                                rounded-lg
-                                ${confirmBtn}
-                                text-white font-medium
-                                transition-all duration-200
-                                text-sm
-                            `}
+                            className={`px-5 py-2 rounded-lg ${confirmBtn} text-white text-sm font-medium transition-colors`}
                         >
                             ยืนยัน
                         </button>

@@ -1,20 +1,22 @@
-import { useState, useEffect, useCallback } from 'react';
-import { FaCog, FaCalendarCheck, FaServer, FaSave, FaUndo, FaClock, FaCalendarAlt, FaToggleOn, FaToggleOff } from 'react-icons/fa';
+import { useState, useEffect, useCallback, useMemo, useRef } from 'react';
+import { FaCog, FaCalendarCheck, FaServer, FaSave, FaUndo, FaClock, FaCalendarAlt, FaToggleOn, FaToggleOff, FaExclamationTriangle } from 'react-icons/fa';
 import api from '../services/api';
 import { useSettings } from '../contexts/SettingsContext';
 import { useToast } from '../contexts/ToastContext';
+import { applyTheme, DEFAULT_THEME_COLOR, persistThemeColor } from '../utils/theme';
 
 const Settings = () => {
     const { refreshSettings } = useSettings();
     const toast = useToast();
     const [activeTab, setActiveTab] = useState('general');
     const [loading, setLoading] = useState(false);
+    const [initialSettings, setInitialSettings] = useState(null);
 
     // Initial State
     const [settings, setSettings] = useState({
         systemName: '',
         contactEmail: '',
-        themeColor: '#16a34a',
+        themeColor: DEFAULT_THEME_COLOR,
         maxBookingDays: 30,
         maxBookingHours: 4,
         requireApproval: true,
@@ -31,15 +33,9 @@ const Settings = () => {
                 const res = await api.get('/settings');
                 if (res.data.success) {
                     setSettings(res.data.data);
-                    // Apply theme immediately on load
-                    if (res.data.data.themeColor) {
-                        document.documentElement.style.setProperty('--color-primary', res.data.data.themeColor);
-                        if (res.data.data.themeColor === '#333333') { // Check for mourning theme color
-                            document.documentElement.style.filter = 'grayscale(100%)';
-                        } else {
-                            document.documentElement.style.filter = 'none';
-                        }
-                    }
+                    setInitialSettings(res.data.data);
+                    persistThemeColor(res.data.data.themeColor);
+                    applyTheme(res.data.data.themeColor);
                 }
             } catch (error) {
                 console.error("Error fetching settings:", error);
@@ -48,13 +44,84 @@ const Settings = () => {
         fetchSettings();
     }, []);
 
-    const handleSave = useCallback(async () => {
+    const hasChanges = useMemo(() => {
+        if (!initialSettings) return false;
+        return JSON.stringify(settings) !== JSON.stringify(initialSettings);
+    }, [settings, initialSettings]);
+
+    // --- Navigation guard ---
+    const [pendingNavUrl, setPendingNavUrl] = useState(null);
+    const hasChangesRef = useRef(hasChanges);
+    hasChangesRef.current = hasChanges;
+    const originalPushStateRef = useRef(null);
+
+    useEffect(() => {
+        // Browser close / refresh guard
+        const beforeUnloadHandler = (e) => {
+            if (hasChangesRef.current) {
+                e.preventDefault();
+            }
+        };
+        window.addEventListener('beforeunload', beforeUnloadHandler);
+
+        // In-app navigation guard (intercept pushState)
+        const originalPushState = window.history.pushState.bind(window.history);
+        originalPushStateRef.current = originalPushState;
+
+        window.history.pushState = function (state, title, url) {
+            if (hasChangesRef.current && url && typeof url === 'string') {
+                setPendingNavUrl(url);
+                return;
+            }
+            return originalPushState(state, title, url);
+        };
+
+        // Back / Forward button guard
+        const popstateHandler = () => {
+            if (hasChangesRef.current) {
+                originalPushState(null, '', window.location.pathname + window.location.search);
+                setPendingNavUrl('__back__');
+            }
+        };
+        window.addEventListener('popstate', popstateHandler);
+
+        return () => {
+            window.removeEventListener('beforeunload', beforeUnloadHandler);
+            window.history.pushState = originalPushState;
+            window.removeEventListener('popstate', popstateHandler);
+        };
+    }, []);
+
+    const executeNavigation = useCallback((url) => {
+        const originalPush = originalPushStateRef.current;
+        if (url === '__back__') {
+            window.history.pushState = originalPush;
+            window.history.back();
+        } else if (originalPush) {
+            originalPush(null, '', url);
+            window.dispatchEvent(new PopStateEvent('popstate'));
+        }
+    }, []);
+
+    const handleSave = useCallback(async (skipConfirm = false) => {
+        if (!skipConfirm) {
+            const confirmed = await toast.confirm({
+                title: 'ยืนยันการบันทึก',
+                message: 'คุณต้องการบันทึกการเปลี่ยนแปลงการตั้งค่าใช่หรือไม่?',
+                type: 'info'
+            });
+            if (!confirmed) return;
+        }
+
         setLoading(true);
         try {
             const res = await api.put('/settings', settings);
             if (res.data.success) {
                 setSettings(res.data.data);
-                refreshSettings(); // Refresh global context
+                setInitialSettings(res.data.data);
+                persistThemeColor(res.data.data.themeColor);
+                applyTheme(res.data.data.themeColor);
+                refreshSettings();
                 toast.success('บันทึกการตั้งค่าเรียบร้อยแล้ว');
             }
         } catch (error) {
@@ -81,19 +148,23 @@ const Settings = () => {
     );
 
     return (
-        <div className="space-y-6 pb-8">
+        <div className="w-full h-full px-0 sm:px-4 py-6 sm:py-8 space-y-6">
             {/* Header */}
             <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
                 <div>
-                    <h1 className="text-xl md:text-2xl font-bold text-gray-800 flex items-center gap-2">
-                        <FaCog className="text-primary" /> ตั้งค่าระบบ
+                    <h1 className="text-xl md:text-2xl font-extrabold text-gray-900">
+                        ตั้งค่าระบบ
                     </h1>
-                    <p className="text-gray-500 text-sm mt-1">จัดการการตั้งค่าและเงื่อนไขการจอง</p>
+                    <p className="text-gray-400 mt-1 text-xs md:text-base">จัดการการตั้งค่าและเงื่อนไขการจอง</p>
                 </div>
                 <button
-                    onClick={handleSave}
-                    disabled={loading}
-                    className="w-full sm:w-auto bg-primary text-white px-6 py-2.5 rounded-xl shadow-lg shadow-green-200 hover:bg-green-700 hover:shadow-xl transition-all flex items-center justify-center gap-2 font-medium disabled:opacity-70 disabled:cursor-not-allowed"
+                    onClick={() => handleSave()}
+                    disabled={loading || !hasChanges}
+                    className={`w-full sm:w-auto px-6 py-2.5 rounded-xl shadow-lg transition-all flex items-center justify-center gap-2 font-medium disabled:cursor-not-allowed ${
+                        hasChanges
+                            ? 'bg-primary text-white shadow-green-200 hover:bg-green-700 hover:shadow-xl'
+                            : 'bg-gray-300 text-gray-500 shadow-none'
+                    }`}
                 >
                     {loading ? (
                         <div className="animate-spin h-5 w-5 border-2 border-white border-t-transparent rounded-full"></div>
@@ -167,14 +238,7 @@ const Settings = () => {
                                         key={color.name}
                                         onClick={() => {
                                             setSettings({ ...settings, themeColor: color.value });
-                                            document.documentElement.style.setProperty('--color-primary', color.value);
-
-                                            // Handle Mourning Theme (Grayscale)
-                                            if (color.name === 'Mourning') {
-                                                document.documentElement.style.filter = 'grayscale(100%)';
-                                            } else {
-                                                document.documentElement.style.filter = 'none';
-                                            }
+                                            applyTheme(color.value);
                                         }}
                                         className={`w-10 h-10 rounded-full border-2 transition-all flex items-center justify-center ${settings.themeColor === color.value ? 'border-gray-400 scale-110 shadow-sm' : 'border-transparent hover:scale-110'}`}
                                         style={{ backgroundColor: color.name === 'Mourning' ? '#000000' : color.value }}
@@ -310,6 +374,55 @@ const Settings = () => {
                 )}
 
             </div>
+
+            {/* Unsaved changes navigation guard dialog */}
+            {pendingNavUrl && (
+                <div className="fixed inset-0 bg-black/40 backdrop-blur-sm flex items-center justify-center z-50 p-4">
+                    <div className="bg-white rounded-xl max-w-sm w-full shadow-xl overflow-hidden">
+                        <div className="h-1 bg-amber-500 w-full" />
+                        <div className="p-6">
+                            <div className="flex items-center gap-3 mb-2">
+                                <div className="w-10 h-10 rounded-full bg-amber-100 flex items-center justify-center flex-shrink-0">
+                                    <FaExclamationTriangle className="text-amber-500" />
+                                </div>
+                                <h3 className="text-lg font-bold text-gray-900">มีการเปลี่ยนแปลงที่ยังไม่ได้บันทึก</h3>
+                            </div>
+                            <p className="text-gray-500 text-sm ml-[52px]">คุณต้องการบันทึกการเปลี่ยนแปลงก่อนออกจากหน้านี้หรือไม่?</p>
+                        </div>
+                        <div className="border-t border-gray-100" />
+                        <div className="flex justify-end gap-2 px-6 py-4">
+                            <button
+                                onClick={() => setPendingNavUrl(null)}
+                                className="px-4 py-2 text-gray-600 text-sm font-semibold rounded-lg hover:bg-gray-100 transition-colors"
+                            >
+                                อยู่หน้านี้ต่อ
+                            </button>
+                            <button
+                                onClick={() => {
+                                    const url = pendingNavUrl;
+                                    setSettings(initialSettings);
+                                    setPendingNavUrl(null);
+                                    executeNavigation(url);
+                                }}
+                                className="px-4 py-2 text-red-600 text-sm font-semibold rounded-lg hover:bg-red-50 transition-colors"
+                            >
+                                ไม่บันทึก
+                            </button>
+                            <button
+                                onClick={async () => {
+                                    const url = pendingNavUrl;
+                                    await handleSave(true);
+                                    setPendingNavUrl(null);
+                                    executeNavigation(url);
+                                }}
+                                className="px-4 py-2 bg-primary text-white text-sm font-semibold rounded-lg hover:bg-green-700 transition-colors"
+                            >
+                                บันทึกแล้วออก
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            )}
         </div>
     );
 };

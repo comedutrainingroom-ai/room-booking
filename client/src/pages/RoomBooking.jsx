@@ -232,28 +232,28 @@ const RoomBooking = () => {
         <div className="w-full h-full px-0 sm:px-4 py-4 sm:py-8">
             <div className="max-w-6xl mx-auto space-y-3 md:space-y-6">
 
-                {/* Hero Header */}
-                <div className="relative overflow-hidden bg-gradient-to-r from-primary via-emerald-500 to-teal-500 rounded-2xl md:rounded-3xl p-3 md:p-6 text-white shadow-2xl">
-                    <div className="absolute inset-0 bg-black/10"></div>
-                    <div className="absolute -top-20 -right-20 w-64 h-64 bg-white/10 rounded-full blur-3xl"></div>
-                    <div className="absolute -bottom-20 -left-20 w-64 h-64 bg-white/10 rounded-full blur-3xl"></div>
-
-                    <div className="relative flex items-center gap-2 md:gap-4">
-                        <button
-                            onClick={() => navigate('/rooms')}
-                            className="p-2 md:p-3 bg-white/20 hover:bg-white/30 rounded-lg md:rounded-xl backdrop-blur-sm transition-all"
-                        >
-                            <FaArrowLeft className="text-sm md:text-base" />
-                        </button>
-                        <div className="flex-1">
-                            <h1 className="text-lg md:text-3xl font-bold">{room.name}</h1>
-                            <div className="flex items-center gap-2 md:gap-4 mt-1 md:mt-2 text-white/80 text-xs md:text-sm">
-                                <span className="flex items-center gap-1 md:gap-1.5 bg-white/20 px-2 md:px-3 py-0.5 md:py-1 rounded-full">
-                                    <FaUsers className="text-[10px] md:text-sm" /> {room.capacity} คน
-                                </span>
-                                {room.description && (
-                                    <span className="hidden md:inline">{room.description}</span>
-                                )}
+                {/* Header */}
+                <div className="relative overflow-hidden bg-white rounded-2xl md:rounded-3xl shadow-premium border border-gray-100">
+                    <div className="absolute inset-0 opacity-[0.03]" style={{ backgroundImage: 'radial-gradient(circle, #000 1px, transparent 1px)', backgroundSize: '20px 20px' }}></div>
+                    <div className="relative flex">
+                        <div className="hidden md:block w-1.5 bg-gradient-to-b from-emerald-500 via-emerald-400 to-transparent shrink-0"></div>
+                        <div className="flex-1 flex items-center gap-3 md:gap-4 p-3 md:p-6">
+                            <button
+                                onClick={() => navigate('/rooms')}
+                                className="p-2 md:p-2.5 bg-gray-100 hover:bg-gray-200 text-gray-600 rounded-lg md:rounded-xl transition-all"
+                            >
+                                <FaArrowLeft className="text-sm md:text-base" />
+                            </button>
+                            <div className="flex-1">
+                                <h1 className="text-lg md:text-2xl font-extrabold text-gray-900">{room.name}</h1>
+                                <div className="flex items-center gap-2 md:gap-3 mt-1 text-xs md:text-sm text-gray-500">
+                                    <span className="inline-flex items-center gap-1 md:gap-1.5 bg-emerald-50 text-emerald-700 px-2 md:px-2.5 py-0.5 rounded-md border border-emerald-100 font-medium">
+                                        <FaUsers className="text-[10px] md:text-xs" /> {room.capacity} คน
+                                    </span>
+                                    {room.description && (
+                                        <span className="hidden md:inline text-gray-400">{room.description}</span>
+                                    )}
+                                </div>
                             </div>
                         </div>
                     </div>
@@ -372,37 +372,29 @@ const RoomBooking = () => {
                                     }}
                                     disabled={occupied}
                                     className={`
-                                        group relative overflow-hidden rounded-xl p-3 md:p-4 transition-all duration-200 transform border
+                                        group relative overflow-hidden rounded-lg p-3 md:p-4 transition-all duration-200 border
                                         ${occupied
                                             ? isImported
-                                                ? 'bg-gray-100 text-gray-500 border-gray-200 cursor-not-allowed'
-                                                : 'bg-orange-50 text-orange-700 border-orange-200 cursor-not-allowed'
+                                                ? 'bg-gray-50 text-gray-400 border-gray-200 cursor-not-allowed'
+                                                : 'bg-orange-50 text-orange-600 border-orange-200 cursor-not-allowed'
                                             : inRange
-                                                ? 'bg-emerald-600 text-white border-emerald-700 shadow-md scale-[1.02]'
-                                                : 'bg-white text-emerald-800 border-emerald-200 hover:border-emerald-400 hover:bg-emerald-50 hover:shadow-sm cursor-pointer'
+                                                ? 'bg-gray-900 text-white border-gray-900 shadow-md'
+                                                : 'bg-white text-gray-800 border-gray-200 hover:border-gray-400 hover:shadow-sm cursor-pointer'
                                         }
                                     `}
-                                    style={{
-                                        animationDelay: `${index * 30}ms`
-                                    }}
                                 >
-                                    {/* Decorative Elements */}
-                                    {inRange && (
-                                        <div className="absolute inset-0 bg-white/10 animate-pulse"></div>
-                                    )}
-
                                     <div className="relative">
                                         <div className="text-sm md:text-2xl font-bold tracking-tight">{slot.label}</div>
-                                        <div className="text-[10px] md:text-xs mt-0.5 md:mt-1 opacity-75">ถึง {slot.end}</div>
+                                        <div className="text-[10px] md:text-xs mt-0.5 md:mt-1 opacity-60">ถึง {slot.end}</div>
 
                                         <div className="mt-1.5 md:mt-3 flex items-center justify-center">
                                             {occupied ? (
                                                 isImported ? (
-                                                    <span className="inline-flex items-center gap-1 px-2 py-0.5 bg-gray-200 rounded text-[10px] font-medium text-gray-600">
+                                                    <span className="inline-flex items-center gap-1 px-2 py-0.5 bg-gray-200 rounded text-[10px] font-medium text-gray-500">
                                                         <FaBook className="text-[8px]" /> ตารางสอน
                                                     </span>
                                                 ) : (
-                                                    <span className="inline-flex items-center gap-1 px-2 py-0.5 bg-orange-100 rounded text-[10px] font-medium text-orange-800">
+                                                    <span className="inline-flex items-center gap-1 px-2 py-0.5 bg-orange-100 rounded text-[10px] font-medium text-orange-700">
                                                         <FaLock className="text-[8px]" /> จองแล้ว
                                                     </span>
                                                 )
@@ -411,9 +403,7 @@ const RoomBooking = () => {
                                                     <FaCheck className="text-[8px]" /> {isStart ? 'เริ่มต้น' : 'เลือกแล้ว'}
                                                 </span>
                                             ) : (
-                                                <span className="inline-flex items-center gap-1 px-2 py-0.5 bg-emerald-100 rounded text-[10px] font-medium text-emerald-700 transition-colors">
-                                                    <FaCheck className="text-[8px]" /> ว่าง
-                                                </span>
+                                                <span className="text-[10px] font-medium text-gray-400">ว่าง</span>
                                             )}
                                         </div>
                                     </div>
@@ -425,11 +415,11 @@ const RoomBooking = () => {
                     {/* Legend */}
                     <div className="flex flex-wrap justify-center gap-3 md:gap-6 mt-4 md:mt-8 pt-3 md:pt-6 border-t border-gray-100">
                         <div className="flex items-center gap-2 text-xs md:text-sm text-gray-600">
-                            <div className="w-5 h-5 bg-white border border-emerald-300 rounded"></div>
+                            <div className="w-5 h-5 bg-white border border-gray-200 rounded"></div>
                             <span>ว่าง</span>
                         </div>
                         <div className="flex items-center gap-2 text-xs md:text-sm text-gray-600">
-                            <div className="w-5 h-5 bg-emerald-600 rounded"></div>
+                            <div className="w-5 h-5 bg-gray-900 rounded"></div>
                             <span>กำลังเลือก</span>
                         </div>
                         <div className="flex items-center gap-2 text-xs md:text-sm text-gray-600">
