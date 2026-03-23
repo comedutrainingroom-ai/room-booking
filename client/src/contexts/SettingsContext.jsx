@@ -1,17 +1,16 @@
-import { createContext, useContext, useState, useEffect, useMemo, useCallback } from 'react';
+import { createContext, useCallback, useContext, useEffect, useMemo, useState } from 'react';
 import api from '../services/api';
 import { applyTheme, DEFAULT_THEME_COLOR, getStoredThemeColor, persistThemeColor } from '../utils/theme';
+import { DEFAULT_SETTINGS, normalizeSettings } from '../utils/settingsDefaults';
 
 const SettingsContext = createContext();
 
 export const useSettings = () => useContext(SettingsContext);
 
 export const SettingsProvider = ({ children }) => {
-    const [settings, setSettings] = useState(() => ({
-        systemName: 'ระบบจองห้องอบรม ภาควิชาคอมพิวเตอร์ศึกษา คณะครุศาสตร์อุตสาหกรรม (KMUTNB)',
-        contactEmail: '',
-        themeColor: getStoredThemeColor(),
-        maintenanceMode: false
+    const [settings, setSettings] = useState(() => normalizeSettings({
+        ...DEFAULT_SETTINGS,
+        themeColor: getStoredThemeColor()
     }));
     const [loading, setLoading] = useState(true);
 
@@ -25,11 +24,12 @@ export const SettingsProvider = ({ children }) => {
         try {
             const res = await api.get('/settings');
             if (res.data.success) {
-                setSettings(res.data.data);
-                syncTheme(res.data.data.themeColor);
+                const normalizedSettings = normalizeSettings(res.data.data);
+                setSettings(normalizedSettings);
+                syncTheme(normalizedSettings.themeColor);
             }
         } catch (error) {
-            console.error("Failed to fetch settings", error);
+            console.error('Failed to fetch settings', error);
         } finally {
             setLoading(false);
         }
@@ -40,13 +40,14 @@ export const SettingsProvider = ({ children }) => {
         fetchSettings();
     }, [fetchSettings, syncTheme]);
 
-    // Refresh function to be called after updating settings
     const refreshSettings = useCallback(() => {
         fetchSettings();
     }, [fetchSettings]);
 
     const value = useMemo(() => ({
-        settings, loading, refreshSettings
+        settings,
+        loading,
+        refreshSettings
     }), [settings, loading, refreshSettings]);
 
     return (

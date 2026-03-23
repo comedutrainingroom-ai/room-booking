@@ -1,5 +1,7 @@
 const User = require('../models/User');
+const Setting = require('../models/Setting');
 const admin = require('../config/firebaseAdmin');
+const { TOKEN_HEADER_NAME, verifyAdminPinToken } = require('../services/adminPinTokenService');
 
 const protect = async (req, res, next) => {
     let token = null;
@@ -37,6 +39,35 @@ const protect = async (req, res, next) => {
         }
 
         req.user = user;
+        req.adminUnlocked = false;
+        req.adminPinTokenError = null;
+
+        if (user.role === 'admin') {
+            const adminPinToken = req.headers[TOKEN_HEADER_NAME];
+
+            if (adminPinToken) {
+                const verification = verifyAdminPinToken(adminPinToken, user);
+                if (verification.valid) {
+                    req.adminUnlocked = true;
+                } else {
+                    req.adminPinTokenError = verification;
+                }
+            }
+        }
+
+        req.user.adminUnlocked = req.adminUnlocked;
+
+        if (user.role !== 'admin') {
+            const settings = await Setting.findOne().select('maintenanceMode');
+            if (settings?.maintenanceMode) {
+                return res.status(503).json({
+                    success: false,
+                    error: 'System is currently under maintenance. Please try again later.',
+                    code: 'MAINTENANCE_MODE'
+                });
+            }
+        }
+
         next();
     } catch (error) {
         console.error('Auth middleware error:', error);
@@ -52,4 +83,29 @@ const admin_check = (req, res, next) => {
     }
 };
 
-module.exports = { protect, admin: admin_check };
+const admin_unlocked = (req, res, next) => {
+    if (!req.user || req.user.role !== 'admin') {
+        return res.status(403).json({ success: false, error: 'Not authorized as an admin' });
+    }
+
+    if (req.adminUnlocked) {
+        return next();
+    }
+
+    const tokenError = req.adminPinTokenError || {
+        code: 'ADMIN_PIN_REQUIRED',
+        error: 'Admin PIN verification required'
+    };
+
+    return res.status(403).json({
+        success: false,
+        error: tokenError.error,
+        code: tokenError.code
+    });
+};
+
+module.exports = {
+    protect,
+    admin: admin_check,
+    adminUnlocked: admin_unlocked
+};

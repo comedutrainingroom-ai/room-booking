@@ -7,16 +7,16 @@ const {
     updateReportStatus,
     setRoomMaintenance
 } = require('../controllers/reportController');
-const { protect, admin } = require('../middleware/authMiddleware');
+const { protect, admin, adminUnlocked } = require('../middleware/authMiddleware');
 
 router.route('/')
     .post(protect, createReport)
-    .get(protect, admin, getAllReports);
+    .get(protect, admin, adminUnlocked, getAllReports);
 
 router.route('/my').get(protect, getMyReports);
 
-router.route('/:id/status').put(protect, admin, updateReportStatus);
-router.route('/:id/maintenance').put(protect, admin, setRoomMaintenance);
+router.route('/:id/status').put(protect, admin, adminUnlocked, updateReportStatus);
+router.route('/:id/maintenance').put(protect, admin, adminUnlocked, setRoomMaintenance);
 
 module.exports = router;
 

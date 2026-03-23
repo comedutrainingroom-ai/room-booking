@@ -4,6 +4,8 @@ import Navbar from './Navbar';
 import Footer from './Footer';
 import Sidebar from './Sidebar';
 import LogoWatermark from './LogoWatermark';
+import { useAuth } from '../contexts/AuthContext';
+import { useSettings } from '../contexts/SettingsContext';
 
 const Layout = ({ children }) => {
     const [isSidebarOpen, setIsSidebarOpen] = useState(() => {
@@ -11,6 +13,9 @@ const Layout = ({ children }) => {
         return typeof window !== 'undefined' ? window.innerWidth >= 768 : true;
     });
     const location = useLocation();
+    const { dbUser } = useAuth();
+    const { settings } = useSettings();
+    const isMaintenanceModeActive = settings?.maintenanceMode && dbUser?.role !== 'admin';
 
     const toggleSidebar = useCallback(() => {
         setIsSidebarOpen(prev => !prev);
@@ -169,7 +174,23 @@ const Layout = ({ children }) => {
 
                     <div className="w-full h-full p-4 md:p-6 flex flex-col relative z-0">
                         <div className="flex-grow">
-                            {children}
+                            {isMaintenanceModeActive ? (
+                                <div className="mx-auto flex min-h-[60vh] max-w-3xl items-center justify-center">
+                                    <div className="w-full rounded-3xl border border-amber-200 bg-white/90 p-8 text-center shadow-xl backdrop-blur">
+                                        <p className="text-sm font-semibold uppercase tracking-[0.2em] text-amber-600">Maintenance Mode</p>
+                                        <h1 className="mt-3 text-3xl font-bold text-slate-900">The system is temporarily unavailable</h1>
+                                        <p className="mt-4 text-base text-slate-600">
+                                            Booking and reporting actions are paused while the admin is doing maintenance.
+                                            Please try again later.
+                                        </p>
+                                        {settings?.contactEmail && (
+                                            <p className="mt-4 text-sm text-slate-500">
+                                                Contact: {settings.contactEmail}
+                                            </p>
+                                        )}
+                                    </div>
+                                </div>
+                            ) : children}
                         </div>
                         <Footer />
                     </div>

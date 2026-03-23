@@ -6,10 +6,10 @@ const {
     toggleBanUser,
     deleteUser
 } = require('../controllers/userController');
-const { protect, admin } = require('../middleware/authMiddleware');
+const { protect, admin, adminUnlocked } = require('../middleware/authMiddleware');
 
 // All routes require admin access
-router.use(protect, admin);
+router.use(protect, admin, adminUnlocked);
 
 router.route('/').get(getAllUsers);
 router.route('/:id/role').put(updateUserRole);

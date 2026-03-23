@@ -10,7 +10,7 @@ const auditLogSchema = new mongoose.Schema({
             'booking:modify', 'booking:delete', 'booking:import', 'booking:delete_imported',
             'report:create', 'report:update_status', 'report:set_maintenance',
             'settings:update',
-            'user:update_profile', 'user:ban', 'user:unban'
+            'user:update_profile', 'user:update_role', 'user:ban', 'user:unban', 'user:delete'
         ]
     },
     performedBy: {

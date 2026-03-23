@@ -1,7 +1,7 @@
 const express = require('express');
 const path = require('path');
 const { getBookings, createBooking, updateBooking, deleteBooking } = require('../controllers/bookingController');
-const { protect, admin } = require('../middleware/authMiddleware');
+const { protect, admin, adminUnlocked } = require('../middleware/authMiddleware');
 
 const router = express.Router();
 
@@ -26,12 +26,12 @@ const upload = multer({
 });
 
 router.route('/import')
-    .post(protect, admin, upload.single('file'), require('../controllers/bookingController').importBookings)
-    .delete(protect, admin, require('../controllers/bookingController').deleteImportedBookings);
+    .post(protect, admin, adminUnlocked, upload.single('file'), require('../controllers/bookingController').importBookings)
+    .delete(protect, admin, adminUnlocked, require('../controllers/bookingController').deleteImportedBookings);
 
 router.route('/:id')
     .put(protect, updateBooking) // Must be logged in to update (student can cancel own, admin can approve)
-    .delete(protect, admin, deleteBooking); // Admin only can delete
+    .delete(protect, admin, adminUnlocked, deleteBooking); // Admin only can delete
 
 module.exports = router;
 

@@ -1,15 +1,98 @@
 const Booking = require('../models/Booking');
 const Room = require('../models/Room');
 const Setting = require('../models/Setting');
-const { sendBookingCreated, sendBookingApproved, sendBookingModified, sendBookingReminder, sendBookingCancelled } = require('../services/emailService');
-const { checkRoomAvailability, validateBookingTime, isUrgentBooking } = require('../services/bookingService');
+const {
+    sendBookingCreated,
+    sendBookingApproved,
+    sendBookingModified,
+    sendBookingReminder,
+    sendBookingCancelled
+} = require('../services/emailService');
+const {
+    checkRoomAvailability,
+    validateBookingTime,
+    isUrgentBooking
+} = require('../services/bookingService');
 const { logAction } = require('../services/auditService');
+
+const ADMIN_BOOKING_UPDATE_FIELDS = ['status', 'startTime', 'endTime', 'room', 'topic', 'note'];
+
+const getAdminPinErrorResponse = (req) => ({
+    success: false,
+    error: req.adminPinTokenError?.error || 'Admin PIN verification required',
+    code: req.adminPinTokenError?.code || 'ADMIN_PIN_REQUIRED'
+});
+
+const pickAllowedBookingFields = (payload = {}, allowedFields = []) => allowedFields.reduce((accumulator, field) => {
+    if (Object.prototype.hasOwnProperty.call(payload, field) && payload[field] !== undefined) {
+        accumulator[field] = payload[field];
+    }
+
+    return accumulator;
+}, {});
+
+const validateBookingAgainstSettings = (settings, startTime, endTime) => {
+    if (!settings) {
+        return { valid: true };
+    }
+
+    const start = new Date(startTime);
+    const end = new Date(endTime);
+
+    const durationHours = (end - start) / (1000 * 60 * 60);
+    if (settings.maxBookingHours && durationHours > settings.maxBookingHours) {
+        return {
+            valid: false,
+            error: `Cannot book longer than ${settings.maxBookingHours} hour(s) per request`
+        };
+    }
+
+    if (settings.maxBookingDays) {
+        const now = new Date();
+        const diffDays = (start - now) / (1000 * 60 * 60 * 24);
+        if (diffDays > settings.maxBookingDays) {
+            return {
+                valid: false,
+                error: `Cannot book more than ${settings.maxBookingDays} day(s) in advance`
+            };
+        }
+    }
+
+    if (!settings.weekendBooking) {
+        const dayOfWeek = start.getDay();
+        if (dayOfWeek === 0 || dayOfWeek === 6) {
+            return {
+                valid: false,
+                error: 'Weekend bookings are disabled'
+            };
+        }
+    }
+
+    if (settings.openTime && settings.closeTime) {
+        const [openHour, openMinute] = settings.openTime.split(':').map(Number);
+        const [closeHour, closeMinute] = settings.closeTime.split(':').map(Number);
+        const startMinutes = start.getHours() * 60 + start.getMinutes();
+        const endMinutes = end.getHours() * 60 + end.getMinutes();
+        const openMinutes = openHour * 60 + (openMinute || 0);
+        const closeMinutes = closeHour * 60 + (closeMinute || 0);
+
+        if (startMinutes < openMinutes || endMinutes > closeMinutes) {
+            return {
+                valid: false,
+                error: `Bookings are only allowed between ${settings.openTime} and ${settings.closeTime}`
+            };
+        }
+    }
+
+    return { valid: true };
+};
 
 const buildBookingResponseForViewer = (booking, viewer) => {
     const plainBooking = typeof booking.toObject === 'function' ? booking.toObject() : booking;
     const viewerEmail = viewer?.email?.toLowerCase().trim();
     const bookingOwnerEmail = plainBooking.user?.email?.toLowerCase().trim();
-    const canViewFullDetails = viewer?.role === 'admin' || (viewerEmail && viewerEmail === bookingOwnerEmail);
+    const canViewFullDetails = (viewer?.role === 'admin' && viewer?.adminUnlocked) ||
+        (viewerEmail && viewerEmail === bookingOwnerEmail);
 
     if (canViewFullDetails) {
         return {
@@ -37,14 +120,19 @@ const buildBookingResponseForViewer = (booking, viewer) => {
 
 // @desc    Get all bookings
 // @route   GET /api/bookings
-// @access  Public (Authenticated)
+// @access  Protected
 const getBookings = async (req, res) => {
     try {
-        // Whitelist allowed filter fields — prevents NoSQL operator injection via URL
         const allowedFilters = {};
 
-        if (req.query.room)   allowedFilters.room = req.query.room;
-        if (req.query.status) allowedFilters.status = req.query.status;
+        if (req.query.room) {
+            allowedFilters.room = req.query.room;
+        }
+
+        if (req.query.status) {
+            allowedFilters.status = req.query.status;
+        }
+
         if (req.query.email) {
             const requestedEmail = req.query.email.toLowerCase().trim();
             const viewerEmail = req.user.email.toLowerCase().trim();
@@ -58,9 +146,6 @@ const getBookings = async (req, res) => {
 
             allowedFilters['user.email'] = requestedEmail;
         }
-
-        // Everyone can see occupied time slots for room availability.
-        // Non-admin viewers only receive full details for their own bookings.
 
         const bookings = await Booking.find(allowedFilters).populate({
             path: 'room',
@@ -82,122 +167,73 @@ const getBookings = async (req, res) => {
 
 // @desc    Create a booking
 // @route   POST /api/bookings
-// @access  Private (logged in users)
+// @access  Private
 const createBooking = async (req, res) => {
     try {
-        const { room, startTime, endTime } = req.body;
+        const { room, startTime, endTime, topic, note, attendees } = req.body;
+        const settings = await Setting.findOne();
+        const isPrivilegedAdmin = req.user.role === 'admin' && req.adminUnlocked;
 
-        // Validate start time
         const timeValidation = validateBookingTime(startTime);
         if (!timeValidation.valid) {
             return res.status(400).json({ success: false, error: timeValidation.error });
         }
 
-        // Check if room exists and is active
         const targetRoom = await Room.findById(room);
         if (!targetRoom) {
-            return res.status(404).json({ success: false, error: 'ไม่พบห้องที่ต้องการจอง' });
+            return res.status(404).json({ success: false, error: 'Requested room was not found' });
         }
+
         if (!targetRoom.isActive) {
-            return res.status(400).json({ success: false, error: 'ห้องนี้กำลังปิดซ่อมบำรุง ไม่สามารถจองได้ในขณะนี้' });
+            return res.status(400).json({ success: false, error: 'This room is currently unavailable' });
         }
 
-        // --- Enforce system settings (Admins bypass all rules) ---
-        if (req.user.role !== 'admin') {
-            const settings = await Setting.findOne();
-            if (settings) {
-                const start = new Date(startTime);
-                const end = new Date(endTime);
-
-                // 1. Check maxBookingHours
-                const durationHours = (end - start) / (1000 * 60 * 60);
-                if (settings.maxBookingHours && durationHours > settings.maxBookingHours) {
-                    return res.status(400).json({
-                        success: false,
-                        error: `ไม่สามารถจองเกิน ${settings.maxBookingHours} ชั่วโมงต่อครั้ง (คุณเลือก ${durationHours} ชั่วโมง)`
-                    });
-                }
-
-                // 2. Check maxBookingDays (advance booking limit)
-                if (settings.maxBookingDays) {
-                    const now = new Date();
-                    const diffDays = (start - now) / (1000 * 60 * 60 * 24);
-                    if (diffDays > settings.maxBookingDays) {
-                        return res.status(400).json({
-                            success: false,
-                            error: `ไม่สามารถจองล่วงหน้าเกิน ${settings.maxBookingDays} วัน`
-                        });
-                    }
-                }
-
-                // 3. Check weekendBooking
-                if (!settings.weekendBooking) {
-                    const dayOfWeek = start.getDay(); // 0=Sun, 6=Sat
-                    if (dayOfWeek === 0 || dayOfWeek === 6) {
-                        return res.status(400).json({
-                            success: false,
-                            error: 'ไม่อนุญาตให้จองในวันเสาร์-อาทิตย์'
-                        });
-                    }
-                }
-
-                // 4. Check openTime/closeTime
-                if (settings.openTime && settings.closeTime) {
-                    const [openH, openM] = settings.openTime.split(':').map(Number);
-                    const [closeH, closeM] = settings.closeTime.split(':').map(Number);
-                    const startMinutes = start.getHours() * 60 + start.getMinutes();
-                    const endMinutes = end.getHours() * 60 + end.getMinutes();
-                    const openMinutes = openH * 60 + (openM || 0);
-                    const closeMinutes = closeH * 60 + (closeM || 0);
-
-                    if (startMinutes < openMinutes || endMinutes > closeMinutes) {
-                        return res.status(400).json({
-                            success: false,
-                            error: `สามารถจองได้เฉพาะช่วงเวลา ${settings.openTime} - ${settings.closeTime} เท่านั้น`
-                        });
-                    }
-                }
+        if (!isPrivilegedAdmin) {
+            const settingsValidation = validateBookingAgainstSettings(settings, startTime, endTime);
+            if (!settingsValidation.valid) {
+                return res.status(400).json({
+                    success: false,
+                    error: settingsValidation.error
+                });
             }
         }
 
-        // Check for availability
         const isAvailable = await checkRoomAvailability(room, startTime, endTime);
         if (!isAvailable) {
-            return res.status(400).json({ success: false, error: 'ห้องนี้ถูกจองแล้วในช่วงเวลาดังกล่าว' });
+            return res.status(400).json({
+                success: false,
+                error: 'This room is already booked for the selected time range'
+            });
         }
 
-        // Determine status — only admin can self-approve; students always get 'pending'
-        const bookingStatus = req.user.role === 'admin' ? 'approved' : 'pending';
+        const bookingStatus = (isPrivilegedAdmin || settings?.requireApproval === false)
+            ? 'approved'
+            : 'pending';
 
-        // Explicit field selection — prevents mass assignment (e.g., student sending status:'approved')
         let booking = await Booking.create({
             room,
             startTime,
             endTime,
-            topic: req.body.topic,
-            note: req.body.note,
-            attendees: req.body.attendees,
+            topic,
+            note,
+            attendees,
             user: {
                 name: req.user.name,
                 email: req.user.email,
                 department: req.user.faculty || req.user.department || '',
+                phone: req.user.phone || ''
             },
-            status: bookingStatus,
+            status: bookingStatus
         });
 
-        // Populate room details for email
         booking = await booking.populate('room');
 
-        // Send Email Notification (Async without waiting)
-        sendBookingCreated(booking).catch(err => console.error('Failed to send creation email:', err));
+        sendBookingCreated(booking).catch((error) => console.error('Failed to send creation email:', error));
 
-        // Check for urgent booking (starts within 1 hour)
         if (isUrgentBooking(startTime)) {
             console.log(`Urgent booking detected: ${booking._id}. Sending immediate reminder.`);
-            sendBookingReminder(booking).catch(err => console.error('Failed to send reminder email:', err));
-            // Mark as reminded so cron doesn't send duplicate
+            sendBookingReminder(booking).catch((error) => console.error('Failed to send reminder email:', error));
             booking.reminderSent = true;
-            // Awaiting this because we want to save the state
             await booking.save();
         }
 
@@ -206,13 +242,19 @@ const createBooking = async (req, res) => {
             data: booking
         });
 
-        // Audit log
-        logAction({ action: 'booking:create', performedBy: req.user._id, targetType: 'booking', targetId: booking._id, details: `สร้างการจอง: ${booking.topic}`, req });
+        logAction({
+            action: 'booking:create',
+            performedBy: req.user._id,
+            targetType: 'booking',
+            targetId: booking._id,
+            details: `Created booking: ${booking.topic}`,
+            req
+        });
 
-        // Emit real-time notification to admin room
         const io = req.app.get('io');
-        if (io) io.to('admin-room').emit('booking:created', { bookingId: booking._id, topic: booking.topic });
-
+        if (io) {
+            io.to('admin-room').emit('booking:created', { bookingId: booking._id, topic: booking.topic });
+        }
     } catch (error) {
         console.error('createBooking Error:', error);
         res.status(500).json({ success: false, error: 'Server Error' });
@@ -221,7 +263,7 @@ const createBooking = async (req, res) => {
 
 // @desc    Update a booking (Approve/Reject/Modify Time)
 // @route   PUT /api/bookings/:id
-// @access  Private (students can cancel own, admin can do all)
+// @access  Private (students can cancel own, admin can do all after PIN verification)
 const updateBooking = async (req, res) => {
     try {
         const originalBooking = await Booking.findById(req.params.id);
@@ -229,135 +271,142 @@ const updateBooking = async (req, res) => {
             return res.status(404).json({ success: false, error: 'Booking not found' });
         }
 
-        // Authorization check
-        const isOwner = originalBooking.user.email === req.user.email;
+        const requesterEmail = req.user.email.toLowerCase().trim();
+        const bookingOwnerEmail = originalBooking.user.email.toLowerCase().trim();
+        const isOwner = requesterEmail === bookingOwnerEmail;
         const isAdmin = req.user.role === 'admin';
 
         if (!isOwner && !isAdmin) {
-            return res.status(403).json({ success: false, error: 'ไม่มีสิทธิ์แก้ไขการจองนี้' });
+            return res.status(403).json({ success: false, error: 'Not authorized to modify this booking' });
         }
 
-        // Students can only cancel their own pending bookings
-        if (!isAdmin) {
-            if (req.body.status !== 'cancelled') {
-                return res.status(403).json({ success: false, error: 'นักศึกษาสามารถยกเลิกการจองได้เท่านั้น' });
+        if (isAdmin && !req.adminUnlocked) {
+            return res.status(403).json(getAdminPinErrorResponse(req));
+        }
+
+        let updateData = {};
+
+        if (isAdmin) {
+            updateData = pickAllowedBookingFields(req.body, ADMIN_BOOKING_UPDATE_FIELDS);
+
+            if (Object.keys(updateData).length === 0) {
+                return res.status(400).json({
+                    success: false,
+                    error: 'No valid booking fields were provided for update'
+                });
             }
+        } else {
+            const requestKeys = Object.keys(req.body || {});
+            const onlyCancellingStatus = requestKeys.length === 1 &&
+                requestKeys[0] === 'status' &&
+                req.body.status === 'cancelled';
+
+            if (!onlyCancellingStatus) {
+                return res.status(403).json({
+                    success: false,
+                    error: 'Students can only cancel their own pending bookings'
+                });
+            }
+
             if (originalBooking.status !== 'pending') {
-                return res.status(403).json({ success: false, error: 'สามารถยกเลิกได้เฉพาะการจองที่รออนุมัติเท่านั้น' });
+                return res.status(403).json({
+                    success: false,
+                    error: 'Only pending bookings can be cancelled'
+                });
             }
+
+            updateData = { status: 'cancelled' };
         }
 
         const oldStartTime = originalBooking.startTime;
         const oldEndTime = originalBooking.endTime;
+        const nextRoomId = updateData.room || originalBooking.room;
+        const nextStartTime = updateData.startTime || oldStartTime;
+        const nextEndTime = updateData.endTime || oldEndTime;
+        const timeChanged = new Date(nextStartTime).getTime() !== new Date(oldStartTime).getTime() ||
+            new Date(nextEndTime).getTime() !== new Date(oldEndTime).getTime();
+        const roomChanged = Object.prototype.hasOwnProperty.call(updateData, 'room') &&
+            String(updateData.room) !== String(originalBooking.room);
 
-        // Check for time modification and availability
-        if (req.body.startTime || req.body.endTime) {
-            const newStartTime = req.body.startTime || oldStartTime;
-            const newEndTime = req.body.endTime || oldEndTime;
-
-            // Validate time (if start time changed)
-            if (req.body.startTime) {
-                const timeValidation = validateBookingTime(newStartTime);
+        if (timeChanged || roomChanged) {
+            if (updateData.startTime) {
+                const timeValidation = validateBookingTime(nextStartTime);
                 if (!timeValidation.valid) {
                     return res.status(400).json({ success: false, error: timeValidation.error });
                 }
             }
 
-            // --- Enforce system settings on time modification (Admins bypass) ---
-            if (req.user.role !== 'admin') {
-                const settings = await Setting.findOne();
-                if (settings) {
-                    const start = new Date(newStartTime);
-                    const end = new Date(newEndTime);
-
-                    // Check maxBookingHours
-                    const durationHours = (end - start) / (1000 * 60 * 60);
-                    if (settings.maxBookingHours && durationHours > settings.maxBookingHours) {
-                        return res.status(400).json({
-                            success: false,
-                            error: `ไม่สามารถจองเกิน ${settings.maxBookingHours} ชั่วโมงต่อครั้ง (เลือก ${durationHours} ชั่วโมง)`
-                        });
-                    }
-
-                    // Check weekendBooking
-                    if (!settings.weekendBooking) {
-                        const dayOfWeek = start.getDay();
-                        if (dayOfWeek === 0 || dayOfWeek === 6) {
-                            return res.status(400).json({
-                                success: false,
-                                error: 'ไม่อนุญาตให้จองในวันเสาร์-อาทิตย์'
-                            });
-                        }
-                    }
-
-                    // Check openTime/closeTime
-                    if (settings.openTime && settings.closeTime) {
-                        const [openH, openM] = settings.openTime.split(':').map(Number);
-                        const [closeH, closeM] = settings.closeTime.split(':').map(Number);
-                        const startMinutes = start.getHours() * 60 + start.getMinutes();
-                        const endMinutes = end.getHours() * 60 + end.getMinutes();
-                        const openMinutes = openH * 60 + (openM || 0);
-                        const closeMinutes = closeH * 60 + (closeM || 0);
-
-                        if (startMinutes < openMinutes || endMinutes > closeMinutes) {
-                            return res.status(400).json({
-                                success: false,
-                                error: `สามารถจองได้เฉพาะช่วงเวลา ${settings.openTime} - ${settings.closeTime} เท่านั้น`
-                            });
-                        }
-                    }
-                }
+            const targetRoom = await Room.findById(nextRoomId);
+            if (!targetRoom) {
+                return res.status(404).json({ success: false, error: 'Requested room was not found' });
             }
 
-            // Check availability (exclude current booking)
+            if (!targetRoom.isActive) {
+                return res.status(400).json({ success: false, error: 'This room is currently unavailable' });
+            }
+
             const isAvailable = await checkRoomAvailability(
-                req.body.room || originalBooking.room,
-                newStartTime,
-                newEndTime,
+                nextRoomId,
+                nextStartTime,
+                nextEndTime,
                 req.params.id
             );
 
             if (!isAvailable) {
-                return res.status(400).json({ success: false, error: 'ห้องนี้ถูกจองแล้วในช่วงเวลาดังกล่าว' });
+                return res.status(400).json({
+                    success: false,
+                    error: 'This room is already booked for the selected time range'
+                });
             }
         }
 
-        let booking = await Booking.findByIdAndUpdate(req.params.id, req.body, {
+        const booking = await Booking.findByIdAndUpdate(req.params.id, updateData, {
             returnDocument: 'after',
             runValidators: true
         }).populate('room');
 
-
-
-        // Send Email if Cancelled
-        if (req.body.status === 'cancelled' && originalBooking.status !== 'cancelled') {
-            sendBookingCancelled(booking).catch(err => console.error('Failed to send cancellation email:', err));
+        if (!booking) {
+            return res.status(404).json({ success: false, error: 'Booking not found' });
         }
 
-        // Send Email if Approved
-        if (req.body.status === 'approved' && originalBooking.status !== 'approved') {
-            sendBookingApproved(booking).catch(err => console.error('Failed to send approval email:', err));
+        if (updateData.status === 'cancelled' && originalBooking.status !== 'cancelled') {
+            sendBookingCancelled(booking).catch((error) => console.error('Failed to send cancellation email:', error));
         }
 
-        // Send Email if Time was Modified (and not just status change)
-        const timeChanged = (req.body.startTime && new Date(req.body.startTime).getTime() !== new Date(oldStartTime).getTime()) ||
-            (req.body.endTime && new Date(req.body.endTime).getTime() !== new Date(oldEndTime).getTime());
+        if (updateData.status === 'approved' && originalBooking.status !== 'approved') {
+            sendBookingApproved(booking).catch((error) => console.error('Failed to send approval email:', error));
+        }
 
         if (timeChanged) {
-            sendBookingModified(booking, oldStartTime, oldEndTime).catch(err => console.error('Failed to send modification email:', err));
+            sendBookingModified(booking, oldStartTime, oldEndTime).catch((error) => {
+                console.error('Failed to send modification email:', error);
+            });
         }
 
         res.status(200).json({ success: true, data: booking });
 
-        // Audit log
-        const actionMap = { approved: 'booking:approve', rejected: 'booking:reject', cancelled: 'booking:cancel' };
-        const auditAction = actionMap[req.body.status] || (timeChanged ? 'booking:modify' : 'booking:approve');
-        logAction({ action: auditAction, performedBy: req.user._id, targetType: 'booking', targetId: booking._id, details: `${req.body.status || 'modified'}: ${booking.topic}`, req });
+        const actionMap = {
+            approved: 'booking:approve',
+            rejected: 'booking:reject',
+            cancelled: 'booking:cancel'
+        };
 
-        // Emit real-time notification to admin room
+        const auditAction = actionMap[updateData.status] || 'booking:modify';
+        const auditDetail = updateData.status ? `${updateData.status}: ${booking.topic}` : `modified: ${booking.topic}`;
+
+        logAction({
+            action: auditAction,
+            performedBy: req.user._id,
+            targetType: 'booking',
+            targetId: booking._id,
+            details: auditDetail,
+            req
+        });
+
         const io = req.app.get('io');
-        if (io) io.to('admin-room').emit('booking:updated', { bookingId: booking._id, status: booking.status });
-
+        if (io) {
+            io.to('admin-room').emit('booking:updated', { bookingId: booking._id, status: booking.status });
+        }
     } catch (error) {
         console.error('updateBooking Error:', error);
         res.status(500).json({ success: false, error: 'Server Error' });
@@ -379,23 +428,27 @@ const deleteBooking = async (req, res) => {
 
         res.status(200).json({ success: true, data: {} });
 
-        // Audit log
-        logAction({ action: 'booking:delete', performedBy: req.user._id, targetType: 'booking', targetId: req.params.id, details: `ลบการจอง: ${booking.topic}`, req });
+        logAction({
+            action: 'booking:delete',
+            performedBy: req.user._id,
+            targetType: 'booking',
+            targetId: req.params.id,
+            details: `Deleted booking: ${booking.topic}`,
+            req
+        });
 
-        // Emit real-time notification
         const io = req.app.get('io');
-        if (io) io.to('admin-room').emit('booking:deleted', { bookingId: req.params.id });
-
+        if (io) {
+            io.to('admin-room').emit('booking:deleted', { bookingId: req.params.id });
+        }
     } catch (error) {
         res.status(500).json({ success: false, error: error.message });
     }
 };
 
-
-
 // @desc    Import bookings from Excel
 // @route   POST /api/bookings/import
-// @access  Private (Admin only)
+// @access  Private/Admin
 const importBookings = async (req, res) => {
     try {
         if (!req.file) {
@@ -406,69 +459,117 @@ const importBookings = async (req, res) => {
         let xlsx;
         try {
             xlsx = require('xlsx');
-        } catch (e) {
-            console.error('Failed to load xlsx module:', e);
-            return res.status(500).json({ success: false, error: 'Server Error: xlsx dependency missing. Please restart server.' });
+        } catch (error) {
+            console.error('Failed to load xlsx module:', error);
+            return res.status(500).json({
+                success: false,
+                error: 'Server Error: xlsx dependency missing. Please restart server.'
+            });
         }
-
-        const Room = require('../models/Room');
 
         const workbook = xlsx.read(req.file.buffer, { type: 'buffer' });
         let data = [];
         for (const sheetName of workbook.SheetNames) {
             const sheet = workbook.Sheets[sheetName];
             const sheetData = xlsx.utils.sheet_to_json(sheet);
-            sheetData.forEach((row, idx) => {
+            sheetData.forEach((row, index) => {
                 row._sheetName = sheetName;
-                row._originalRowNum = idx + 2;
+                row._originalRowNum = index + 2;
                 data.push(row);
             });
         }
 
+        const semesterStart = req.body.startDate ? new Date(req.body.startDate) : new Date();
+        const semesterEnd = req.body.endDate
+            ? new Date(req.body.endDate)
+            : new Date(new Date().setMonth(new Date().getMonth() + 4));
 
-        let semesterStart = req.body.startDate ? new Date(req.body.startDate) : new Date();
-        let semesterEnd = req.body.endDate ? new Date(req.body.endDate) : new Date(new Date().setMonth(new Date().getMonth() + 4));
-
-        // Helper to map Day string to index (0=Sun, 1=Mon, ..., 6=Sat)
         const getDayIndex = (dayStr) => {
-            if (!dayStr) return -1;
-            const d = dayStr.toLowerCase().trim();
-            console.log(`Mapping day: '${dayStr}' -> '${d}'`);
+            if (!dayStr) {
+                return -1;
+            }
+
+            const normalized = dayStr.toLowerCase().trim();
             const days = {
-                'sunday': 0, 'sun': 0, 'อาทิตย์': 0, 'อา': 0,
-                'monday': 1, 'mon': 1, 'จันทร์': 1, 'จ': 1,
-                'tuesday': 2, 'tue': 2, 'อังคาร': 2, 'อ': 2,
-                'wednesday': 3, 'wed': 3, 'พุธ': 3, 'พ': 3,
-                'thursday': 4, 'thu': 4, 'พฤหัส': 4, 'พฤหัสบดี': 4, 'พฤ': 4,
-                'friday': 5, 'fri': 5, 'ศุกร์': 5, 'ศ': 5,
-                'saturday': 6, 'sat': 6, 'เสาร์': 6, 'ส': 6
+                sunday: 0,
+                sun: 0,
+                monday: 1,
+                mon: 1,
+                tuesday: 2,
+                tue: 2,
+                wednesday: 3,
+                wed: 3,
+                thursday: 4,
+                thu: 4,
+                friday: 5,
+                fri: 5,
+                saturday: 6,
+                sat: 6,
+                'อาทิตย์': 0,
+                'อา': 0,
+                'จันทร์': 1,
+                'จ': 1,
+                'อังคาร': 2,
+                'อ': 2,
+                'พุธ': 3,
+                'พ': 3,
+                'พฤหัส': 4,
+                'พฤหัสบดี': 4,
+                'พฤ': 4,
+                'ศุกร์': 5,
+                'ศ': 5,
+                'เสาร์': 6,
+                'ส': 6
             };
-            return days[d] !== undefined ? days[d] : -1;
+
+            return days[normalized] !== undefined ? days[normalized] : -1;
+        };
+
+        const parseExcelTime = (value) => {
+            if (!value) {
+                return null;
+            }
+
+            if (typeof value === 'number') {
+                const totalSeconds = Math.round(value * 24 * 60 * 60);
+                const hours = Math.floor(totalSeconds / 3600);
+                const minutes = Math.floor((totalSeconds % 3600) / 60);
+                return { hours, minutes };
+            }
+
+            if (typeof value === 'string') {
+                const parts = value.split(':');
+                if (parts.length >= 2) {
+                    return {
+                        hours: parseInt(parts[0], 10),
+                        minutes: parseInt(parts[1], 10)
+                    };
+                }
+            }
+
+            return null;
         };
 
         const bookingsToCreate = [];
-        let errors = [];
+        const errors = [];
 
-        // 1. Pre-fetch all rooms to optimize (optional, but good for speed)
-        // For simplicity, we stick to findOne inside loop or cache if needed.
-        // Let's use a simple map for speed if possible, but findOne is safer for exact match.
-
-        for (const [index, row] of data.entries()) {
+        for (const row of data) {
             const rowNum = `Sheet '${row._sheetName}' Row ${row._originalRowNum}`;
             const normalizedRow = {};
-            Object.keys(row).forEach(key => {
+
+            Object.keys(row).forEach((key) => {
                 if (key !== '_sheetName' && key !== '_originalRowNum') {
                     normalizedRow[key.toLowerCase()] = row[key];
                 }
             });
 
-            const roomName = normalizedRow['room'];
-            const dayStr = normalizedRow['day'] || row._sheetName; // 'Monday' or fallback
-            const dateStr = normalizedRow['date']; // Optional: Specific Date fallback
-            const startTimeStr = normalizedRow['starttime']; // HH:mm
-            const endTimeStr = normalizedRow['endtime']; // HH:mm
-            const subject = normalizedRow['subject'] || 'Class';
-            const teacher = normalizedRow['teacher'] || 'Unknown';
+            const roomName = normalizedRow.room;
+            const dayStr = normalizedRow.day || row._sheetName;
+            const dateStr = normalizedRow.date;
+            const startTimeStr = normalizedRow.starttime;
+            const endTimeStr = normalizedRow.endtime;
+            const subject = normalizedRow.subject || 'Class';
+            const teacher = normalizedRow.teacher || 'Unknown';
 
             if (!roomName || (!dayStr && !dateStr) || !startTimeStr || !endTimeStr) {
                 errors.push(`Row ${rowNum}: Missing required fields`);
@@ -477,42 +578,19 @@ const importBookings = async (req, res) => {
 
             let room = await Room.findOne({ name: roomName });
             if (!room) {
-                // Auto-create room if it doesn't exist
                 try {
                     room = await Room.create({
                         name: roomName,
-                        capacity: 30, // Default capacity
-                        equipment: ['Computer', 'Projector'], // Default equipment
+                        capacity: 30,
+                        equipment: ['Computer', 'Projector'],
                         description: 'Auto-created from Schedule Import'
                     });
                     console.log(`Auto-created missing room: ${roomName}`);
-                } catch (err) {
+                } catch (error) {
                     errors.push(`Row ${rowNum}: Failed to auto-create room '${roomName}'`);
                     continue;
                 }
             }
-
-            // Helper to parse time from Excel (handle both "09:00" string and 0.375 number)
-            const parseExcelTime = (val) => {
-                if (!val) return null;
-
-                // If it's a number (Excel fraction of day), e.g., 0.5 = 12:00
-                if (typeof val === 'number') {
-                    const totalSeconds = Math.round(val * 24 * 60 * 60);
-                    const hours = Math.floor(totalSeconds / 3600);
-                    const minutes = Math.floor((totalSeconds % 3600) / 60);
-                    return { h: hours, m: minutes };
-                }
-
-                // If it's a string "HH:mm"
-                if (typeof val === 'string') {
-                    const parts = val.split(':');
-                    if (parts.length >= 2) {
-                        return { h: parseInt(parts[0]), m: parseInt(parts[1]) };
-                    }
-                }
-                return null;
-            };
 
             const startObj = parseExcelTime(startTimeStr);
             const endObj = parseExcelTime(endTimeStr);
@@ -523,18 +601,17 @@ const importBookings = async (req, res) => {
                 continue;
             }
 
-            // Determine Start/End Times on a dummy date first to validate time format
-            const timeParams = (dateObj) => {
-                // Return new Date objects combining dateObjYYYY-MM-DD and timeStr
-                const y = dateObj.getFullYear();
-                const m = dateObj.getMonth();
-                const d = dateObj.getDate();
-                const s = new Date(y, m, d, startObj.h, startObj.m);
-                const e = new Date(y, m, d, endObj.h, endObj.m);
-                return { s, e };
+            const buildDateTimeRange = (dateObj) => {
+                const year = dateObj.getFullYear();
+                const month = dateObj.getMonth();
+                const day = dateObj.getDate();
+
+                return {
+                    start: new Date(year, month, day, startObj.hours, startObj.minutes),
+                    end: new Date(year, month, day, endObj.hours, endObj.minutes)
+                };
             };
 
-            // CASE 1: Recurring Day
             if (dayStr) {
                 const targetDayIndex = getDayIndex(dayStr);
                 if (targetDayIndex === -1) {
@@ -542,48 +619,53 @@ const importBookings = async (req, res) => {
                     continue;
                 }
 
-                // Loop through semester range
-                let loopDate = new Date(semesterStart);
+                const loopDate = new Date(semesterStart);
                 while (loopDate <= semesterEnd) {
                     if (loopDate.getDay() === targetDayIndex) {
-                        const { s, e } = timeParams(loopDate);
-
-                        // Add to batch
+                        const { start, end } = buildDateTimeRange(loopDate);
                         bookingsToCreate.push({
                             room: room._id,
                             topic: subject,
                             note: 'Imported Schedule',
-                            user: { name: teacher, email: 'imported@system.com', department: 'Imported' },
-                            startTime: s,
-                            endTime: e,
+                            user: {
+                                name: teacher,
+                                email: 'imported@system.com',
+                                department: 'Imported'
+                            },
+                            startTime: start,
+                            endTime: end,
                             status: 'approved',
                             isImported: true
                         });
                     }
+
                     loopDate.setDate(loopDate.getDate() + 1);
                 }
-            }
-            // CASE 2: Specific Date
-            else if (dateStr) {
+            } else if (dateStr) {
                 const specificDate = new Date(dateStr);
-                if (isNaN(specificDate.getTime())) {
+                if (Number.isNaN(specificDate.getTime())) {
                     errors.push(`Row ${rowNum}: Invalid date format`);
                     continue;
                 }
-                const { s, e } = timeParams(specificDate);
+
+                const { start, end } = buildDateTimeRange(specificDate);
                 bookingsToCreate.push({
                     room: room._id,
                     topic: subject,
                     note: 'Imported Schedule',
-                    user: { name: teacher, email: 'admin@system.com', department: 'Imported' },
-                    startTime: s,
-                    endTime: e,
-                    status: 'approved'
+                    user: {
+                        name: teacher,
+                        email: 'admin@system.com',
+                        department: 'Imported'
+                    },
+                    startTime: start,
+                    endTime: end,
+                    status: 'approved',
+                    isImported: true
                 });
             }
         }
 
-        // Bulk Insert
         if (bookingsToCreate.length > 0) {
             await Booking.insertMany(bookingsToCreate);
         }
@@ -591,37 +673,52 @@ const importBookings = async (req, res) => {
         res.status(200).json({
             success: true,
             count: bookingsToCreate.length,
-            errors: errors,
+            errors,
             message: `Imported ${bookingsToCreate.length} bookings. ${errors.length} errors.`
         });
 
-        // Emit real-time notification
-        const io = req.app.get('io');
-        if (io) io.to('admin-room').emit('booking:imported', { count: bookingsToCreate.length });
+        logAction({
+            action: 'booking:import',
+            performedBy: req.user._id,
+            targetType: 'booking',
+            details: `Imported ${bookingsToCreate.length} booking(s) from spreadsheet`,
+            req
+        });
 
+        const io = req.app.get('io');
+        if (io) {
+            io.to('admin-room').emit('booking:imported', { count: bookingsToCreate.length });
+        }
     } catch (error) {
         console.error('Import Error:', error);
-        res.status(500).json({ success: false, error: 'Failed to process file: ' + error.message });
+        res.status(500).json({ success: false, error: `Failed to process file: ${error.message}` });
     }
 };
 
-
 // @desc    Delete all imported bookings
 // @route   DELETE /api/bookings/import
-// @access  Private (Admin only)
+// @access  Private/Admin
 const deleteImportedBookings = async (req, res) => {
     try {
-        // Delete if isImported is true OR if department is 'Imported' (for legacy imports)
         const result = await Booking.deleteMany({
             $or: [
                 { isImported: true },
                 { 'user.department': 'Imported' }
             ]
         });
+
         res.status(200).json({
             success: true,
             message: `Deleted ${result.deletedCount} imported bookings`,
             count: result.deletedCount
+        });
+
+        logAction({
+            action: 'booking:delete_imported',
+            performedBy: req.user._id,
+            targetType: 'booking',
+            details: `Deleted ${result.deletedCount} imported booking(s)`,
+            req
         });
     } catch (error) {
         res.status(500).json({ success: false, error: 'Server Error' });

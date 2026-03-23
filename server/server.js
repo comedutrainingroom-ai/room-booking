@@ -12,6 +12,7 @@ const { Server } = require('socket.io');
 const connectDB = require('./config/db');
 const User = require('./models/User');
 const firebaseAdmin = require('./config/firebaseAdmin');
+const { verifyAdminPinToken } = require('./services/adminPinTokenService');
 
 // Load env vars
 dotenv.config({ path: path.join(__dirname, '.env') });
@@ -21,7 +22,7 @@ const validateRequiredEnv = () => {
         return;
     }
 
-    const requiredEnv = ['CLIENT_URL', 'MONGO_URI', 'ADMIN_PIN'];
+    const requiredEnv = ['CLIENT_URL', 'MONGO_URI', 'ADMIN_PIN', 'ADMIN_PIN_TOKEN_SECRET'];
     const missingEnv = requiredEnv.filter((key) => !process.env[key]);
 
     if (missingEnv.length > 0) {
@@ -52,8 +53,20 @@ app.set('io', io);
 io.on('connection', (socket) => {
     console.log(`[Socket.io] Client connected: ${socket.id}`);
 
+    const clearAdminRoomSession = () => {
+        if (socket.data.adminPinExpiryTimer) {
+            clearTimeout(socket.data.adminPinExpiryTimer);
+            socket.data.adminPinExpiryTimer = null;
+        }
+
+        socket.leave('admin-room');
+        socket.data.adminPinExpiresAt = null;
+    };
+
     // Admin joins a dedicated room for notifications
-    socket.on('join-admin', async ({ token } = {}) => {
+    socket.on('join-admin', async ({ token, adminPinToken } = {}) => {
+        clearAdminRoomSession();
+
         if (!token) {
             socket.emit('admin:join:denied', { error: 'Missing token' });
             return;
@@ -68,13 +81,40 @@ io.on('connection', (socket) => {
                 return;
             }
 
-            const user = await User.findOne({ email }).select('role isBanned');
+            const user = await User.findOne({ email }).select('email role isBanned');
             if (!user || user.role !== 'admin' || user.isBanned) {
                 socket.emit('admin:join:denied', { error: 'Not authorized as admin' });
                 return;
             }
 
+            const adminPinVerification = verifyAdminPinToken(adminPinToken, user);
+            if (!adminPinVerification.valid) {
+                socket.emit('admin:join:denied', {
+                    error: adminPinVerification.error,
+                    code: adminPinVerification.code
+                });
+                return;
+            }
+
+            const expiresAt = adminPinVerification.payload.exp * 1000;
+            const expiresInMs = Math.max(expiresAt - Date.now(), 0);
+            if (expiresInMs === 0) {
+                socket.emit('admin:join:denied', {
+                    error: 'Admin PIN session has expired',
+                    code: 'ADMIN_PIN_EXPIRED'
+                });
+                return;
+            }
+
             socket.join('admin-room');
+            socket.data.adminPinExpiresAt = expiresAt;
+            socket.data.adminPinExpiryTimer = setTimeout(() => {
+                clearAdminRoomSession();
+                socket.emit('admin:session:expired', {
+                    error: 'Admin PIN session has expired',
+                    code: 'ADMIN_PIN_EXPIRED'
+                });
+            }, expiresInMs);
             socket.emit('admin:join:confirmed');
             console.log(`[Socket.io] ${socket.id} joined admin-room`);
         } catch (error) {
@@ -83,7 +123,13 @@ io.on('connection', (socket) => {
         }
     });
 
+    socket.on('leave-admin', () => {
+        clearAdminRoomSession();
+        socket.emit('admin:left');
+    });
+
     socket.on('disconnect', () => {
+        clearAdminRoomSession();
         console.log(`[Socket.io] Client disconnected: ${socket.id}`);
     });
 });

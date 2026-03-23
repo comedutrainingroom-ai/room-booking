@@ -1,5 +1,5 @@
 import { Link, useNavigate, useLocation } from 'react-router-dom';
-import { FaBuilding, FaBars, FaSignOutAlt, FaUserCircle, FaExclamationTriangle, FaCaretDown, FaBell, FaCalendarPlus, FaCheckCircle, FaTimesCircle, FaCheck } from 'react-icons/fa';
+import { FaBuilding, FaBars, FaSignOutAlt, FaUserCircle, FaExclamationTriangle, FaCaretDown, FaBell, FaCalendarPlus, FaCheckCircle, FaTimesCircle, FaCheck, FaLock } from 'react-icons/fa';
 import { useAuth } from '../contexts/AuthContext';
 import { useSettings } from '../contexts/SettingsContext';
 import { useSocket } from '../contexts/SocketContext';
@@ -8,7 +8,7 @@ import { useState, useRef, useEffect, useCallback } from 'react';
 import api from '../services/api';
 
 const Navbar = ({ toggleSidebar }) => {
-    const { currentUser, logout, dbUser } = useAuth();
+    const { currentUser, logout, dbUser, isAdminUnlocked } = useAuth();
     const { settings } = useSettings();
     const { socket } = useSocket();
     const toast = useToast();
@@ -36,6 +36,8 @@ const Navbar = ({ toggleSidebar }) => {
     const dropdownRef = useRef(null);
     const dropdownTimeoutRef = useRef(null);
     const [bellShake, setBellShake] = useState(false);
+    const showAdminBell = dbUser?.role === 'admin';
+    const canAccessAdminNotifications = dbUser?.role === 'admin' && isAdminUnlocked;
 
     const handleLogout = async () => {
         try {
@@ -72,7 +74,7 @@ const Navbar = ({ toggleSidebar }) => {
     }, []);
 
     const fetchNotifications = useCallback(async () => {
-        if (!dbUser || dbUser.role !== 'admin') return;
+        if (!canAccessAdminNotifications) return;
 
         try {
             const [bookingsRes, reportsRes] = await Promise.all([
@@ -110,18 +112,22 @@ const Navbar = ({ toggleSidebar }) => {
         } catch (error) {
             console.error("Failed to fetch notifications", error);
         }
-    }, [dbUser]);
+    }, [canAccessAdminNotifications]);
 
-    // Fetch once on mount
     useEffect(() => {
-        if (dbUser?.role === 'admin') {
+        if (canAccessAdminNotifications) {
             fetchNotifications();
+            return;
         }
-    }, [dbUser, fetchNotifications]);
+
+        setNotifications({ bookings: 0, reports: 0 });
+        setNotiItems([]);
+        setUnreadCount(0);
+    }, [canAccessAdminNotifications, fetchNotifications]);
 
     // Socket.io real-time notification listener with toast pop-ups
     useEffect(() => {
-        if (!socket || dbUser?.role !== 'admin') return;
+        if (!socket || !canAccessAdminNotifications) return;
 
         const handleBookingCreated = (data) => {
             fetchNotifications();
@@ -190,11 +196,11 @@ const Navbar = ({ toggleSidebar }) => {
             socket.off('report:created', handleReportCreated);
             socket.off('report:updated', handleReportUpdated);
         };
-    }, [socket, dbUser, fetchNotifications, addNotiItem, toast]);
+    }, [socket, canAccessAdminNotifications, fetchNotifications, addNotiItem, toast]);
 
     // Clear notifications when visiting pages
     useEffect(() => {
-        if (dbUser?.role === 'admin') {
+        if (canAccessAdminNotifications) {
             if (location.pathname === '/approve') {
                 if (notifications.bookings > seenCounts.bookings) {
                     updateSeenCount('bookings', notifications.bookings);
@@ -206,7 +212,7 @@ const Navbar = ({ toggleSidebar }) => {
                 }
             }
         }
-    }, [location.pathname, notifications, seenCounts, dbUser]);
+    }, [location.pathname, notifications, seenCounts, canAccessAdminNotifications]);
 
     // Close dropdowns
     useEffect(() => {
@@ -291,16 +297,22 @@ const Navbar = ({ toggleSidebar }) => {
                     {/* Right Side Actions */}
                     <div className="flex items-center gap-3">
                         {/* Notification Bell (Admin Only) */}
-                        {dbUser?.role === 'admin' && (
+                        {showAdminBell && (
                             <div className="relative" ref={notiDropdownRef}>
                                 <button
                                     onClick={() => {
+                                        if (!canAccessAdminNotifications) {
+                                            setIsNotiDropdownOpen(false);
+                                            toast.info('กรุณาปลดล็อก Admin PIN ก่อนดูการแจ้งเตือน');
+                                            return;
+                                        }
+
                                         setIsNotiDropdownOpen(!isNotiDropdownOpen);
-                                        // Optional: Clear on click? User said "Pressed into it OR went to that page"
-                                        // Let's clear when they click the links inside, or visit page.
-                                        // Clicking the bell just shows the list.
                                     }}
-                                    className="relative p-2 text-white hover:bg-white/10 rounded-full transition-all duration-200 focus:outline-none"
+                                    title={canAccessAdminNotifications ? 'Notifications' : 'Unlock Admin PIN to view notifications'}
+                                    className={`relative p-2 text-white rounded-full transition-all duration-200 focus:outline-none ${
+                                        canAccessAdminNotifications ? 'hover:bg-white/10' : 'bg-white/5 opacity-80'
+                                    }`}
                                 >
                                     <FaBell className={`text-lg transition-transform duration-300 ${bellShake ? 'animate-[bellRing_0.8s_ease-in-out]' : ''} ${isNotiDropdownOpen ? 'scale-110' : ''}`} />
                                     {displayBadge > 0 && (
@@ -308,10 +320,15 @@ const Navbar = ({ toggleSidebar }) => {
                                             {displayBadge > 9 ? '9+' : displayBadge}
                                         </span>
                                     )}
+                                    {!canAccessAdminNotifications && (
+                                        <span className="absolute -bottom-0.5 -right-0.5 flex h-4 w-4 items-center justify-center rounded-full border border-primary bg-slate-900 text-[8px] text-white shadow-lg">
+                                            <FaLock />
+                                        </span>
+                                    )}
                                 </button>
 
                                 {/* Notification Dropdown */}
-                                {isNotiDropdownOpen && (
+                                {canAccessAdminNotifications && isNotiDropdownOpen && (
                                     <div className="absolute -right-2 right-0 z-50 mt-4 w-[calc(100vw-2rem)] overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-xl ring-1 ring-slate-900/5 sm:w-[380px] animate-scaleIn">
                                         {/* Pending Summary Cards */}
                                         {hasPendingNotifications && (

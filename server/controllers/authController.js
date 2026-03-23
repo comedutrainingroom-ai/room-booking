@@ -1,6 +1,7 @@
 const User = require('../models/User');
 const admin = require('../config/firebaseAdmin');
 const { logAction } = require('../services/auditService');
+const { createAdminPinToken } = require('../services/adminPinTokenService');
 
 // Allowed email domains for KMUTNB
 const ALLOWED_DOMAINS = (process.env.ALLOWED_DOMAINS || 'kmutnb.ac.th,email.kmutnb.ac.th').split(',');
@@ -50,7 +51,7 @@ const googleLogin = async (req, res) => {
             if (!isAllowedEmail(email)) {
                 return res.status(403).json({
                     success: false,
-                    error: 'กรุณาใช้อีเมล @kmutnb.ac.th หรือ @email.kmutnb.ac.th เท่านั้น',
+                    error: 'à¸à¸£à¸¸à¸“à¸²à¹ƒà¸Šà¹‰à¸­à¸µà¹€à¸¡à¸¥ @kmutnb.ac.th à¸«à¸£à¸·à¸­ @email.kmutnb.ac.th à¹€à¸—à¹ˆà¸²à¸™à¸±à¹‰à¸™',
                     code: 'INVALID_EMAIL_DOMAIN'
                 });
             }
@@ -78,7 +79,7 @@ const googleLogin = async (req, res) => {
         if (user.isBanned) {
             return res.status(403).json({
                 success: false,
-                error: 'บัญชีของคุณถูกระงับการใช้งาน กรุณาติดต่อผู้ดูแลระบบ',
+                error: 'à¸šà¸±à¸à¸Šà¸µà¸‚à¸­à¸‡à¸„à¸¸à¸“à¸–à¸¹à¸à¸£à¸°à¸‡à¸±à¸šà¸à¸²à¸£à¹ƒà¸Šà¹‰à¸‡à¸²à¸™ à¸à¸£à¸¸à¸“à¸²à¸•à¸´à¸”à¸•à¹ˆà¸­à¸œà¸¹à¹‰à¸”à¸¹à¹à¸¥à¸£à¸°à¸šà¸š',
                 code: 'BANNED_USER'
             });
         }
@@ -89,7 +90,7 @@ const googleLogin = async (req, res) => {
         });
 
         // Audit log
-        logAction({ action: 'user:login', performedBy: user._id, targetType: 'user', targetId: user._id, details: `เข้าสู่ระบบ: ${email}`, req });
+        logAction({ action: 'user:login', performedBy: user._id, targetType: 'user', targetId: user._id, details: `à¹€à¸‚à¹‰à¸²à¸ªà¸¹à¹ˆà¸£à¸°à¸šà¸š: ${email}`, req });
 
     } catch (error) {
         console.error('Google Login Error:', error);
@@ -102,7 +103,6 @@ const googleLogin = async (req, res) => {
 // @access  Private (Protected by auth middleware)
 const getCurrentUser = async (req, res) => {
     try {
-        // Use authenticated user from middleware
         const user = req.user;
 
         if (!user) {
@@ -118,19 +118,17 @@ const getCurrentUser = async (req, res) => {
 
 // @desc    Update user profile
 // @route   PUT /api/auth/profile
-// @access  Public (Protected by frontend usually)
+// @access  Private
 const updateProfile = async (req, res) => {
     try {
         const { name, phone, studentId, faculty } = req.body;
 
-        // Use authenticated user from middleware (not from request body)
         const user = await User.findById(req.user._id);
 
         if (!user) {
             return res.status(404).json({ success: false, error: 'User not found' });
         }
 
-        // Update fields (only allow specific fields)
         if (name !== undefined) user.name = name;
         if (phone !== undefined) user.phone = phone;
         if (studentId !== undefined) user.studentId = studentId;
@@ -139,6 +137,7 @@ const updateProfile = async (req, res) => {
         await user.save();
 
         res.status(200).json({ success: true, data: user });
+        logAction({ action: 'user:update_profile', performedBy: user._id, targetType: 'user', targetId: user._id, details: 'à¹à¸à¹‰à¹„à¸‚à¸‚à¹‰à¸­à¸¡à¸¹à¸¥à¸ªà¹ˆà¸§à¸™à¸•à¸±à¸§', req });
     } catch (error) {
         console.error('Update Profile Error:', error);
         res.status(500).json({ success: false, error: 'Server Error' });
@@ -156,12 +155,10 @@ const verifyAdminPin = async (req, res) => {
             return res.status(400).json({ success: false, error: 'PIN is required' });
         }
 
-        // Check if user is admin
         if (req.user.role !== 'admin') {
-            return res.status(403).json({ success: false, error: 'ไม่มีสิทธิ์เข้าถึง' });
+            return res.status(403).json({ success: false, error: 'à¹„à¸¡à¹ˆà¸¡à¸µà¸ªà¸´à¸—à¸˜à¸´à¹Œà¹€à¸‚à¹‰à¸²à¸–à¸¶à¸‡' });
         }
 
-        // Compare PIN using timing-safe comparison to prevent timing attacks
         const adminPin = process.env.ADMIN_PIN;
         if (!adminPin) {
             console.error('ADMIN_PIN environment variable is not set!');
@@ -172,15 +169,26 @@ const verifyAdminPin = async (req, res) => {
         const pinBuffer = Buffer.from(pin);
         const adminPinBuffer = Buffer.from(adminPin);
 
-        // Buffers must be same length for timingSafeEqual — if lengths differ, PIN is wrong
         const pinMatch = pinBuffer.length === adminPinBuffer.length &&
             crypto.timingSafeEqual(pinBuffer, adminPinBuffer);
 
-        if (pinMatch) {
-            return res.status(200).json({ success: true, message: 'PIN verified' });
-        } else {
-            return res.status(401).json({ success: false, error: 'PIN ไม่ถูกต้อง' });
+        if (!pinMatch) {
+            return res.status(401).json({ success: false, error: 'PIN à¹„à¸¡à¹ˆà¸–à¸¹à¸à¸•à¹‰à¸­à¸‡' });
         }
+
+        const { token, expiresAt } = createAdminPinToken({
+            userId: req.user._id,
+            email: req.user.email
+        });
+
+        return res.status(200).json({
+            success: true,
+            message: 'PIN verified',
+            data: {
+                adminPinToken: token,
+                expiresAt
+            }
+        });
     } catch (error) {
         console.error('Verify PIN Error:', error);
         res.status(500).json({ success: false, error: 'Server Error' });

@@ -4,7 +4,7 @@ const LogoWatermark = () => {
     const location = useLocation();
 
     // Pages to hide logo
-    const hiddenPaths = ['/calendar', '/report-issue', '/rooms', '/dashboard'];
+    const hiddenPaths = ['/calendar', '/report-issue', '/rooms'];
 
     // Check if current path should hide logo
     const shouldHide = hiddenPaths.some(path => location.pathname === path);

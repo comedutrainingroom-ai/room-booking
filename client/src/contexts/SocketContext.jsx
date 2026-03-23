@@ -1,18 +1,23 @@
-import { createContext, useContext, useEffect, useState, useMemo } from 'react';
+import { createContext, useContext, useEffect, useMemo, useState } from 'react';
 import { io } from 'socket.io-client';
 import { useAuth } from './AuthContext';
+import { clearAdminPinSession, getAdminPinToken } from '../services/adminPinSession';
+
+const ADMIN_PIN_ERROR_CODES = new Set([
+    'ADMIN_PIN_REQUIRED',
+    'ADMIN_PIN_INVALID',
+    'ADMIN_PIN_EXPIRED'
+]);
 
 const SocketContext = createContext(null);
 
 export const useSocket = () => useContext(SocketContext);
 
 export const SocketProvider = ({ children }) => {
-    const { currentUser, dbUser } = useAuth();
+    const { currentUser, dbUser, isAdminUnlocked } = useAuth();
     const [socket, setSocket] = useState(null);
 
     useEffect(() => {
-        // In dev, Vite runs on :5173 but Socket.io server is on :5000
-        // Use the same base URL as the API (from the Vite proxy target)
         const serverUrl = import.meta.env.DEV
             ? 'http://localhost:5000'
             : window.location.origin;
@@ -30,20 +35,32 @@ export const SocketProvider = ({ children }) => {
             console.log('[Socket.io] Disconnected');
         });
 
+        socketInstance.on('admin:session:expired', () => {
+            clearAdminPinSession();
+        });
+
+        socketInstance.on('admin:join:denied', (payload) => {
+            if (ADMIN_PIN_ERROR_CODES.has(payload?.code)) {
+                clearAdminPinSession();
+            }
+        });
+
         setSocket(socketInstance);
 
         return () => {
-            // Delay the disconnect slightly to avoid WebSocket closing errors
-            // during React 18 Strict Mode's fast unmount/remount cycle
             setTimeout(() => {
-                if (socketInstance) socketInstance.disconnect();
+                socketInstance.disconnect();
             }, 100);
         };
     }, []);
 
-    // Join admin room when user is an admin
     useEffect(() => {
-        if (!socket || !currentUser || dbUser?.role !== 'admin') {
+        if (!socket) {
+            return undefined;
+        }
+
+        if (!currentUser || dbUser?.role !== 'admin' || !isAdminUnlocked) {
+            socket.emit('leave-admin');
             return undefined;
         }
 
@@ -51,12 +68,19 @@ export const SocketProvider = ({ children }) => {
 
         const requestAdminJoin = async () => {
             try {
+                const adminPinToken = getAdminPinToken();
+                if (!adminPinToken) {
+                    clearAdminPinSession();
+                    socket.emit('leave-admin');
+                    return;
+                }
+
                 const token = await currentUser.getIdToken();
                 if (!isActive) {
                     return;
                 }
 
-                socket.emit('join-admin', { token });
+                socket.emit('join-admin', { token, adminPinToken });
                 console.log('[Socket.io] Requested to join admin-room');
             } catch (error) {
                 console.error('[Socket.io] Failed to authorize admin-room access', error);
@@ -69,8 +93,9 @@ export const SocketProvider = ({ children }) => {
         return () => {
             isActive = false;
             socket.off('connect', requestAdminJoin);
+            socket.emit('leave-admin');
         };
-    }, [socket, currentUser, dbUser?.role]);
+    }, [socket, currentUser, dbUser?.role, isAdminUnlocked]);
 
     const value = useMemo(() => ({ socket }), [socket]);
 

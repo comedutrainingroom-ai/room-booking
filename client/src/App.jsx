@@ -61,7 +61,7 @@ function App() {
                       </ProtectedRoute>
                     } />
 
-                    <Route path="/bookings" element={<ProtectedRoute><Layout><div className="text-center py-20">My Bookings Page</div></Layout></ProtectedRoute>} />
+                    <Route path="/bookings" element={<ProtectedRoute><Layout><History /></Layout></ProtectedRoute>} />
                     <Route path="/calendar" element={<ProtectedRoute><Layout><Calendar /></Layout></ProtectedRoute>} />
                     <Route path="/rooms" element={<ProtectedRoute><Layout><RoomSelection /></Layout></ProtectedRoute>} />
                     <Route path="/profile" element={<ProtectedRoute><Layout><Profile /></Layout></ProtectedRoute>} />

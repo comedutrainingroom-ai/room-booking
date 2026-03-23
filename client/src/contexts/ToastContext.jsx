@@ -1,4 +1,4 @@
-import { createContext, useContext, useState, useCallback } from 'react';
+import { createContext, useCallback, useContext, useMemo, useState } from 'react';
 import { FaCheck, FaTimes, FaExclamationTriangle, FaInfoCircle } from 'react-icons/fa';
 
 const ToastContext = createContext();
@@ -161,7 +161,7 @@ export const ToastProvider = ({ children }) => {
         });
     }, []);
 
-    const toast = {
+    const toast = useMemo(() => ({
         success: (message, duration) => addToast('success', message, duration),
         error: (message, duration) => addToast('error', message, duration),
         warning: (message, duration) => addToast('warning', message, duration),
@@ -169,7 +169,7 @@ export const ToastProvider = ({ children }) => {
         confirm,
         dismiss: removeToast,
         dismissAll: () => setToasts([])
-    };
+    }), [addToast, confirm, removeToast]);
 
     return (
         <ToastContext.Provider value={toast}>
