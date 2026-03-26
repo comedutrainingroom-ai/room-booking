@@ -37,3 +37,4 @@ npm-debug.log*
 
 # Sensitive deployment docs
 DEPLOY_GUIDE.md
+backup/  
