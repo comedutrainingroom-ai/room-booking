@@ -1,24 +1,20 @@
 import { Link, useNavigate, useLocation } from 'react-router-dom';
-import { FaBuilding, FaBars, FaSignOutAlt, FaUserCircle, FaExclamationTriangle, FaCaretDown, FaBell, FaCalendarPlus, FaCheckCircle, FaTimesCircle, FaCheck } from 'react-icons/fa';
+import { FaBars, FaSignOutAlt, FaUserCircle, FaExclamationTriangle, FaCaretDown, FaBell, FaCalendarPlus, FaCheckCircle, FaTimesCircle, FaCheck } from 'react-icons/fa';
 import { useAuth } from '../contexts/AuthContext';
+import { useAdminNotifications } from '../contexts/AdminNotificationsContext';
 import { useSettings } from '../contexts/SettingsContext';
 import { useSocket } from '../contexts/SocketContext';
 import { useToast } from '../contexts/ToastContext';
 import { useState, useRef, useEffect, useCallback } from 'react';
-import api from '../services/api';
 
 const Navbar = ({ toggleSidebar }) => {
     const { currentUser, logout, dbUser } = useAuth();
+    const { notifications } = useAdminNotifications();
     const { settings } = useSettings();
     const { socket } = useSocket();
     const toast = useToast();
     const navigate = useNavigate();
     const location = useLocation();
-
-    const [notifications, setNotifications] = useState({
-        bookings: 0,
-        reports: 0
-    });
 
     // Notification history (individual items)
     const [notiItems, setNotiItems] = useState([]);
@@ -73,64 +69,44 @@ const Navbar = ({ toggleSidebar }) => {
         setTimeout(() => setBellShake(false), 1000);
     }, []);
 
-    const fetchNotifications = useCallback(async () => {
-        if (!canAccessAdminNotifications) return;
-
-        try {
-            const [bookingsRes, reportsRes] = await Promise.all([
-                api.get('/bookings/notification-summary'),
-                api.get('/reports/notification-summary')
-            ]);
-
-            const pendingBookings = bookingsRes.data?.data?.pendingCount || 0;
-            const pendingReports = reportsRes.data?.data?.pendingCount || 0;
-
-            setNotifications({
-                bookings: pendingBookings,
-                reports: pendingReports
-            });
-
-            // Auto-sync seen counts if items were removed
-            setSeenCounts(prev => {
-                const newSeen = { ...prev };
-                let changed = false;
-
-                if (pendingBookings < prev.bookings) {
-                    newSeen.bookings = pendingBookings;
-                    localStorage.setItem('seenBookings', pendingBookings.toString());
-                    changed = true;
-                }
-                if (pendingReports < prev.reports) {
-                    newSeen.reports = pendingReports;
-                    localStorage.setItem('seenReports', pendingReports.toString());
-                    changed = true;
-                }
-
-                return changed ? newSeen : prev;
-            });
-
-        } catch (error) {
-            console.error("Failed to fetch notifications", error);
-        }
-    }, [canAccessAdminNotifications]);
-
     useEffect(() => {
         if (canAccessAdminNotifications) {
-            fetchNotifications();
             return;
         }
 
-        setNotifications({ bookings: 0, reports: 0 });
         setNotiItems([]);
         setUnreadCount(0);
-    }, [canAccessAdminNotifications, fetchNotifications]);
+    }, [canAccessAdminNotifications]);
+
+    useEffect(() => {
+        if (!canAccessAdminNotifications) {
+            return;
+        }
+
+        setSeenCounts(prev => {
+            const nextSeen = { ...prev };
+            let changed = false;
+
+            if (notifications.bookings < prev.bookings) {
+                nextSeen.bookings = notifications.bookings;
+                localStorage.setItem('seenBookings', notifications.bookings.toString());
+                changed = true;
+            }
+            if (notifications.reports < prev.reports) {
+                nextSeen.reports = notifications.reports;
+                localStorage.setItem('seenReports', notifications.reports.toString());
+                changed = true;
+            }
+
+            return changed ? nextSeen : prev;
+        });
+    }, [notifications, canAccessAdminNotifications]);
 
     // Socket.io real-time notification listener with toast pop-ups
     useEffect(() => {
         if (!socket || !canAccessAdminNotifications) return;
 
         const handleBookingCreated = () => {
-            fetchNotifications();
             addNotiItem({
                 type: 'booking:created',
                 title: 'มีคำขอจองห้องใหม่',
@@ -141,7 +117,6 @@ const Navbar = ({ toggleSidebar }) => {
         };
 
         const handleBookingUpdated = (data) => {
-            fetchNotifications();
             addNotiItem({
                 type: 'booking:updated',
                 title: `อัพเดทการจอง`,
@@ -151,7 +126,6 @@ const Navbar = ({ toggleSidebar }) => {
         };
 
         const handleBookingDeleted = () => {
-            fetchNotifications();
             addNotiItem({
                 type: 'booking:deleted',
                 title: 'มีการยกเลิกการจอง',
@@ -161,7 +135,6 @@ const Navbar = ({ toggleSidebar }) => {
         };
 
         const handleReportCreated = () => {
-            fetchNotifications();
             addNotiItem({
                 type: 'report:created',
                 title: 'มีแจ้งซ่อมใหม่',
@@ -172,7 +145,6 @@ const Navbar = ({ toggleSidebar }) => {
         };
 
         const handleReportUpdated = () => {
-            fetchNotifications();
             addNotiItem({
                 type: 'report:updated',
                 title: 'อัพเดทสถานะแจ้งซ่อม',
@@ -184,7 +156,6 @@ const Navbar = ({ toggleSidebar }) => {
         socket.on('booking:created', handleBookingCreated);
         socket.on('booking:updated', handleBookingUpdated);
         socket.on('booking:deleted', handleBookingDeleted);
-        socket.on('booking:imported', () => fetchNotifications());
         socket.on('report:created', handleReportCreated);
         socket.on('report:updated', handleReportUpdated);
 
@@ -192,11 +163,10 @@ const Navbar = ({ toggleSidebar }) => {
             socket.off('booking:created', handleBookingCreated);
             socket.off('booking:updated', handleBookingUpdated);
             socket.off('booking:deleted', handleBookingDeleted);
-            socket.off('booking:imported');
             socket.off('report:created', handleReportCreated);
             socket.off('report:updated', handleReportUpdated);
         };
-    }, [socket, canAccessAdminNotifications, fetchNotifications, addNotiItem, toast]);
+    }, [socket, canAccessAdminNotifications, addNotiItem, toast]);
 
     // Clear notifications when visiting pages
     useEffect(() => {

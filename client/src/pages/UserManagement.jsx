@@ -1,6 +1,6 @@
 import { useState, useEffect, useCallback, useMemo } from 'react';
 import api from '../services/api';
-import { FaUsers, FaSearch, FaBan, FaCheck, FaTrash } from 'react-icons/fa';
+import { FaUsers, FaSearch, FaBan, FaCheck, FaTrash, FaEnvelope, FaPaperPlane, FaPhone } from 'react-icons/fa';
 import { useToast } from '../contexts/ToastContext';
 import { useAuth } from '../contexts/AuthContext';
 
@@ -12,6 +12,12 @@ const UserManagement = () => {
     const [showConfirm, setShowConfirm] = useState(null);
     const [showBanConfirm, setShowBanConfirm] = useState(null);
     const [banReason, setBanReason] = useState('');
+    const [contactTarget, setContactTarget] = useState(null);
+    const [contactForm, setContactForm] = useState({
+        subject: '',
+        message: ''
+    });
+    const [contactLoading, setContactLoading] = useState(false);
     const toast = useToast();
     const { currentUser } = useAuth();
 
@@ -74,6 +80,55 @@ const UserManagement = () => {
         }
         setActionLoading(null);
     }, [toast, fetchUsers]);
+
+    const openContactModal = useCallback((user) => {
+        setContactTarget(user);
+        setContactForm({
+            subject: 'ติดต่อจากผู้ดูแลระบบ',
+            message: ''
+        });
+    }, []);
+
+    const closeContactModal = useCallback(() => {
+        if (contactLoading) {
+            return;
+        }
+
+        setContactTarget(null);
+        setContactForm({
+            subject: '',
+            message: ''
+        });
+    }, [contactLoading]);
+
+    const handleContactFormChange = useCallback((e) => {
+        const { name, value } = e.target;
+        setContactForm((prev) => ({
+            ...prev,
+            [name]: value
+        }));
+    }, []);
+
+    const handleSendContactEmail = useCallback(async (e) => {
+        e.preventDefault();
+
+        if (!contactTarget) {
+            return;
+        }
+
+        setContactLoading(true);
+        try {
+            const res = await api.post(`/users/${contactTarget._id}/contact`, contactForm);
+            if (res.data.success) {
+                toast.success(res.data.message || 'ส่งอีเมลเรียบร้อยแล้ว');
+                closeContactModal();
+            }
+        } catch (error) {
+            toast.error(error.response?.data?.error || 'ไม่สามารถส่งอีเมลได้ในขณะนี้');
+        } finally {
+            setContactLoading(false);
+        }
+    }, [contactTarget, contactForm, toast, closeContactModal]);
 
     const formatDate = (dateString) => {
         if (!dateString) return '-';
@@ -223,6 +278,14 @@ const UserManagement = () => {
                                                     <td className="px-4 py-4 whitespace-nowrap text-center">
                                                         {!isCurrentUser && (
                                                             <div className="flex gap-2 justify-center">
+                                                                <button
+                                                                    onClick={() => openContactModal(user)}
+                                                                    disabled={actionLoading === user._id}
+                                                                    className="px-3.5 py-1.5 bg-gradient-to-r from-emerald-500 to-green-600 text-white text-xs font-semibold rounded-lg hover:from-emerald-600 hover:to-green-700 transition-all duration-200 flex items-center gap-1.5 disabled:opacity-40 shadow-sm shadow-emerald-500/20"
+                                                                    title="ติดต่อผู้ใช้งาน"
+                                                                >
+                                                                    <FaEnvelope className="text-[10px]" /> ติดต่อ
+                                                                </button>
                                                                 {user.isBanned ? (
                                                                     <button
                                                                         onClick={() => setShowBanConfirm({ userId: user._id, isBanned: false, userName: user.name })}
@@ -321,6 +384,13 @@ const UserManagement = () => {
 
                                             {!isCurrentUser && (
                                                 <div className="flex gap-2">
+                                                    <button
+                                                        onClick={() => openContactModal(user)}
+                                                        disabled={actionLoading === user._id}
+                                                        className="px-2.5 py-1.5 bg-gradient-to-r from-emerald-500 to-green-600 text-white text-xs font-semibold rounded-lg disabled:opacity-40 flex items-center gap-1 shadow-sm shadow-emerald-500/20"
+                                                    >
+                                                        <FaEnvelope className="text-[10px]" /> ติดต่อ
+                                                    </button>
                                                     {user.isBanned ? (
                                                         <button
                                                             onClick={() => setShowBanConfirm({ userId: user._id, isBanned: false, userName: user.name })}
@@ -359,6 +429,114 @@ const UserManagement = () => {
                         )}
                     </div>
                 </>
+            )}
+
+            {/* Contact User Modal */}
+            {contactTarget && (
+                <div
+                    className="fixed inset-0 bg-black/40 backdrop-blur-sm flex items-center justify-center z-50 p-4"
+                    onClick={closeContactModal}
+                >
+                    <div
+                        className="bg-white rounded-2xl shadow-[0_24px_60px_rgba(21,128,61,0.18)] border border-emerald-100 max-w-lg w-full overflow-hidden"
+                        onClick={(e) => e.stopPropagation()}
+                    >
+                        <div className="h-1.5 bg-gradient-to-r from-emerald-500 via-primary to-green-400 w-full" />
+                        <form onSubmit={handleSendContactEmail} className="p-6 space-y-5">
+                            <div>
+                                <h3 className="text-lg font-bold text-gray-900">ติดต่อผู้ใช้งาน</h3>
+                                <p className="text-sm text-gray-500 mt-1">
+                                    ส่งข้อความถึง {contactTarget.name || 'ผู้ใช้งาน'} ผ่านอีเมลที่ใช้เข้าสู่ระบบ
+                                </p>
+                            </div>
+
+                            <div className="rounded-2xl border border-emerald-100 bg-gradient-to-br from-emerald-50 via-white to-green-50 p-4 space-y-3">
+                                <div className="flex items-start gap-3">
+                                    <div className="mt-0.5 flex h-9 w-9 items-center justify-center rounded-full bg-emerald-100 text-emerald-600">
+                                        <FaPhone className="text-sm" />
+                                    </div>
+                                    <div>
+                                        <p className="text-xs font-semibold uppercase tracking-wide text-gray-400">เบอร์โทรศัพท์</p>
+                                        <p className="mt-1 text-sm font-medium text-gray-800">
+                                            {contactTarget.phone || 'ยังไม่ได้ระบุเบอร์โทรศัพท์'}
+                                        </p>
+                                    </div>
+                                </div>
+
+                                <div className="flex items-start gap-3">
+                                    <div className="mt-0.5 flex h-9 w-9 items-center justify-center rounded-full bg-green-100 text-green-600">
+                                        <FaEnvelope className="text-sm" />
+                                    </div>
+                                    <div className="min-w-0">
+                                        <p className="text-xs font-semibold uppercase tracking-wide text-gray-400">ติดต่อผ่านอีเมล</p>
+                                        <p className="mt-1 break-all text-sm font-medium text-gray-800">{contactTarget.email}</p>
+                                        <p className="mt-1 text-xs text-gray-500">
+                                            ผู้ใช้สามารถตอบกลับกลับมาที่อีเมลของแอดมินได้: {currentUser?.email || '-'}
+                                        </p>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <div>
+                                <label className="block text-sm font-medium text-gray-700 mb-2">หัวข้ออีเมล</label>
+                                <input
+                                    type="text"
+                                    name="subject"
+                                    value={contactForm.subject}
+                                    onChange={handleContactFormChange}
+                                    maxLength={160}
+                                    className="w-full px-4 py-3 border border-emerald-100 bg-emerald-50/30 rounded-xl focus:ring-2 focus:ring-primary/20 focus:border-primary outline-none transition-colors"
+                                    placeholder="เช่น ขอข้อมูลเพิ่มเติมเกี่ยวกับการใช้งาน"
+                                    required
+                                />
+                                <div className="mt-1 text-right text-[11px] text-emerald-700/55">{contactForm.subject.length}/160</div>
+                            </div>
+
+                            <div>
+                                <label className="block text-sm font-medium text-gray-700 mb-2">ข้อความถึงผู้ใช้งาน</label>
+                                <textarea
+                                    name="message"
+                                    value={contactForm.message}
+                                    onChange={handleContactFormChange}
+                                    maxLength={4000}
+                                    rows={6}
+                                    className="w-full px-4 py-3 border border-emerald-100 bg-emerald-50/30 rounded-xl resize-none focus:ring-2 focus:ring-primary/20 focus:border-primary outline-none transition-colors"
+                                    placeholder="พิมพ์ข้อความที่ต้องการติดต่อผู้ใช้งาน"
+                                    required
+                                />
+                                <div className="mt-1 text-right text-[11px] text-emerald-700/55">{contactForm.message.length}/4000</div>
+                            </div>
+
+                            <div className="flex justify-end gap-3 pt-1">
+                                <button
+                                    type="button"
+                                    onClick={closeContactModal}
+                                    disabled={contactLoading}
+                                    className="px-5 py-2.5 text-sm font-semibold text-emerald-700 rounded-xl bg-emerald-50 hover:bg-emerald-100 transition-colors disabled:opacity-50"
+                                >
+                                    ยกเลิก
+                                </button>
+                                <button
+                                    type="submit"
+                                    disabled={contactLoading}
+                                    className="px-5 py-2.5 bg-gradient-to-r from-emerald-500 to-green-600 text-white text-sm font-semibold rounded-xl hover:from-emerald-600 hover:to-green-700 transition-all duration-200 disabled:opacity-50 flex items-center gap-2 shadow-lg shadow-emerald-500/20"
+                                >
+                                    {contactLoading ? (
+                                        <>
+                                            <span className="animate-spin rounded-full h-4 w-4 border-b-2 border-white"></span>
+                                            กำลังส่ง...
+                                        </>
+                                    ) : (
+                                        <>
+                                            <FaPaperPlane className="text-xs" />
+                                            ส่งอีเมล
+                                        </>
+                                    )}
+                                </button>
+                            </div>
+                        </form>
+                    </div>
+                </div>
             )}
 
             {/* Confirm Delete Modal */}

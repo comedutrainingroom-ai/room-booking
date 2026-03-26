@@ -1,7 +1,13 @@
 const User = require('../models/User');
-const { sendBanNotification, sendUnbanNotification } = require('../services/emailService');
+const { sendAdminContactEmail, sendBanNotification, sendUnbanNotification } = require('../services/emailService');
 const { logAction } = require('../services/auditService');
 const { revokeAdminPinSessionsForUser } = require('../services/adminPinTokenService');
+const {
+    FIELD_LIMITS,
+    getValidationErrorResponse,
+    sanitizeRequiredMultilineText,
+    sanitizeRequiredSingleLineText
+} = require('../utils/inputValidation');
 
 // @desc    Get all users
 // @route   GET /api/users
@@ -140,9 +146,70 @@ const deleteUser = async (req, res) => {
     }
 };
 
+// @desc    Contact a user by email
+// @route   POST /api/users/:id/contact
+// @access  Private/Admin
+const contactUser = async (req, res) => {
+    try {
+        const subject = sanitizeRequiredSingleLineText(req.body?.subject, {
+            fieldName: 'Email subject',
+            maxLength: FIELD_LIMITS.ADMIN_CONTACT_SUBJECT
+        });
+        const message = sanitizeRequiredMultilineText(req.body?.message, {
+            fieldName: 'Email message',
+            maxLength: FIELD_LIMITS.ADMIN_CONTACT_MESSAGE
+        });
+
+        const user = await User.findById(req.params.id).select('-__v');
+
+        if (!user) {
+            return res.status(404).json({ success: false, error: 'ไม่พบผู้ใช้' });
+        }
+
+        const deliveryResult = await sendAdminContactEmail({
+            recipient: user,
+            adminUser: req.user,
+            subject,
+            message
+        });
+
+        if (!deliveryResult?.success) {
+            const statusCode = deliveryResult?.code === 'EMAIL_NOT_CONFIGURED' ? 503 : 500;
+            return res.status(statusCode).json({
+                success: false,
+                error: 'ไม่สามารถส่งอีเมลได้ในขณะนี้',
+                code: deliveryResult?.code || 'EMAIL_SEND_FAILED'
+            });
+        }
+
+        res.status(200).json({
+            success: true,
+            message: 'ส่งอีเมลติดต่อผู้ใช้เรียบร้อยแล้ว'
+        });
+
+        logAction({
+            action: 'user:contact',
+            performedBy: req.user._id,
+            targetType: 'user',
+            targetId: user._id,
+            details: `ส่งอีเมลติดต่อ ${user.email} หัวข้อ: ${subject}`,
+            req
+        });
+    } catch (error) {
+        const validationResponse = getValidationErrorResponse(error, 'Contact validation failed');
+        if (validationResponse) {
+            return res.status(validationResponse.statusCode).json(validationResponse.body);
+        }
+
+        console.error('Contact User Error:', error);
+        res.status(500).json({ success: false, error: 'Server Error' });
+    }
+};
+
 module.exports = {
     getAllUsers,
     updateUserRole,
     toggleBanUser,
-    deleteUser
+    deleteUser,
+    contactUser
 };

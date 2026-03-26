@@ -39,6 +39,7 @@ let sendBookingReminderMock = async () => ({ success: true });
 let sendBookingCancelledMock = async () => ({ success: true });
 let sendBanNotificationMock = async () => ({ success: true });
 let sendUnbanNotificationMock = async () => ({ success: true });
+let sendAdminContactEmailMock = async () => ({ success: true });
 
 Module.prototype.require = function (id) {
     if (id.endsWith('config/firebaseAdmin') || id.endsWith('config\\firebaseAdmin')) {
@@ -64,7 +65,8 @@ Module.prototype.require = function (id) {
             sendBookingReminder: (...args) => sendBookingReminderMock(...args),
             sendBookingCancelled: (...args) => sendBookingCancelledMock(...args),
             sendBanNotification: (...args) => sendBanNotificationMock(...args),
-            sendUnbanNotification: (...args) => sendUnbanNotificationMock(...args)
+            sendUnbanNotification: (...args) => sendUnbanNotificationMock(...args),
+            sendAdminContactEmail: (...args) => sendAdminContactEmailMock(...args)
         };
     }
 
@@ -206,6 +208,7 @@ describe('Server API Tests', async () => {
         sendBookingCancelledMock = async () => ({ success: true });
         sendBanNotificationMock = async () => ({ success: true });
         sendUnbanNotificationMock = async () => ({ success: true });
+        sendAdminContactEmailMock = async () => ({ success: true });
         await db.clear();
     });
 
@@ -653,6 +656,52 @@ describe('Server API Tests', async () => {
         });
     });
 
+    describe('User API', async () => {
+        it('POST /api/users/:id/contact should send an email for unlocked admins', async () => {
+            await seedUser('admin-token', 'admin');
+            const student = await seedUser('student-token', 'student');
+            const headers = await getAdminHeaders(app);
+            let deliveryPayload = null;
+
+            sendAdminContactEmailMock = async (payload) => {
+                deliveryPayload = payload;
+                return { success: true };
+            };
+
+            const res = await applyHeaders(
+                request(app).post(`/api/users/${student._id}/contact`),
+                headers
+            ).send({
+                subject: 'Follow up booking details',
+                message: 'Please update your booking details before tomorrow.'
+            });
+
+            assert.strictEqual(res.status, 200);
+            assert.strictEqual(res.body.success, true);
+            assert.ok(deliveryPayload);
+            assert.strictEqual(deliveryPayload.recipient.email, student.email);
+            assert.strictEqual(deliveryPayload.adminUser.email, 'admin@kmutnb.ac.th');
+            assert.strictEqual(deliveryPayload.subject, 'Follow up booking details');
+        });
+
+        it('POST /api/users/:id/contact should reject empty messages', async () => {
+            await seedUser('admin-token', 'admin');
+            const student = await seedUser('student-token', 'student');
+            const headers = await getAdminHeaders(app);
+
+            const res = await applyHeaders(
+                request(app).post(`/api/users/${student._id}/contact`),
+                headers
+            ).send({
+                subject: 'Test subject',
+                message: '   '
+            });
+
+            assert.strictEqual(res.status, 400);
+            assert.strictEqual(res.body.code, 'VALIDATION_ERROR');
+        });
+    });
+
     describe('Security and Settings Enforcement', async () => {
         it('GET /api/users should reject admin access without admin pin token', async () => {
             await seedUser('admin-token', 'admin');
@@ -660,6 +709,22 @@ describe('Server API Tests', async () => {
             const res = await request(app)
                 .get('/api/users')
                 .set(authHeader('admin-token'));
+
+            assert.strictEqual(res.status, 403);
+            assert.strictEqual(res.body.code, 'ADMIN_PIN_REQUIRED');
+        });
+
+        it('POST /api/users/:id/contact should reject admin access without admin pin token', async () => {
+            await seedUser('admin-token', 'admin');
+            const student = await seedUser('student-token', 'student');
+
+            const res = await request(app)
+                .post(`/api/users/${student._id}/contact`)
+                .set(authHeader('admin-token'))
+                .send({
+                    subject: 'Test subject',
+                    message: 'Need to contact you'
+                });
 
             assert.strictEqual(res.status, 403);
             assert.strictEqual(res.body.code, 'ADMIN_PIN_REQUIRED');

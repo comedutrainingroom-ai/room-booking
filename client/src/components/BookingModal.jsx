@@ -288,13 +288,13 @@ const BookingModal = ({ room, onClose, step, setStep, toast, initialData }) => {
                                 <div>
                                     <label className="block text-sm font-medium text-gray-700 mb-1">
                                         <FaGraduationCap className="inline mr-1.5 text-primary text-xs" />
-                                        สาขา/คณะ
+                                สาขา
                                     </label>
                                     <input
                                         type="text"
                                         value={formData.department}
                                         onChange={handleChange('department')}
-                                        placeholder="สาขาวิชา หรือ คณะ"
+                                placeholder="เช่น TCT 34 หรือ CED 13"
                                         className="w-full px-3 py-2 md:py-2.5 border border-gray-200 rounded-lg focus:ring-2 focus:ring-primary/20 focus:border-primary outline-none text-sm"
                                     />
                                 </div>

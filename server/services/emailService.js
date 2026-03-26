@@ -14,7 +14,14 @@ const transporter = nodemailer.createTransport({
     }
 });
 
-const sendEmail = async (to, subject, html) => {
+const escapeHtml = (value) => String(value ?? '')
+    .replace(/&/g, '&amp;')
+    .replace(/</g, '&lt;')
+    .replace(/>/g, '&gt;')
+    .replace(/"/g, '&quot;')
+    .replace(/'/g, '&#39;');
+
+const sendEmail = async (to, subject, html, options = {}) => {
     if (!process.env.EMAIL_USER || !process.env.EMAIL_PASS) {
         console.warn(`[EMAIL] Skipped: Email not configured`);
         return {
@@ -29,7 +36,8 @@ const sendEmail = async (to, subject, html) => {
             from: `"Meeting Room Booking" <${process.env.EMAIL_USER}>`,
             to,
             subject,
-            html
+            html,
+            ...options
         });
         console.log(`Email sent to ${to}`);
         return {
@@ -216,6 +224,47 @@ const sendUnbanNotification = async (user) => {
     await sendEmail(user.email, subject, html);
 };
 
+const sendAdminContactEmail = async ({ recipient, adminUser, subject, message }) => {
+    const recipientName = escapeHtml(recipient?.name || recipient?.email || 'ผู้ใช้งาน');
+    const adminName = escapeHtml(adminUser?.name || adminUser?.email || 'ผู้ดูแลระบบ');
+    const adminEmail = escapeHtml(adminUser?.email || process.env.EMAIL_USER || '');
+    const safeSubject = String(subject || '').trim();
+    const safeMessage = escapeHtml(message).replace(/\n/g, '<br />');
+    const html = `
+        <div style="font-family: 'Segoe UI', Arial, sans-serif; max-width: 640px; margin: 0 auto; border: 1px solid #e5e7eb; border-radius: 16px; overflow: hidden;">
+            <div style="background: linear-gradient(135deg, #16a34a, #0f766e); padding: 28px 24px;">
+                <h2 style="margin: 0; color: #ffffff; font-size: 22px;">ข้อความจากผู้ดูแลระบบ</h2>
+                <p style="margin: 8px 0 0; color: rgba(255,255,255,0.86); font-size: 13px;">ระบบจองห้องประชุม ภาควิชาคอมพิวเตอร์ศึกษา</p>
+            </div>
+            <div style="padding: 28px 24px;">
+                <p style="margin: 0 0 12px; color: #374151; font-size: 15px; line-height: 1.6;">เรียนคุณ ${recipientName},</p>
+                <p style="margin: 0 0 18px; color: #4b5563; font-size: 14px; line-height: 1.7;">ผู้ดูแลระบบได้ส่งข้อความถึงคุณผ่านหน้าจัดการสมาชิก</p>
+
+                <div style="background-color: #f8fafc; border: 1px solid #e2e8f0; border-radius: 12px; padding: 16px; margin-bottom: 18px;">
+                    <p style="margin: 0 0 8px; color: #0f172a; font-size: 13px; font-weight: 700;">หัวข้อ</p>
+                    <p style="margin: 0; color: #334155; font-size: 14px; line-height: 1.6;">${escapeHtml(safeSubject)}</p>
+                </div>
+
+                <div style="background-color: #ffffff; border: 1px solid #e5e7eb; border-radius: 12px; padding: 18px; margin-bottom: 18px;">
+                    <p style="margin: 0 0 8px; color: #0f172a; font-size: 13px; font-weight: 700;">ข้อความ</p>
+                    <p style="margin: 0; color: #334155; font-size: 14px; line-height: 1.8;">${safeMessage}</p>
+                </div>
+
+                <div style="background-color: #f0fdf4; border-left: 4px solid #16a34a; border-radius: 10px; padding: 14px 16px;">
+                    <p style="margin: 0; color: #166534; font-size: 13px; line-height: 1.6;">
+                        ส่งโดย: ${adminName}<br />
+                        อีเมลติดต่อกลับ: ${adminEmail}
+                    </p>
+                </div>
+            </div>
+        </div>
+    `;
+
+    return sendEmail(recipient.email, safeSubject, html, {
+        replyTo: adminUser?.email || undefined
+    });
+};
+
 module.exports = {
     sendBookingCreated,
     sendBookingApproved,
@@ -223,5 +272,6 @@ module.exports = {
     sendBookingModified,
     sendBookingCancelled,
     sendBanNotification,
-    sendUnbanNotification
+    sendUnbanNotification,
+    sendAdminContactEmail
 };

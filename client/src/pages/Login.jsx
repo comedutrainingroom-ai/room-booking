@@ -399,7 +399,7 @@ const Login = () => {
                                     <div className="min-w-0">
                                         <p className="text-sm font-bold text-slate-900">คู่มือในการใช้งานระบบเบื้องต้น</p>
                                         <p className="mt-1 text-xs leading-5 text-slate-500">
-                                            {settingsLoading ? 'กำลังโหลดข้อมูลล่าสุดจากระบบ...' : 'อ่านสั้นๆ ก่อนเข้าสู่ระบบได้ทันที'}
+                                            สำหรับนักศึกษาและบุคลากรที่ไม่เคยใช้ระบบ
                                         </p>
                                     </div>
                                 </div>

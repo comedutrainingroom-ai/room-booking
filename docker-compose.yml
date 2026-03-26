@@ -9,6 +9,9 @@ services:
     image: mongo:7
     container_name: booking-mongo
     restart: unless-stopped
+    environment:
+      MONGO_INITDB_ROOT_USERNAME: ${MONGO_USERNAME}
+      MONGO_INITDB_ROOT_PASSWORD: ${MONGO_PASSWORD}
     volumes:
       - mongo_data:/data/db
     networks:
@@ -25,7 +28,7 @@ services:
       - ./server/.env
     environment:
       - NODE_ENV=production
-      - MONGO_URI=mongodb://mongo:27017/room_booking_v2
+      - MONGO_URI=mongodb://${MONGO_USERNAME}:${MONGO_PASSWORD}@mongo:27017/room_booking_v2?authSource=admin
       - GOOGLE_APPLICATION_CREDENTIALS=/run/secrets/firebase/serviceAccountKey.json
     volumes:
       - ./server/uploads:/app/uploads
