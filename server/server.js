@@ -6,13 +6,12 @@ const dotenv = require('dotenv');
 const helmet = require('helmet');
 // NOTE: express-mongo-sanitize and xss-clean removed — both incompatible with Express v5
 // (Express v5 makes req.query read-only, causing TypeError in these packages)
-// Using custom sanitization middleware instead.
+// Using the in-repo request sanitizer middleware instead.
 const rateLimit = require('express-rate-limit');
 const { Server } = require('socket.io');
 const connectDB = require('./config/db');
-const User = require('./models/User');
-const firebaseAdmin = require('./config/firebaseAdmin');
-const { verifyAdminPinToken } = require('./services/adminPinTokenService');
+const { requestSanitizer } = require('./middleware/requestSanitizer');
+const { attachAdminNotificationSocket } = require('./socket/adminNotificationSocket');
 
 // Load env vars
 dotenv.config({ path: path.join(__dirname, '.env') });
@@ -49,90 +48,7 @@ const io = new Server(httpServer, {
 // Make io accessible to route handlers via req.app.get('io')
 app.set('io', io);
 
-// Socket.io connection handling
-io.on('connection', (socket) => {
-    console.log(`[Socket.io] Client connected: ${socket.id}`);
-
-    const clearAdminRoomSession = () => {
-        if (socket.data.adminPinExpiryTimer) {
-            clearTimeout(socket.data.adminPinExpiryTimer);
-            socket.data.adminPinExpiryTimer = null;
-        }
-
-        socket.leave('admin-room');
-        socket.data.adminPinExpiresAt = null;
-    };
-
-    // Admin joins a dedicated room for notifications
-    socket.on('join-admin', async ({ token, adminPinToken } = {}) => {
-        clearAdminRoomSession();
-
-        if (!token) {
-            socket.emit('admin:join:denied', { error: 'Missing token' });
-            return;
-        }
-
-        try {
-            const decodedToken = await firebaseAdmin.auth().verifyIdToken(token);
-            const email = decodedToken.email?.toLowerCase().trim();
-
-            if (!email) {
-                socket.emit('admin:join:denied', { error: 'Invalid token payload' });
-                return;
-            }
-
-            const user = await User.findOne({ email }).select('email role isBanned');
-            if (!user || user.role !== 'admin' || user.isBanned) {
-                socket.emit('admin:join:denied', { error: 'Not authorized as admin' });
-                return;
-            }
-
-            const adminPinVerification = verifyAdminPinToken(adminPinToken, user);
-            if (!adminPinVerification.valid) {
-                socket.emit('admin:join:denied', {
-                    error: adminPinVerification.error,
-                    code: adminPinVerification.code
-                });
-                return;
-            }
-
-            const expiresAt = adminPinVerification.payload.exp * 1000;
-            const expiresInMs = Math.max(expiresAt - Date.now(), 0);
-            if (expiresInMs === 0) {
-                socket.emit('admin:join:denied', {
-                    error: 'Admin PIN session has expired',
-                    code: 'ADMIN_PIN_EXPIRED'
-                });
-                return;
-            }
-
-            socket.join('admin-room');
-            socket.data.adminPinExpiresAt = expiresAt;
-            socket.data.adminPinExpiryTimer = setTimeout(() => {
-                clearAdminRoomSession();
-                socket.emit('admin:session:expired', {
-                    error: 'Admin PIN session has expired',
-                    code: 'ADMIN_PIN_EXPIRED'
-                });
-            }, expiresInMs);
-            socket.emit('admin:join:confirmed');
-            console.log(`[Socket.io] ${socket.id} joined admin-room`);
-        } catch (error) {
-            console.error(`[Socket.io] Admin join denied for ${socket.id}: ${error.message}`);
-            socket.emit('admin:join:denied', { error: 'Admin authorization failed' });
-        }
-    });
-
-    socket.on('leave-admin', () => {
-        clearAdminRoomSession();
-        socket.emit('admin:left');
-    });
-
-    socket.on('disconnect', () => {
-        clearAdminRoomSession();
-        console.log(`[Socket.io] Client disconnected: ${socket.id}`);
-    });
-});
+attachAdminNotificationSocket(io);
 
 // Security Headers
 app.use(helmet({
@@ -164,25 +80,7 @@ app.use(cors({
 }));
 app.use('/uploads', express.static('uploads'));
 app.use(express.json({ limit: '10mb' }));
-
-// Custom NoSQL injection sanitizer (Express v5 compatible)
-const sanitizeObject = (obj) => {
-    if (obj && typeof obj === 'object') {
-        for (const key in obj) {
-            if (key.startsWith('$')) {
-                delete obj[key];
-            } else if (typeof obj[key] === 'object') {
-                sanitizeObject(obj[key]);
-            }
-        }
-    }
-};
-app.use((req, res, next) => {
-    if (req.body) sanitizeObject(req.body);
-    if (req.params) sanitizeObject(req.params);
-    if (req.query) sanitizeObject(req.query);
-    next();
-});
+app.use(requestSanitizer);
 
 // Apply rate limiting
 app.use('/api/', generalLimiter);
@@ -202,7 +100,7 @@ app.use('/api/users', require('./routes/userRoutes'));
 app.use('/api/audit-logs', require('./routes/auditRoutes'));
 
 // Start Scheduler
-const startScheduler = require('./cron/scheduler');
+const { startScheduler } = require('./cron/scheduler');
 startScheduler();
 
 // Health Check (used by Docker & Nginx)

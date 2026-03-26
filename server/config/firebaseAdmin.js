@@ -17,6 +17,23 @@ const readServiceAccount = (filePath) => {
     return JSON.parse(raw);
 };
 
+const readServiceAccountFromEnv = () => {
+    if (process.env.FIREBASE_SERVICE_ACCOUNT_JSON) {
+        return JSON.parse(process.env.FIREBASE_SERVICE_ACCOUNT_JSON);
+    }
+
+    if (process.env.FIREBASE_SERVICE_ACCOUNT_JSON_BASE64) {
+        const decodedValue = Buffer.from(
+            process.env.FIREBASE_SERVICE_ACCOUNT_JSON_BASE64,
+            'base64'
+        ).toString('utf8');
+
+        return JSON.parse(decodedValue);
+    }
+
+    return null;
+};
+
 const initializeWithCredential = (credential, source) => {
     if (!admin.apps.length) {
         admin.initializeApp({ credential });
@@ -26,19 +43,16 @@ const initializeWithCredential = (credential, source) => {
 };
 
 const initializeFirebaseAdmin = () => {
-    const jsonFromEnv = process.env.FIREBASE_SERVICE_ACCOUNT_JSON;
     const applicationCredentialsPath = process.env.GOOGLE_APPLICATION_CREDENTIALS;
 
     try {
-        if (jsonFromEnv) {
-            const serviceAccount = JSON.parse(jsonFromEnv);
-            initializeWithCredential(admin.credential.cert(serviceAccount), 'FIREBASE_SERVICE_ACCOUNT_JSON');
-            return admin;
-        }
+        const serviceAccountFromEnv = readServiceAccountFromEnv();
+        if (serviceAccountFromEnv) {
+            const source = process.env.FIREBASE_SERVICE_ACCOUNT_JSON_BASE64
+                ? 'FIREBASE_SERVICE_ACCOUNT_JSON_BASE64'
+                : 'FIREBASE_SERVICE_ACCOUNT_JSON';
 
-        if (isReadableFile(serviceAccountPath)) {
-            const serviceAccount = readServiceAccount(serviceAccountPath);
-            initializeWithCredential(admin.credential.cert(serviceAccount), 'serviceAccountKey.json');
+            initializeWithCredential(admin.credential.cert(serviceAccountFromEnv), source);
             return admin;
         }
 
@@ -51,6 +65,12 @@ const initializeFirebaseAdmin = () => {
             initializeWithCredential(admin.credential.cert(serviceAccount), 'GOOGLE_APPLICATION_CREDENTIALS');
             return admin;
         }
+
+        if (isReadableFile(serviceAccountPath)) {
+            const serviceAccount = readServiceAccount(serviceAccountPath);
+            initializeWithCredential(admin.credential.cert(serviceAccount), 'serviceAccountKey.json fallback');
+            return admin;
+        }
     } catch (error) {
         if (process.env.NODE_ENV === 'production') {
             throw error;
@@ -61,7 +81,7 @@ const initializeFirebaseAdmin = () => {
 
     if (process.env.NODE_ENV === 'production') {
         throw new Error(
-            'Firebase Admin credentials are missing. Configure serviceAccountKey.json, FIREBASE_SERVICE_ACCOUNT_JSON, or GOOGLE_APPLICATION_CREDENTIALS before starting the server.'
+            'Firebase Admin credentials are missing. Configure FIREBASE_SERVICE_ACCOUNT_JSON, FIREBASE_SERVICE_ACCOUNT_JSON_BASE64, GOOGLE_APPLICATION_CREDENTIALS, or a readable serviceAccountKey.json before starting the server.'
         );
     }
 

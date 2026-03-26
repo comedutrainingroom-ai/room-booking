@@ -1,6 +1,7 @@
 const User = require('../models/User');
 const { sendBanNotification, sendUnbanNotification } = require('../services/emailService');
 const { logAction } = require('../services/auditService');
+const { revokeAdminPinSessionsForUser } = require('../services/adminPinTokenService');
 
 // @desc    Get all users
 // @route   GET /api/users
@@ -49,6 +50,10 @@ const updateUserRole = async (req, res) => {
             message: `เปลี่ยน role เป็น ${role} แล้ว`
         });
 
+        if (role !== 'admin') {
+            revokeAdminPinSessionsForUser(user._id);
+        }
+
         // Audit log
         logAction({ action: 'user:update_role', performedBy: req.user._id, targetType: 'user', targetId: user._id, details: `เปลี่ยนสิทธิ์ผู้ใช้ ${user.email} เป็น ${role}`, req });
     } catch (error) {
@@ -92,6 +97,10 @@ const toggleBanUser = async (req, res) => {
             message: isBanned ? 'แบนผู้ใช้แล้ว' : 'ปลดแบนผู้ใช้แล้ว'
         });
 
+        if (isBanned) {
+            revokeAdminPinSessionsForUser(user._id);
+        }
+
         // Audit log
         logAction({ action: isBanned ? 'user:ban' : 'user:unban', performedBy: req.user._id, targetType: 'user', targetId: user._id, details: isBanned ? `แบนผู้ใช้ ${user.email} เหตุผล: ${reason || 'ไม่ได้ระบุ'}` : `ปลดแบนผู้ใช้ ${user.email}`, req });
     } catch (error) {
@@ -120,6 +129,8 @@ const deleteUser = async (req, res) => {
             success: true,
             message: 'ลบผู้ใช้แล้ว'
         });
+
+        revokeAdminPinSessionsForUser(user._id);
 
         // Audit log
         logAction({ action: 'user:delete', performedBy: req.user._id, targetType: 'user', targetId: req.params.id, details: `ลบผู้ใช้ ${user.email}`, req });

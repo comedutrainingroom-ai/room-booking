@@ -1,6 +1,12 @@
 const express = require('express');
 const path = require('path');
-const { getBookings, createBooking, updateBooking, deleteBooking } = require('../controllers/bookingController');
+const {
+    getBookings,
+    getBookingNotificationSummary,
+    createBooking,
+    updateBooking,
+    deleteBooking
+} = require('../controllers/bookingController');
 const { protect, admin, adminUnlocked } = require('../middleware/authMiddleware');
 
 const router = express.Router();
@@ -8,6 +14,8 @@ const router = express.Router();
 router.route('/')
     .get(protect, getBookings) // Protected - must be logged in to view bookings
     .post(protect, createBooking); // Must be logged in to create
+
+router.get('/notification-summary', protect, admin, getBookingNotificationSummary);
 
 // Setup multer for Excel import — restrict to .xlsx/.xls, max 5MB
 const multer = require('multer');

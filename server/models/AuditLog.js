@@ -29,11 +29,15 @@ const auditLogSchema = new mongoose.Schema({
     },
     details: {
         type: String,
-        default: ''
+        default: '',
+        trim: true,
+        maxlength: [500, 'Audit details can not be more than 500 characters']
     },
     ipAddress: {
         type: String,
-        default: ''
+        default: '',
+        trim: true,
+        maxlength: [100, 'IP address can not be more than 100 characters']
     },
     createdAt: {
         type: Date,

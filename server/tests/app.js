@@ -1,17 +1,11 @@
 const express = require('express');
+const { requestSanitizer } = require('../middleware/requestSanitizer');
 
 // Create a test-ready Express app (same middleware as server.js but without Socket.io/DB connect)
 const createApp = () => {
     const app = express();
     app.use(express.json({ limit: '10mb' }));
-
-    // Skip xss-clean in tests (incompatible with Express v5 in some cases)
-    try {
-        const mongoSanitize = require('express-mongo-sanitize');
-        app.use(mongoSanitize());
-    } catch (e) {
-        // Ignore if not available
-    }
+    app.use(requestSanitizer);
 
     // Mock io for socket events
     app.set('io', {

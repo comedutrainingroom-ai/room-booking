@@ -6,7 +6,8 @@ const ADMIN_PIN_HEADER_NAME = 'x-admin-pin-token';
 const ADMIN_PIN_ERROR_CODES = new Set([
     'ADMIN_PIN_REQUIRED',
     'ADMIN_PIN_INVALID',
-    'ADMIN_PIN_EXPIRED'
+    'ADMIN_PIN_EXPIRED',
+    'ADMIN_PIN_REVOKED'
 ]);
 
 const api = axios.create({

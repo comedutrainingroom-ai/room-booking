@@ -1,6 +1,18 @@
+const mongoose = require('mongoose');
 const Report = require('../models/Report');
 const Room = require('../models/Room');
 const { logAction } = require('../services/auditService');
+const {
+    emitReportCreatedNotification,
+    emitReportUpdatedNotification
+} = require('../services/adminNotificationService');
+const {
+    FIELD_LIMITS,
+    sanitizeRequiredSingleLineText,
+    sanitizeRequiredMultilineText,
+    sanitizeEnumValue,
+    getValidationErrorResponse
+} = require('../utils/inputValidation');
 
 // @desc    Create a new report
 // @route   POST /api/reports
@@ -8,20 +20,59 @@ const { logAction } = require('../services/auditService');
 const createReport = async (req, res) => {
     try {
         const { topic, description, urgency, roomId, images } = req.body;
+        const sanitizedTopic = sanitizeRequiredSingleLineText(topic, {
+            fieldName: 'Topic',
+            maxLength: FIELD_LIMITS.REPORT_TOPIC
+        });
+        const sanitizedDescription = sanitizeRequiredMultilineText(description, {
+            fieldName: 'Description',
+            maxLength: FIELD_LIMITS.REPORT_DESCRIPTION
+        });
+        const sanitizedUrgency = sanitizeEnumValue(urgency, {
+            fieldName: 'Urgency',
+            allowedValues: ['normal', 'urgent', 'emergency'],
+            defaultValue: 'normal'
+        });
+
+        if (images !== undefined && (!Array.isArray(images) || images.length > 0)) {
+            return res.status(400).json({
+                success: false,
+                error: 'Report image uploads are not supported yet',
+                code: 'UNSUPPORTED_REPORT_IMAGES'
+            });
+        }
 
         // Handle "other" or empty roomId
         let roomToSave = null;
-        if (roomId && roomId !== 'other') {
-            roomToSave = roomId;
+        const normalizedRoomId = typeof roomId === 'string' ? roomId.trim() : roomId;
+        if (normalizedRoomId && normalizedRoomId !== 'other') {
+            if (!mongoose.isValidObjectId(normalizedRoomId)) {
+                return res.status(400).json({
+                    success: false,
+                    error: 'Selected room is invalid',
+                    code: 'INVALID_ROOM'
+                });
+            }
+
+            const room = await Room.findById(normalizedRoomId).select('_id');
+            if (!room) {
+                return res.status(404).json({
+                    success: false,
+                    error: 'Selected room was not found',
+                    code: 'ROOM_NOT_FOUND'
+                });
+            }
+
+            roomToSave = room._id;
         }
 
         const report = await Report.create({
-            topic,
-            description,
-            urgency,
+            topic: sanitizedTopic,
+            description: sanitizedDescription,
+            urgency: sanitizedUrgency,
             room: roomToSave,
             reporter: req.user._id, // Assumes auth middleware sets req.user
-            images: images || []
+            images: []
         });
 
         res.status(201).json({
@@ -34,9 +85,14 @@ const createReport = async (req, res) => {
 
         // Emit real-time notification to admin room
         const io = req.app.get('io');
-        if (io) io.to('admin-room').emit('report:created', { reportId: report._id, topic: report.topic });
+        emitReportCreatedNotification(io, report);
 
     } catch (error) {
+        const validationResponse = getValidationErrorResponse(error, 'Report validation failed');
+        if (validationResponse) {
+            return res.status(validationResponse.statusCode).json(validationResponse.body);
+        }
+
         console.error('Create Report Error:', error);
         res.status(500).json({ success: false, error: 'Server Error' });
     }
@@ -108,7 +164,7 @@ const updateReportStatus = async (req, res) => {
 
         // Emit real-time notification
         const io = req.app.get('io');
-        if (io) io.to('admin-room').emit('report:updated', { reportId: report._id, status: report.status });
+        emitReportUpdatedNotification(io, report);
 
     } catch (error) {
         res.status(500).json({ success: false, error: 'Server Error' });
@@ -153,8 +209,28 @@ const setRoomMaintenance = async (req, res) => {
 
         // Audit log
         logAction({ action: 'report:set_maintenance', performedBy: req.user._id, targetType: 'room', targetId: report.room._id, details: isActive ? 'เปิดใช้งานห้อง' : 'ปิดห้องซ่อมบำรุง', req });
+        const io = req.app.get('io');
+        emitReportUpdatedNotification(io, report);
     } catch (error) {
         console.error('Set Maintenance Error:', error);
+        res.status(500).json({ success: false, error: 'Server Error' });
+    }
+};
+
+// @desc    Get report notification summary (Admin)
+// @route   GET /api/reports/notification-summary
+// @access  Private (Admin)
+const getReportNotificationSummary = async (req, res) => {
+    try {
+        const pendingCount = await Report.countDocuments({ status: 'pending' });
+
+        res.status(200).json({
+            success: true,
+            data: {
+                pendingCount
+            }
+        });
+    } catch (error) {
         res.status(500).json({ success: false, error: 'Server Error' });
     }
 };
@@ -163,6 +239,7 @@ module.exports = {
     createReport,
     getMyReports,
     getAllReports,
+    getReportNotificationSummary,
     updateReportStatus,
     setRoomMaintenance
 };

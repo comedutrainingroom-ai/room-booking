@@ -1,7 +1,17 @@
 const User = require('../models/User');
 const admin = require('../config/firebaseAdmin');
 const { logAction } = require('../services/auditService');
-const { createAdminPinToken } = require('../services/adminPinTokenService');
+const {
+    TOKEN_HEADER_NAME,
+    createAdminPinToken,
+    revokeAdminPinToken
+} = require('../services/adminPinTokenService');
+const {
+    FIELD_LIMITS,
+    PATTERNS,
+    sanitizeOptionalSingleLineText,
+    getValidationErrorResponse
+} = require('../utils/inputValidation');
 
 // Allowed email domains for KMUTNB
 const ALLOWED_DOMAINS = (process.env.ALLOWED_DOMAINS || 'kmutnb.ac.th,email.kmutnb.ac.th').split(',');
@@ -18,7 +28,6 @@ const googleLogin = async (req, res) => {
     try {
         const { idToken } = req.body;
 
-        // Verify Firebase ID Token (server-side verification)
         if (!idToken) {
             return res.status(400).json({ success: false, error: 'ID Token is required' });
         }
@@ -31,7 +40,6 @@ const googleLogin = async (req, res) => {
             return res.status(401).json({ success: false, error: 'Invalid or expired token' });
         }
 
-        // Extract verified user info from token
         let email = decodedToken.email;
         const name = decodedToken.name || decodedToken.display_name || '';
         const picture = decodedToken.picture || '';
@@ -40,30 +48,25 @@ const googleLogin = async (req, res) => {
             return res.status(400).json({ success: false, error: 'Email not found in token' });
         }
 
-        // Normalize email to lowercase
         email = email.toLowerCase().trim();
 
-        // Check if user exists (to allow existing admins)
         const existingUser = await User.findOne({ email });
 
-        // If new user or not admin, validate email domain
         if (!existingUser || existingUser.role !== 'admin') {
             if (!isAllowedEmail(email)) {
                 return res.status(403).json({
                     success: false,
-                    error: 'à¸à¸£à¸¸à¸“à¸²à¹ƒà¸Šà¹‰à¸­à¸µà¹€à¸¡à¸¥ @kmutnb.ac.th à¸«à¸£à¸·à¸­ @email.kmutnb.ac.th à¹€à¸—à¹ˆà¸²à¸™à¸±à¹‰à¸™',
+                    error: 'กรุณาใช้อีเมล @kmutnb.ac.th หรือ @email.kmutnb.ac.th เท่านั้น',
                     code: 'INVALID_EMAIL_DOMAIN'
                 });
             }
         }
 
-        // Prepare update data
         const updateData = {
             name,
-            picture,
+            picture
         };
 
-        // For role='student', we only set it on insert (don't overwrite if they were manually promoted)
         const setOnInsert = { role: 'student' };
 
         const user = await User.findOneAndUpdate(
@@ -75,11 +78,10 @@ const googleLogin = async (req, res) => {
             { returnDocument: 'after', upsert: true, setDefaultsOnInsert: true }
         );
 
-        // Check if user is banned
         if (user.isBanned) {
             return res.status(403).json({
                 success: false,
-                error: 'à¸šà¸±à¸à¸Šà¸µà¸‚à¸­à¸‡à¸„à¸¸à¸“à¸–à¸¹à¸à¸£à¸°à¸‡à¸±à¸šà¸à¸²à¸£à¹ƒà¸Šà¹‰à¸‡à¸²à¸™ à¸à¸£à¸¸à¸“à¸²à¸•à¸´à¸”à¸•à¹ˆà¸­à¸œà¸¹à¹‰à¸”à¸¹à¹à¸¥à¸£à¸°à¸šà¸š',
+                error: 'บัญชีของคุณถูกระงับการใช้งาน กรุณาติดต่อผู้ดูแลระบบ',
                 code: 'BANNED_USER'
             });
         }
@@ -89,10 +91,20 @@ const googleLogin = async (req, res) => {
             data: user
         });
 
-        // Audit log
-        logAction({ action: 'user:login', performedBy: user._id, targetType: 'user', targetId: user._id, details: `à¹€à¸‚à¹‰à¸²à¸ªà¸¹à¹ˆà¸£à¸°à¸šà¸š: ${email}`, req });
-
+        logAction({
+            action: 'user:login',
+            performedBy: user._id,
+            targetType: 'user',
+            targetId: user._id,
+            details: `เข้าสู่ระบบ: ${email}`,
+            req
+        });
     } catch (error) {
+        const validationResponse = getValidationErrorResponse(error, 'Login validation failed');
+        if (validationResponse) {
+            return res.status(validationResponse.statusCode).json(validationResponse.body);
+        }
+
         console.error('Google Login Error:', error);
         res.status(500).json({ success: false, error: 'Server Error' });
     }
@@ -129,16 +141,57 @@ const updateProfile = async (req, res) => {
             return res.status(404).json({ success: false, error: 'User not found' });
         }
 
-        if (name !== undefined) user.name = name;
-        if (phone !== undefined) user.phone = phone;
-        if (studentId !== undefined) user.studentId = studentId;
-        if (faculty !== undefined) user.faculty = faculty;
+        if (name !== undefined) {
+            user.name = sanitizeOptionalSingleLineText(name, {
+                fieldName: 'Name',
+                maxLength: FIELD_LIMITS.USER_NAME,
+                emptyValue: ''
+            });
+        }
+
+        if (phone !== undefined) {
+            user.phone = sanitizeOptionalSingleLineText(phone, {
+                fieldName: 'Phone',
+                maxLength: FIELD_LIMITS.USER_PHONE,
+                pattern: PATTERNS.PHONE,
+                emptyValue: ''
+            });
+        }
+
+        if (studentId !== undefined) {
+            user.studentId = sanitizeOptionalSingleLineText(studentId, {
+                fieldName: 'Student ID',
+                maxLength: FIELD_LIMITS.USER_STUDENT_ID,
+                pattern: PATTERNS.STUDENT_ID,
+                emptyValue: ''
+            });
+        }
+
+        if (faculty !== undefined) {
+            user.faculty = sanitizeOptionalSingleLineText(faculty, {
+                fieldName: 'Faculty',
+                maxLength: FIELD_LIMITS.USER_FACULTY,
+                emptyValue: ''
+            });
+        }
 
         await user.save();
 
         res.status(200).json({ success: true, data: user });
-        logAction({ action: 'user:update_profile', performedBy: user._id, targetType: 'user', targetId: user._id, details: 'à¹à¸à¹‰à¹„à¸‚à¸‚à¹‰à¸­à¸¡à¸¹à¸¥à¸ªà¹ˆà¸§à¸™à¸•à¸±à¸§', req });
+        logAction({
+            action: 'user:update_profile',
+            performedBy: user._id,
+            targetType: 'user',
+            targetId: user._id,
+            details: 'แก้ไขข้อมูลส่วนตัว',
+            req
+        });
     } catch (error) {
+        const validationResponse = getValidationErrorResponse(error, 'Profile validation failed');
+        if (validationResponse) {
+            return res.status(validationResponse.statusCode).json(validationResponse.body);
+        }
+
         console.error('Update Profile Error:', error);
         res.status(500).json({ success: false, error: 'Server Error' });
     }
@@ -156,7 +209,7 @@ const verifyAdminPin = async (req, res) => {
         }
 
         if (req.user.role !== 'admin') {
-            return res.status(403).json({ success: false, error: 'à¹„à¸¡à¹ˆà¸¡à¸µà¸ªà¸´à¸—à¸˜à¸´à¹Œà¹€à¸‚à¹‰à¸²à¸–à¸¶à¸‡' });
+            return res.status(403).json({ success: false, error: 'ไม่มีสิทธิ์เข้าถึง' });
         }
 
         const adminPin = process.env.ADMIN_PIN;
@@ -173,7 +226,7 @@ const verifyAdminPin = async (req, res) => {
             crypto.timingSafeEqual(pinBuffer, adminPinBuffer);
 
         if (!pinMatch) {
-            return res.status(401).json({ success: false, error: 'PIN à¹„à¸¡à¹ˆà¸–à¸¹à¸à¸•à¹‰à¸­à¸‡' });
+            return res.status(401).json({ success: false, error: 'PIN ไม่ถูกต้อง' });
         }
 
         const { token, expiresAt } = createAdminPinToken({
@@ -195,9 +248,35 @@ const verifyAdminPin = async (req, res) => {
     }
 };
 
+// @desc    Revoke the current Admin PIN session
+// @route   POST /api/auth/logout-pin
+// @access  Private (Admin only)
+const logoutAdminPin = async (req, res) => {
+    try {
+        if (req.user.role !== 'admin') {
+            return res.status(403).json({ success: false, error: 'ไม่อนุญาตให้เข้าถึง' });
+        }
+
+        const adminPinToken = req.headers[TOKEN_HEADER_NAME];
+
+        if (adminPinToken) {
+            revokeAdminPinToken(adminPinToken);
+        }
+
+        return res.status(200).json({
+            success: true,
+            message: 'Admin PIN session cleared'
+        });
+    } catch (error) {
+        console.error('Logout PIN Error:', error);
+        res.status(500).json({ success: false, error: 'Server Error' });
+    }
+};
+
 module.exports = {
     googleLogin,
     getCurrentUser,
     updateProfile,
-    verifyAdminPin
+    verifyAdminPin,
+    logoutAdminPin
 };

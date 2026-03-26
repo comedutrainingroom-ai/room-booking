@@ -26,10 +26,10 @@ services:
     environment:
       - NODE_ENV=production
       - MONGO_URI=mongodb://mongo:27017/room_booking_v2
-      - GOOGLE_APPLICATION_CREDENTIALS=/app/config/serviceAccountKey.json
+      - GOOGLE_APPLICATION_CREDENTIALS=/run/secrets/firebase/serviceAccountKey.json
     volumes:
       - ./server/uploads:/app/uploads
-      - ./server/config/serviceAccountKey.json:/app/config/serviceAccountKey.json:ro
+      - ./server/config:/run/secrets/firebase:ro
     depends_on:
       - mongo
     networks:

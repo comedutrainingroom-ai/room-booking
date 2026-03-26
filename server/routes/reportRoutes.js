@@ -4,6 +4,7 @@ const {
     createReport,
     getMyReports,
     getAllReports,
+    getReportNotificationSummary,
     updateReportStatus,
     setRoomMaintenance
 } = require('../controllers/reportController');
@@ -13,6 +14,7 @@ router.route('/')
     .post(protect, createReport)
     .get(protect, admin, adminUnlocked, getAllReports);
 
+router.get('/notification-summary', protect, admin, getReportNotificationSummary);
 router.route('/my').get(protect, getMyReports);
 
 router.route('/:id/status').put(protect, admin, adminUnlocked, updateReportStatus);

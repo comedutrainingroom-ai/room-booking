@@ -1,4 +1,5 @@
 const mongoose = require('mongoose');
+const { FIELD_LIMITS, PATTERNS } = require('../utils/inputValidation');
 
 const bookingSchema = mongoose.Schema({
     room: {
@@ -8,23 +9,40 @@ const bookingSchema = mongoose.Schema({
     },
     topic: {
         type: String,
-        required: [true, 'Please add a topic']
+        required: [true, 'Please add a topic'],
+        trim: true,
+        maxlength: [FIELD_LIMITS.BOOKING_TOPIC, `Topic must be ${FIELD_LIMITS.BOOKING_TOPIC} characters or fewer`]
     },
     note: {
         type: String,
-        default: ''
+        default: '',
+        trim: true,
+        maxlength: [FIELD_LIMITS.BOOKING_NOTE, `Note must be ${FIELD_LIMITS.BOOKING_NOTE} characters or fewer`]
     },
     user: {
         name: {
             type: String,
-            required: [true, 'Please add a user name']
+            required: [true, 'Please add a user name'],
+            trim: true,
+            maxlength: [FIELD_LIMITS.USER_NAME, `User name must be ${FIELD_LIMITS.USER_NAME} characters or fewer`]
         },
         email: {
             type: String,
-            required: [true, 'Please add an email']
+            required: [true, 'Please add an email'],
+            lowercase: true,
+            trim: true
         },
-        phone: String,
-        department: String
+        phone: {
+            type: String,
+            trim: true,
+            maxlength: [FIELD_LIMITS.USER_PHONE, `Phone must be ${FIELD_LIMITS.USER_PHONE} characters or fewer`],
+            match: [PATTERNS.PHONE, 'Phone format is invalid']
+        },
+        department: {
+            type: String,
+            trim: true,
+            maxlength: [FIELD_LIMITS.BOOKING_USER_DEPARTMENT, `Department must be ${FIELD_LIMITS.BOOKING_USER_DEPARTMENT} characters or fewer`]
+        }
     },
     startTime: {
         type: Date,

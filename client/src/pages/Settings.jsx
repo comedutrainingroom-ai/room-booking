@@ -70,7 +70,7 @@ const Settings = () => {
     useEffect(() => {
         const fetchSettings = async () => {
             try {
-                const res = await api.get('/settings');
+                const res = await api.get('/settings/admin');
                 if (res.data.success) {
                     const normalized = normalizeSettings(res.data.data);
                     setSettings(normalized);

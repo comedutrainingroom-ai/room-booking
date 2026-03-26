@@ -1,13 +1,18 @@
 const mongoose = require('mongoose');
+const { FIELD_LIMITS } = require('../utils/inputValidation');
 
 const reportSchema = new mongoose.Schema({
     topic: {
         type: String,
-        required: [true, 'Please add a topic']
+        required: [true, 'Please add a topic'],
+        trim: true,
+        maxlength: [FIELD_LIMITS.REPORT_TOPIC, `Topic must be ${FIELD_LIMITS.REPORT_TOPIC} characters or fewer`]
     },
     description: {
         type: String,
-        required: [true, 'Please add a description']
+        required: [true, 'Please add a description'],
+        trim: true,
+        maxlength: [FIELD_LIMITS.REPORT_DESCRIPTION, `Description must be ${FIELD_LIMITS.REPORT_DESCRIPTION} characters or fewer`]
     },
     urgency: {
         type: String,
@@ -30,8 +35,16 @@ const reportSchema = new mongoose.Schema({
         required: true
     },
     images: {
-        type: [String],
-        default: []
+        type: [{
+            type: String,
+            trim: true,
+            maxlength: [300, 'Image reference must be 300 characters or fewer']
+        }],
+        default: [],
+        validate: {
+            validator: (value) => Array.isArray(value) && value.length <= 5,
+            message: 'A report can contain at most 5 images'
+        }
     },
     createdAt: {
         type: Date,

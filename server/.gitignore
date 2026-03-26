@@ -1,5 +1,9 @@
 node_modules/
 .env
 uploads/
+config/serviceAccountKey.json
+backup/
+*.bson
+*.rar
 *.log
 .DS_Store

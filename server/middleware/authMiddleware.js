@@ -3,6 +3,14 @@ const Setting = require('../models/Setting');
 const admin = require('../config/firebaseAdmin');
 const { TOKEN_HEADER_NAME, verifyAdminPinToken } = require('../services/adminPinTokenService');
 
+const MAINTENANCE_ALLOWED_PATHS = [
+    '/api/settings/runtime'
+];
+
+const isMaintenanceAllowedRequest = (req) => MAINTENANCE_ALLOWED_PATHS.some((allowedPath) => (
+    req.originalUrl === allowedPath || req.originalUrl.startsWith(`${allowedPath}?`)
+));
+
 const protect = async (req, res, next) => {
     let token = null;
 
@@ -59,7 +67,7 @@ const protect = async (req, res, next) => {
 
         if (user.role !== 'admin') {
             const settings = await Setting.findOne().select('maintenanceMode');
-            if (settings?.maintenanceMode) {
+            if (settings?.maintenanceMode && !isMaintenanceAllowedRequest(req)) {
                 return res.status(503).json({
                     success: false,
                     error: 'System is currently under maintenance. Please try again later.',

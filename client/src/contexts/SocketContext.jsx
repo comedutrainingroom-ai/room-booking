@@ -6,7 +6,8 @@ import { clearAdminPinSession, getAdminPinToken } from '../services/adminPinSess
 const ADMIN_PIN_ERROR_CODES = new Set([
     'ADMIN_PIN_REQUIRED',
     'ADMIN_PIN_INVALID',
-    'ADMIN_PIN_EXPIRED'
+    'ADMIN_PIN_EXPIRED',
+    'ADMIN_PIN_REVOKED'
 ]);
 
 const SocketContext = createContext(null);
@@ -14,7 +15,7 @@ const SocketContext = createContext(null);
 export const useSocket = () => useContext(SocketContext);
 
 export const SocketProvider = ({ children }) => {
-    const { currentUser, dbUser, isAdminUnlocked } = useAuth();
+    const { currentUser, dbUser, isAdminUnlocked, syncUserWithBackend } = useAuth();
     const [socket, setSocket] = useState(null);
 
     useEffect(() => {
@@ -59,7 +60,27 @@ export const SocketProvider = ({ children }) => {
             return undefined;
         }
 
-        if (!currentUser || dbUser?.role !== 'admin' || !isAdminUnlocked) {
+        const handleJoinDenied = (payload) => {
+            if (payload?.code === 'ADMIN_ACCESS_REVOKED' && currentUser) {
+                syncUserWithBackend(currentUser).catch((error) => {
+                    console.error('[Socket.io] Failed to refresh user after admin access change', error);
+                });
+            }
+        };
+
+        socket.on('admin:join:denied', handleJoinDenied);
+
+        return () => {
+            socket.off('admin:join:denied', handleJoinDenied);
+        };
+    }, [socket, currentUser, syncUserWithBackend]);
+
+    useEffect(() => {
+        if (!socket) {
+            return undefined;
+        }
+
+        if (!currentUser || dbUser?.role !== 'admin') {
             socket.emit('leave-admin');
             return undefined;
         }
@@ -68,19 +89,15 @@ export const SocketProvider = ({ children }) => {
 
         const requestAdminJoin = async () => {
             try {
-                const adminPinToken = getAdminPinToken();
-                if (!adminPinToken) {
-                    clearAdminPinSession();
-                    socket.emit('leave-admin');
-                    return;
-                }
-
                 const token = await currentUser.getIdToken();
                 if (!isActive) {
                     return;
                 }
 
-                socket.emit('join-admin', { token, adminPinToken });
+                socket.emit('join-admin', {
+                    token,
+                    adminPinToken: getAdminPinToken()
+                });
                 console.log('[Socket.io] Requested to join admin-room');
             } catch (error) {
                 console.error('[Socket.io] Failed to authorize admin-room access', error);

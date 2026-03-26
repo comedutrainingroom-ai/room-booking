@@ -8,3 +8,7 @@ backup
 .gitignore
 .vscode
 test_xlsx.js
+config/serviceAccountKey.json
+uploads
+*.bson
+*.rar

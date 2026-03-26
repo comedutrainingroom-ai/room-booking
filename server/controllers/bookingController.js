@@ -1,3 +1,4 @@
+const mongoose = require('mongoose');
 const Booking = require('../models/Booking');
 const Room = require('../models/Room');
 const Setting = require('../models/Setting');
@@ -14,8 +15,24 @@ const {
     isUrgentBooking
 } = require('../services/bookingService');
 const { logAction } = require('../services/auditService');
+const {
+    emitBookingCreatedNotification,
+    emitBookingUpdatedNotification,
+    emitBookingDeletedNotification,
+    emitBookingImportedNotification
+} = require('../services/adminNotificationService');
+const {
+    FIELD_LIMITS,
+    IMPORT_LIMITS,
+    createHttpError,
+    sanitizeRequiredSingleLineText,
+    sanitizeOptionalSingleLineText,
+    sanitizeOptionalMultilineText,
+    getValidationErrorResponse
+} = require('../utils/inputValidation');
 
 const ADMIN_BOOKING_UPDATE_FIELDS = ['status', 'startTime', 'endTime', 'room', 'topic', 'note'];
+const ACTIVE_BOOKING_STATUSES = ['approved', 'pending'];
 
 const getAdminPinErrorResponse = (req) => ({
     success: false,
@@ -118,6 +135,58 @@ const buildBookingResponseForViewer = (booking, viewer) => {
     };
 };
 
+const isValidObjectId = (value) => mongoose.isValidObjectId(value);
+
+const toTextInput = (value) => {
+    if (value === undefined || value === null) {
+        return value;
+    }
+
+    return typeof value === 'string' ? value : String(value);
+};
+
+const parseDateInput = (value, fieldName) => {
+    const parsedDate = value instanceof Date ? new Date(value) : new Date(value);
+
+    if (Number.isNaN(parsedDate.getTime())) {
+        throw createHttpError(`${fieldName} is invalid`);
+    }
+
+    return parsedDate;
+};
+
+const validateChronologicalRange = (startTime, endTime) => {
+    if (endTime <= startTime) {
+        throw createHttpError('End time must be after start time');
+    }
+};
+
+const createCappedErrorCollector = (maxItems) => {
+    const items = [];
+    let totalCount = 0;
+
+    return {
+        add(message) {
+            totalCount += 1;
+
+            if (items.length < maxItems) {
+                items.push(message);
+            }
+        },
+        getItems() {
+            return items;
+        },
+        getTotalCount() {
+            return totalCount;
+        }
+    };
+};
+
+const hasTimeOverlap = (left, right) => (
+    new Date(left.startTime) < new Date(right.endTime) &&
+    new Date(left.endTime) > new Date(right.startTime)
+);
+
 // @desc    Get all bookings
 // @route   GET /api/bookings
 // @access  Protected
@@ -165,6 +234,28 @@ const getBookings = async (req, res) => {
     }
 };
 
+// @desc    Get booking notification summary (Admin)
+// @route   GET /api/bookings/notification-summary
+// @access  Private (Admin)
+const getBookingNotificationSummary = async (req, res) => {
+    try {
+        const pendingCount = await Booking.countDocuments({
+            status: 'pending',
+            isImported: { $ne: true }
+        });
+
+        res.status(200).json({
+            success: true,
+            data: {
+                pendingCount
+            }
+        });
+    } catch (error) {
+        console.error('getBookingNotificationSummary Error:', error);
+        res.status(500).json({ success: false, error: 'Server Error' });
+    }
+};
+
 // @desc    Create a booking
 // @route   POST /api/bookings
 // @access  Private
@@ -173,8 +264,29 @@ const createBooking = async (req, res) => {
         const { room, startTime, endTime, topic, note, attendees } = req.body;
         const settings = await Setting.findOne();
         const isPrivilegedAdmin = req.user.role === 'admin' && req.adminUnlocked;
+        const sanitizedTopic = sanitizeRequiredSingleLineText(topic, {
+            fieldName: 'Topic',
+            maxLength: FIELD_LIMITS.BOOKING_TOPIC
+        });
+        const sanitizedNote = sanitizeOptionalMultilineText(note, {
+            fieldName: 'Note',
+            maxLength: FIELD_LIMITS.BOOKING_NOTE,
+            emptyValue: ''
+        });
+        const normalizedStartTime = parseDateInput(startTime, 'Start time');
+        const normalizedEndTime = parseDateInput(endTime, 'End time');
 
-        const timeValidation = validateBookingTime(startTime);
+        validateChronologicalRange(normalizedStartTime, normalizedEndTime);
+
+        if (!isValidObjectId(room)) {
+            return res.status(400).json({
+                success: false,
+                error: 'Requested room is invalid',
+                code: 'INVALID_ROOM'
+            });
+        }
+
+        const timeValidation = validateBookingTime(normalizedStartTime);
         if (!timeValidation.valid) {
             return res.status(400).json({ success: false, error: timeValidation.error });
         }
@@ -189,7 +301,7 @@ const createBooking = async (req, res) => {
         }
 
         if (!isPrivilegedAdmin) {
-            const settingsValidation = validateBookingAgainstSettings(settings, startTime, endTime);
+            const settingsValidation = validateBookingAgainstSettings(settings, normalizedStartTime, normalizedEndTime);
             if (!settingsValidation.valid) {
                 return res.status(400).json({
                     success: false,
@@ -198,7 +310,7 @@ const createBooking = async (req, res) => {
             }
         }
 
-        const isAvailable = await checkRoomAvailability(room, startTime, endTime);
+        const isAvailable = await checkRoomAvailability(room, normalizedStartTime, normalizedEndTime);
         if (!isAvailable) {
             return res.status(400).json({
                 success: false,
@@ -212,16 +324,27 @@ const createBooking = async (req, res) => {
 
         let booking = await Booking.create({
             room,
-            startTime,
-            endTime,
-            topic,
-            note,
+            startTime: normalizedStartTime,
+            endTime: normalizedEndTime,
+            topic: sanitizedTopic,
+            note: sanitizedNote,
             attendees,
             user: {
-                name: req.user.name,
+                name: sanitizeRequiredSingleLineText(toTextInput(req.user.name || req.user.email), {
+                    fieldName: 'User name',
+                    maxLength: FIELD_LIMITS.USER_NAME
+                }),
                 email: req.user.email,
-                department: req.user.faculty || req.user.department || '',
-                phone: req.user.phone || ''
+                department: sanitizeOptionalSingleLineText(toTextInput(req.user.faculty || req.user.department), {
+                    fieldName: 'Department',
+                    maxLength: FIELD_LIMITS.BOOKING_USER_DEPARTMENT,
+                    emptyValue: ''
+                }),
+                phone: sanitizeOptionalSingleLineText(toTextInput(req.user.phone), {
+                    fieldName: 'Phone',
+                    maxLength: FIELD_LIMITS.USER_PHONE,
+                    emptyValue: ''
+                })
             },
             status: bookingStatus
         });
@@ -230,7 +353,7 @@ const createBooking = async (req, res) => {
 
         sendBookingCreated(booking).catch((error) => console.error('Failed to send creation email:', error));
 
-        if (isUrgentBooking(startTime)) {
+        if (isUrgentBooking(normalizedStartTime)) {
             console.log(`Urgent booking detected: ${booking._id}. Sending immediate reminder.`);
             sendBookingReminder(booking).catch((error) => console.error('Failed to send reminder email:', error));
             booking.reminderSent = true;
@@ -252,10 +375,13 @@ const createBooking = async (req, res) => {
         });
 
         const io = req.app.get('io');
-        if (io) {
-            io.to('admin-room').emit('booking:created', { bookingId: booking._id, topic: booking.topic });
-        }
+        emitBookingCreatedNotification(io, booking);
     } catch (error) {
+        const validationResponse = getValidationErrorResponse(error, 'Booking validation failed');
+        if (validationResponse) {
+            return res.status(validationResponse.statusCode).json(validationResponse.body);
+        }
+
         console.error('createBooking Error:', error);
         res.status(500).json({ success: false, error: 'Server Error' });
     }
@@ -295,6 +421,21 @@ const updateBooking = async (req, res) => {
                     error: 'No valid booking fields were provided for update'
                 });
             }
+
+            if (Object.prototype.hasOwnProperty.call(updateData, 'topic')) {
+                updateData.topic = sanitizeRequiredSingleLineText(updateData.topic, {
+                    fieldName: 'Topic',
+                    maxLength: FIELD_LIMITS.BOOKING_TOPIC
+                });
+            }
+
+            if (Object.prototype.hasOwnProperty.call(updateData, 'note')) {
+                updateData.note = sanitizeOptionalMultilineText(updateData.note, {
+                    fieldName: 'Note',
+                    maxLength: FIELD_LIMITS.BOOKING_NOTE,
+                    emptyValue: ''
+                });
+            }
         } else {
             const requestKeys = Object.keys(req.body || {});
             const onlyCancellingStatus = requestKeys.length === 1 &&
@@ -320,16 +461,32 @@ const updateBooking = async (req, res) => {
 
         const oldStartTime = originalBooking.startTime;
         const oldEndTime = originalBooking.endTime;
-        const nextRoomId = updateData.room || originalBooking.room;
-        const nextStartTime = updateData.startTime || oldStartTime;
-        const nextEndTime = updateData.endTime || oldEndTime;
+        const nextRoomId = Object.prototype.hasOwnProperty.call(updateData, 'room')
+            ? updateData.room
+            : originalBooking.room;
+        const nextStartTime = Object.prototype.hasOwnProperty.call(updateData, 'startTime')
+            ? parseDateInput(updateData.startTime, 'Start time')
+            : oldStartTime;
+        const nextEndTime = Object.prototype.hasOwnProperty.call(updateData, 'endTime')
+            ? parseDateInput(updateData.endTime, 'End time')
+            : oldEndTime;
         const timeChanged = new Date(nextStartTime).getTime() !== new Date(oldStartTime).getTime() ||
             new Date(nextEndTime).getTime() !== new Date(oldEndTime).getTime();
         const roomChanged = Object.prototype.hasOwnProperty.call(updateData, 'room') &&
             String(updateData.room) !== String(originalBooking.room);
 
+        if (Object.prototype.hasOwnProperty.call(updateData, 'room') && !isValidObjectId(nextRoomId)) {
+            return res.status(400).json({
+                success: false,
+                error: 'Requested room is invalid',
+                code: 'INVALID_ROOM'
+            });
+        }
+
         if (timeChanged || roomChanged) {
-            if (updateData.startTime) {
+            validateChronologicalRange(new Date(nextStartTime), new Date(nextEndTime));
+
+            if (Object.prototype.hasOwnProperty.call(updateData, 'startTime')) {
                 const timeValidation = validateBookingTime(nextStartTime);
                 if (!timeValidation.valid) {
                     return res.status(400).json({ success: false, error: timeValidation.error });
@@ -358,6 +515,14 @@ const updateBooking = async (req, res) => {
                     error: 'This room is already booked for the selected time range'
                 });
             }
+        }
+
+        if (Object.prototype.hasOwnProperty.call(updateData, 'startTime')) {
+            updateData.startTime = nextStartTime;
+        }
+
+        if (Object.prototype.hasOwnProperty.call(updateData, 'endTime')) {
+            updateData.endTime = nextEndTime;
         }
 
         const booking = await Booking.findByIdAndUpdate(req.params.id, updateData, {
@@ -404,10 +569,13 @@ const updateBooking = async (req, res) => {
         });
 
         const io = req.app.get('io');
-        if (io) {
-            io.to('admin-room').emit('booking:updated', { bookingId: booking._id, status: booking.status });
-        }
+        emitBookingUpdatedNotification(io, booking);
     } catch (error) {
+        const validationResponse = getValidationErrorResponse(error, 'Booking update validation failed');
+        if (validationResponse) {
+            return res.status(validationResponse.statusCode).json(validationResponse.body);
+        }
+
         console.error('updateBooking Error:', error);
         res.status(500).json({ success: false, error: 'Server Error' });
     }
@@ -438,9 +606,7 @@ const deleteBooking = async (req, res) => {
         });
 
         const io = req.app.get('io');
-        if (io) {
-            io.to('admin-room').emit('booking:deleted', { bookingId: req.params.id });
-        }
+        emitBookingDeletedNotification(io, req.params.id);
     } catch (error) {
         res.status(500).json({ success: false, error: error.message });
     }
@@ -468,21 +634,39 @@ const importBookings = async (req, res) => {
         }
 
         const workbook = xlsx.read(req.file.buffer, { type: 'buffer' });
-        let data = [];
-        for (const sheetName of workbook.SheetNames) {
-            const sheet = workbook.Sheets[sheetName];
-            const sheetData = xlsx.utils.sheet_to_json(sheet);
-            sheetData.forEach((row, index) => {
-                row._sheetName = sheetName;
-                row._originalRowNum = index + 2;
-                data.push(row);
+        if (workbook.SheetNames.length > IMPORT_LIMITS.MAX_SHEETS) {
+            return res.status(400).json({
+                success: false,
+                error: `Import supports at most ${IMPORT_LIMITS.MAX_SHEETS} sheets per file`,
+                code: 'IMPORT_TOO_MANY_SHEETS'
             });
         }
 
-        const semesterStart = req.body.startDate ? new Date(req.body.startDate) : new Date();
+        const semesterStart = req.body.startDate
+            ? parseDateInput(req.body.startDate, 'Start date')
+            : new Date();
+        const defaultSemesterEnd = new Date(semesterStart);
+        defaultSemesterEnd.setMonth(defaultSemesterEnd.getMonth() + 4);
         const semesterEnd = req.body.endDate
-            ? new Date(req.body.endDate)
-            : new Date(new Date().setMonth(new Date().getMonth() + 4));
+            ? parseDateInput(req.body.endDate, 'End date')
+            : defaultSemesterEnd;
+        const importRangeDays = Math.ceil((semesterEnd - semesterStart) / (1000 * 60 * 60 * 24));
+
+        if (semesterEnd < semesterStart) {
+            return res.status(400).json({
+                success: false,
+                error: 'End date must be on or after start date',
+                code: 'INVALID_IMPORT_RANGE'
+            });
+        }
+
+        if (importRangeDays > IMPORT_LIMITS.MAX_RANGE_DAYS) {
+            return res.status(400).json({
+                success: false,
+                error: `Import range must be ${IMPORT_LIMITS.MAX_RANGE_DAYS} days or fewer`,
+                code: 'IMPORT_RANGE_TOO_LARGE'
+            });
+        }
 
         const getDayIndex = (dayStr) => {
             if (!dayStr) {
@@ -526,7 +710,7 @@ const importBookings = async (req, res) => {
         };
 
         const parseExcelTime = (value) => {
-            if (!value) {
+            if (value === undefined || value === null || value === '') {
                 return null;
             }
 
@@ -534,15 +718,34 @@ const importBookings = async (req, res) => {
                 const totalSeconds = Math.round(value * 24 * 60 * 60);
                 const hours = Math.floor(totalSeconds / 3600);
                 const minutes = Math.floor((totalSeconds % 3600) / 60);
+                if (
+                    !Number.isInteger(hours) ||
+                    !Number.isInteger(minutes) ||
+                    hours < 0 ||
+                    hours > 23 ||
+                    minutes < 0 ||
+                    minutes > 59
+                ) {
+                    return null;
+                }
+
                 return { hours, minutes };
             }
 
             if (typeof value === 'string') {
-                const parts = value.split(':');
-                if (parts.length >= 2) {
+                const trimmedValue = value.trim();
+                const match = trimmedValue.match(/^(\d{1,2}):(\d{2})$/);
+                if (match) {
+                    const hours = parseInt(match[1], 10);
+                    const minutes = parseInt(match[2], 10);
+
+                    if (hours < 0 || hours > 23 || minutes < 0 || minutes > 59) {
+                        return null;
+                    }
+
                     return {
-                        hours: parseInt(parts[0], 10),
-                        minutes: parseInt(parts[1], 10)
+                        hours,
+                        minutes
                     };
                 }
             }
@@ -550,80 +753,128 @@ const importBookings = async (req, res) => {
             return null;
         };
 
-        const bookingsToCreate = [];
-        const errors = [];
-
-        for (const row of data) {
-            const rowNum = `Sheet '${row._sheetName}' Row ${row._originalRowNum}`;
-            const normalizedRow = {};
-
-            Object.keys(row).forEach((key) => {
-                if (key !== '_sheetName' && key !== '_originalRowNum') {
-                    normalizedRow[key.toLowerCase()] = row[key];
-                }
-            });
-
-            const roomName = normalizedRow.room;
-            const dayStr = normalizedRow.day || row._sheetName;
-            const dateStr = normalizedRow.date;
-            const startTimeStr = normalizedRow.starttime;
-            const endTimeStr = normalizedRow.endtime;
-            const subject = normalizedRow.subject || 'Class';
-            const teacher = normalizedRow.teacher || 'Unknown';
-
-            if (!roomName || (!dayStr && !dateStr) || !startTimeStr || !endTimeStr) {
-                errors.push(`Row ${rowNum}: Missing required fields`);
-                continue;
+        const parseSpecificDate = (value) => {
+            if (value instanceof Date) {
+                return parseDateInput(value, 'Date');
             }
 
-            let room = await Room.findOne({ name: roomName });
-            if (!room) {
+            if (typeof value === 'number') {
+                const parsedCode = xlsx.SSF?.parse_date_code?.(value);
+                if (parsedCode) {
+                    return new Date(parsedCode.y, parsedCode.m - 1, parsedCode.d);
+                }
+            }
+
+            return parseDateInput(value, 'Date');
+        };
+
+        const errorCollector = createCappedErrorCollector(IMPORT_LIMITS.MAX_ERROR_ITEMS);
+        const candidateBookings = [];
+        const roomCache = new Map();
+        let totalSourceRows = 0;
+
+        for (const sheetName of workbook.SheetNames) {
+            const sheet = workbook.Sheets[sheetName];
+            const sheetRange = sheet?.['!ref'] ? xlsx.utils.decode_range(sheet['!ref']) : null;
+            const sheetRowCount = sheetRange ? Math.max(0, sheetRange.e.r - sheetRange.s.r) : 0;
+
+            totalSourceRows += sheetRowCount;
+            if (totalSourceRows > IMPORT_LIMITS.MAX_SOURCE_ROWS) {
+                return res.status(400).json({
+                    success: false,
+                    error: `Import supports at most ${IMPORT_LIMITS.MAX_SOURCE_ROWS} data rows per file`,
+                    code: 'IMPORT_TOO_MANY_ROWS'
+                });
+            }
+
+            const sheetData = xlsx.utils.sheet_to_json(sheet, { defval: '' });
+
+            for (const [index, row] of sheetData.entries()) {
+                const rowLabel = `Sheet '${sheetName}' Row ${index + 2}`;
+                const normalizedRow = {};
+
+                Object.keys(row).forEach((key) => {
+                    normalizedRow[String(key).toLowerCase().trim()] = row[key];
+                });
+
                 try {
-                    room = await Room.create({
-                        name: roomName,
-                        capacity: 30,
-                        equipment: ['Computer', 'Projector'],
-                        description: 'Auto-created from Schedule Import'
+                    const roomName = sanitizeRequiredSingleLineText(toTextInput(normalizedRow.room), {
+                        fieldName: 'Room',
+                        maxLength: FIELD_LIMITS.IMPORT_ROOM_NAME
                     });
-                    console.log(`Auto-created missing room: ${roomName}`);
-                } catch (error) {
-                    errors.push(`Row ${rowNum}: Failed to auto-create room '${roomName}'`);
-                    continue;
-                }
-            }
+                    const dateValue = normalizedRow.date;
+                    const dayValue = dateValue ? '' : (toTextInput(normalizedRow.day) || sheetName);
+                    const startTimeValue = normalizedRow.starttime;
+                    const endTimeValue = normalizedRow.endtime;
+                    const subject = sanitizeOptionalSingleLineText(toTextInput(normalizedRow.subject), {
+                        fieldName: 'Subject',
+                        maxLength: FIELD_LIMITS.BOOKING_TOPIC,
+                        emptyValue: 'Class'
+                    });
+                    const teacher = sanitizeOptionalSingleLineText(toTextInput(normalizedRow.teacher), {
+                        fieldName: 'Teacher',
+                        maxLength: FIELD_LIMITS.USER_NAME,
+                        emptyValue: 'Unknown'
+                    });
 
-            const startObj = parseExcelTime(startTimeStr);
-            const endObj = parseExcelTime(endTimeStr);
+                    if ((!dayValue || !String(dayValue).trim()) && !dateValue) {
+                        throw createHttpError('Day or date is required');
+                    }
 
-            if (!startObj || !endObj) {
-                console.error(`Row ${rowNum}: Invalid time format. Start: ${startTimeStr}, End: ${endTimeStr}`);
-                errors.push(`Row ${rowNum}: Invalid time format (${startTimeStr} - ${endTimeStr})`);
-                continue;
-            }
+                    if (startTimeValue === undefined || startTimeValue === null || startTimeValue === '') {
+                        throw createHttpError('Start time is required');
+                    }
 
-            const buildDateTimeRange = (dateObj) => {
-                const year = dateObj.getFullYear();
-                const month = dateObj.getMonth();
-                const day = dateObj.getDate();
+                    if (endTimeValue === undefined || endTimeValue === null || endTimeValue === '') {
+                        throw createHttpError('End time is required');
+                    }
 
-                return {
-                    start: new Date(year, month, day, startObj.hours, startObj.minutes),
-                    end: new Date(year, month, day, endObj.hours, endObj.minutes)
-                };
-            };
+                    let room = roomCache.get(roomName);
+                    if (!room) {
+                        room = await Room.findOne({ name: roomName });
+                        if (!room) {
+                            room = await Room.create({
+                                name: roomName,
+                                capacity: 30,
+                                equipment: ['Computer', 'Projector'],
+                                description: 'Auto-created from Schedule Import'
+                            });
+                            console.log(`Auto-created missing room: ${roomName}`);
+                        }
 
-            if (dayStr) {
-                const targetDayIndex = getDayIndex(dayStr);
-                if (targetDayIndex === -1) {
-                    errors.push(`Row ${rowNum}: Invalid day '${dayStr}'`);
-                    continue;
-                }
+                        roomCache.set(roomName, room);
+                    }
 
-                const loopDate = new Date(semesterStart);
-                while (loopDate <= semesterEnd) {
-                    if (loopDate.getDay() === targetDayIndex) {
-                        const { start, end } = buildDateTimeRange(loopDate);
-                        bookingsToCreate.push({
+                    const startObj = parseExcelTime(startTimeValue);
+                    const endObj = parseExcelTime(endTimeValue);
+
+                    if (!startObj || !endObj) {
+                        throw createHttpError(`Invalid time format (${startTimeValue} - ${endTimeValue})`);
+                    }
+
+                    const buildDateTimeRange = (dateObj) => {
+                        const year = dateObj.getFullYear();
+                        const month = dateObj.getMonth();
+                        const day = dateObj.getDate();
+                        const start = new Date(year, month, day, startObj.hours, startObj.minutes);
+                        const end = new Date(year, month, day, endObj.hours, endObj.minutes);
+
+                        validateChronologicalRange(start, end);
+
+                        return { start, end };
+                    };
+
+                    const pushCandidateBooking = (start, end) => {
+                        if (candidateBookings.length >= IMPORT_LIMITS.MAX_GENERATED_BOOKINGS) {
+                            throw createHttpError(
+                                `Import would generate more than ${IMPORT_LIMITS.MAX_GENERATED_BOOKINGS} bookings`,
+                                'IMPORT_TOO_MANY_BOOKINGS'
+                            );
+                        }
+
+                        candidateBookings.push({
+                            rowLabel,
+                            roomName,
                             room: room._id,
                             topic: subject,
                             note: 'Imported Schedule',
@@ -637,32 +888,108 @@ const importBookings = async (req, res) => {
                             status: 'approved',
                             isImported: true
                         });
+                    };
+
+                    if (dayValue && String(dayValue).trim()) {
+                        const targetDayIndex = getDayIndex(dayValue);
+                        if (targetDayIndex === -1) {
+                            throw createHttpError(`Invalid day '${dayValue}'`);
+                        }
+
+                        const loopDate = new Date(semesterStart);
+                        while (loopDate <= semesterEnd) {
+                            if (loopDate.getDay() === targetDayIndex) {
+                                const { start, end } = buildDateTimeRange(loopDate);
+                                pushCandidateBooking(start, end);
+                            }
+
+                            loopDate.setDate(loopDate.getDate() + 1);
+                        }
+                    } else {
+                        const specificDate = parseSpecificDate(dateValue);
+                        const { start, end } = buildDateTimeRange(specificDate);
+                        pushCandidateBooking(start, end);
+                    }
+                } catch (error) {
+                    if (error?.code === 'IMPORT_TOO_MANY_BOOKINGS') {
+                        throw error;
                     }
 
-                    loopDate.setDate(loopDate.getDate() + 1);
+                    const message = error?.message || 'Invalid import row';
+                    errorCollector.add(`${rowLabel}: ${message}`);
                 }
-            } else if (dateStr) {
-                const specificDate = new Date(dateStr);
-                if (Number.isNaN(specificDate.getTime())) {
-                    errors.push(`Row ${rowNum}: Invalid date format`);
+            }
+        }
+
+        candidateBookings.sort((left, right) => {
+            const roomComparison = String(left.room).localeCompare(String(right.room));
+            if (roomComparison !== 0) {
+                return roomComparison;
+            }
+
+            return new Date(left.startTime) - new Date(right.startTime);
+        });
+
+        const nonConflictingCandidates = [];
+        const lastAcceptedByRoom = new Map();
+
+        for (const candidate of candidateBookings) {
+            const roomKey = String(candidate.room);
+            const lastAccepted = lastAcceptedByRoom.get(roomKey);
+
+            if (lastAccepted && hasTimeOverlap(lastAccepted, candidate)) {
+                errorCollector.add(`${candidate.rowLabel}: Conflicts with another imported booking for room '${candidate.roomName}'`);
+                continue;
+            }
+
+            lastAcceptedByRoom.set(roomKey, candidate);
+            nonConflictingCandidates.push(candidate);
+        }
+
+        const roomIds = [...new Set(nonConflictingCandidates.map((booking) => String(booking.room)))];
+        const bookingsToCreate = [];
+
+        if (nonConflictingCandidates.length > 0) {
+            const minStartTime = nonConflictingCandidates.reduce(
+                (earliest, booking) => (booking.startTime < earliest ? booking.startTime : earliest),
+                nonConflictingCandidates[0].startTime
+            );
+            const maxEndTime = nonConflictingCandidates.reduce(
+                (latest, booking) => (booking.endTime > latest ? booking.endTime : latest),
+                nonConflictingCandidates[0].endTime
+            );
+
+            const existingBookings = await Booking.find({
+                room: { $in: roomIds },
+                status: { $in: ACTIVE_BOOKING_STATUSES },
+                startTime: { $lt: maxEndTime },
+                endTime: { $gt: minStartTime }
+            })
+                .select('room startTime endTime')
+                .sort({ room: 1, startTime: 1 });
+
+            const existingByRoom = existingBookings.reduce((accumulator, booking) => {
+                const roomKey = String(booking.room);
+                if (!accumulator.has(roomKey)) {
+                    accumulator.set(roomKey, []);
+                }
+
+                accumulator.get(roomKey).push(booking);
+                return accumulator;
+            }, new Map());
+
+            for (const candidate of nonConflictingCandidates) {
+                const roomKey = String(candidate.room);
+                const roomBookings = existingByRoom.get(roomKey) || [];
+                const hasExistingConflict = roomBookings.some((existingBooking) => hasTimeOverlap(existingBooking, candidate));
+
+                if (hasExistingConflict) {
+                    errorCollector.add(`${candidate.rowLabel}: Conflicts with an existing booking for room '${candidate.roomName}'`);
                     continue;
                 }
 
-                const { start, end } = buildDateTimeRange(specificDate);
-                bookingsToCreate.push({
-                    room: room._id,
-                    topic: subject,
-                    note: 'Imported Schedule',
-                    user: {
-                        name: teacher,
-                        email: 'admin@system.com',
-                        department: 'Imported'
-                    },
-                    startTime: start,
-                    endTime: end,
-                    status: 'approved',
-                    isImported: true
-                });
+                const { rowLabel, roomName, ...bookingData } = candidate;
+                bookingsToCreate.push(bookingData);
             }
         }
 
@@ -670,11 +997,16 @@ const importBookings = async (req, res) => {
             await Booking.insertMany(bookingsToCreate);
         }
 
+        const errors = errorCollector.getItems();
+        const errorCount = errorCollector.getTotalCount();
+
         res.status(200).json({
             success: true,
             count: bookingsToCreate.length,
             errors,
-            message: `Imported ${bookingsToCreate.length} bookings. ${errors.length} errors.`
+            errorCount,
+            errorsTruncated: errorCount > errors.length,
+            message: `Imported ${bookingsToCreate.length} bookings. ${errorCount} errors.`
         });
 
         logAction({
@@ -686,10 +1018,13 @@ const importBookings = async (req, res) => {
         });
 
         const io = req.app.get('io');
-        if (io) {
-            io.to('admin-room').emit('booking:imported', { count: bookingsToCreate.length });
-        }
+        emitBookingImportedNotification(io, bookingsToCreate.length);
     } catch (error) {
+        const validationResponse = getValidationErrorResponse(error, 'Import validation failed');
+        if (validationResponse) {
+            return res.status(validationResponse.statusCode).json(validationResponse.body);
+        }
+
         console.error('Import Error:', error);
         res.status(500).json({ success: false, error: `Failed to process file: ${error.message}` });
     }
@@ -727,6 +1062,7 @@ const deleteImportedBookings = async (req, res) => {
 
 module.exports = {
     getBookings,
+    getBookingNotificationSummary,
     createBooking,
     updateBooking,
     deleteBooking,

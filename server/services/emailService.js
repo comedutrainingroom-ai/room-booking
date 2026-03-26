@@ -17,18 +17,32 @@ const transporter = nodemailer.createTransport({
 const sendEmail = async (to, subject, html) => {
     if (!process.env.EMAIL_USER || !process.env.EMAIL_PASS) {
         console.warn(`[EMAIL] Skipped: Email not configured`);
-        return;
+        return {
+            success: false,
+            skipped: true,
+            code: 'EMAIL_NOT_CONFIGURED'
+        };
     }
+
     try {
-        await transporter.sendMail({
+        const info = await transporter.sendMail({
             from: `"Meeting Room Booking" <${process.env.EMAIL_USER}>`,
             to,
             subject,
             html
         });
         console.log(`Email sent to ${to}`);
+        return {
+            success: true,
+            info
+        };
     } catch (error) {
         console.error(`Error sending email to ${to}:`, error);
+        return {
+            success: false,
+            error,
+            code: 'EMAIL_SEND_FAILED'
+        };
     }
 };
 

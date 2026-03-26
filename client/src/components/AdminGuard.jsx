@@ -1,7 +1,7 @@
 import { useState } from 'react';
-import { useAuth } from '../contexts/AuthContext';
 import { Navigate } from 'react-router-dom';
 import { FaLock, FaUnlock, FaSpinner } from 'react-icons/fa';
+import { useAuth } from '../contexts/AuthContext';
 
 const AdminGuard = ({ children }) => {
     const { isAdmin, isAdminUnlocked, unlockAdmin, loading } = useAuth();
@@ -11,12 +11,10 @@ const AdminGuard = ({ children }) => {
 
     if (loading) return <div>Loading...</div>;
 
-    // 1. Role Check: Must be 'admin' in database
     if (!isAdmin) {
         return <Navigate to="/" replace />;
     }
 
-    // 2. PIN Check: Must enter correct PIN (2FA)
     if (isAdminUnlocked) {
         return children;
     }
@@ -29,15 +27,15 @@ const AdminGuard = ({ children }) => {
         const result = await unlockAdmin(pin);
 
         if (!result.success) {
-            setError(result.error || 'รหัสผ่านไม่ถูกต้อง');
+            setError(result.error || 'รหัส PIN ไม่ถูกต้อง');
             setPin('');
         }
+
         setVerifying(false);
     };
 
     return (
         <div className="flex flex-col items-center justify-center min-h-[calc(100vh-200px)] relative">
-            {/* Logo Watermark */}
             <img
                 src="/logo.png"
                 alt=""

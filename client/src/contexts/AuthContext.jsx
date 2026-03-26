@@ -82,11 +82,19 @@ export const AuthProvider = ({ children }) => {
     }, [syncUserWithBackend]);
 
     const logout = useCallback(async () => {
+        try {
+            if (dbUser?.role === 'admin' && getAdminPinSession()) {
+                await api.post('/auth/logout-pin');
+            }
+        } catch (error) {
+            console.error('Error clearing admin PIN session on logout', error);
+        }
+
         clearAdminPinSession();
         setDbUser(null);
         setCurrentUser(null);
         await signOut(auth);
-    }, []);
+    }, [dbUser]);
 
     const unlockAdmin = useCallback(async (pin) => {
         try {

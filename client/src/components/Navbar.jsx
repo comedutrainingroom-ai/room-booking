@@ -1,5 +1,5 @@
 import { Link, useNavigate, useLocation } from 'react-router-dom';
-import { FaBuilding, FaBars, FaSignOutAlt, FaUserCircle, FaExclamationTriangle, FaCaretDown, FaBell, FaCalendarPlus, FaCheckCircle, FaTimesCircle, FaCheck, FaLock } from 'react-icons/fa';
+import { FaBuilding, FaBars, FaSignOutAlt, FaUserCircle, FaExclamationTriangle, FaCaretDown, FaBell, FaCalendarPlus, FaCheckCircle, FaTimesCircle, FaCheck } from 'react-icons/fa';
 import { useAuth } from '../contexts/AuthContext';
 import { useSettings } from '../contexts/SettingsContext';
 import { useSocket } from '../contexts/SocketContext';
@@ -8,7 +8,7 @@ import { useState, useRef, useEffect, useCallback } from 'react';
 import api from '../services/api';
 
 const Navbar = ({ toggleSidebar }) => {
-    const { currentUser, logout, dbUser, isAdminUnlocked } = useAuth();
+    const { currentUser, logout, dbUser } = useAuth();
     const { settings } = useSettings();
     const { socket } = useSocket();
     const toast = useToast();
@@ -37,7 +37,7 @@ const Navbar = ({ toggleSidebar }) => {
     const dropdownTimeoutRef = useRef(null);
     const [bellShake, setBellShake] = useState(false);
     const showAdminBell = dbUser?.role === 'admin';
-    const canAccessAdminNotifications = dbUser?.role === 'admin' && isAdminUnlocked;
+    const canAccessAdminNotifications = dbUser?.role === 'admin';
 
     const handleLogout = async () => {
         try {
@@ -78,12 +78,12 @@ const Navbar = ({ toggleSidebar }) => {
 
         try {
             const [bookingsRes, reportsRes] = await Promise.all([
-                api.get('/bookings'),
-                api.get('/reports')
+                api.get('/bookings/notification-summary'),
+                api.get('/reports/notification-summary')
             ]);
 
-            const pendingBookings = bookingsRes.data.data.filter(b => b.status === 'pending' && !b.isImported).length;
-            const pendingReports = reportsRes.data.data.filter(r => r.status === 'pending').length;
+            const pendingBookings = bookingsRes.data?.data?.pendingCount || 0;
+            const pendingReports = reportsRes.data?.data?.pendingCount || 0;
 
             setNotifications({
                 bookings: pendingBookings,
@@ -129,15 +129,15 @@ const Navbar = ({ toggleSidebar }) => {
     useEffect(() => {
         if (!socket || !canAccessAdminNotifications) return;
 
-        const handleBookingCreated = (data) => {
+        const handleBookingCreated = () => {
             fetchNotifications();
             addNotiItem({
                 type: 'booking:created',
-                title: data?.topic || 'มีคำขอจองห้องใหม่',
+                title: 'มีคำขอจองห้องใหม่',
                 message: 'กรุณาตรวจสอบและอนุมัติ',
                 link: '/approve'
             });
-            toast.info(`📅 คำขอจองใหม่: ${data?.topic || 'รายการใหม่'}`);
+            toast.info('มีคำขอจองใหม่ กรุณาตรวจสอบรายการ');
         };
 
         const handleBookingUpdated = (data) => {
@@ -160,15 +160,15 @@ const Navbar = ({ toggleSidebar }) => {
             });
         };
 
-        const handleReportCreated = (data) => {
+        const handleReportCreated = () => {
             fetchNotifications();
             addNotiItem({
                 type: 'report:created',
-                title: data?.topic || 'มีแจ้งซ่อมใหม่',
+                title: 'มีแจ้งซ่อมใหม่',
                 message: 'กรุณาตรวจสอบและดำเนินการ',
                 link: '/admin/reports'
             });
-            toast.warning(`🔧 แจ้งซ่อมใหม่: ${data?.topic || 'รายการใหม่'}`);
+            toast.warning('มีแจ้งซ่อมใหม่ กรุณาตรวจสอบรายการ');
         };
 
         const handleReportUpdated = () => {
@@ -241,7 +241,7 @@ const Navbar = ({ toggleSidebar }) => {
     const newBookings = Math.max(0, notifications.bookings - seenCounts.bookings);
     const newReports = Math.max(0, notifications.reports - seenCounts.reports);
     const totalNew = newBookings + newReports;
-    const displayBadge = totalNew + unreadCount;
+    const displayBadge = Math.max(totalNew, unreadCount);
     const hasPendingNotifications = notifications.bookings > 0 || notifications.reports > 0;
 
     // Notification item config
@@ -318,11 +318,6 @@ const Navbar = ({ toggleSidebar }) => {
                                     {displayBadge > 0 && (
                                         <span className="absolute -top-0.5 -right-0.5 flex h-5 w-5 items-center justify-center rounded-full border-2 border-primary bg-red-500 text-[10px] font-bold text-white shadow-lg">
                                             {displayBadge > 9 ? '9+' : displayBadge}
-                                        </span>
-                                    )}
-                                    {!canAccessAdminNotifications && (
-                                        <span className="absolute -bottom-0.5 -right-0.5 flex h-4 w-4 items-center justify-center rounded-full border border-primary bg-slate-900 text-[8px] text-white shadow-lg">
-                                            <FaLock />
                                         </span>
                                     )}
                                 </button>

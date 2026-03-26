@@ -32,6 +32,14 @@ const tokenPayloads = {
     }
 };
 
+let sendBookingCreatedMock = async () => ({ success: true });
+let sendBookingApprovedMock = async () => ({ success: true });
+let sendBookingModifiedMock = async () => ({ success: true });
+let sendBookingReminderMock = async () => ({ success: true });
+let sendBookingCancelledMock = async () => ({ success: true });
+let sendBanNotificationMock = async () => ({ success: true });
+let sendUnbanNotificationMock = async () => ({ success: true });
+
 Module.prototype.require = function (id) {
     if (id.endsWith('config/firebaseAdmin') || id.endsWith('config\\firebaseAdmin')) {
         return {
@@ -50,13 +58,13 @@ Module.prototype.require = function (id) {
 
     if (id.endsWith('services/emailService') || id.endsWith('services\\emailService')) {
         return {
-            sendBookingCreated: async () => {},
-            sendBookingApproved: async () => {},
-            sendBookingModified: async () => {},
-            sendBookingReminder: async () => {},
-            sendBookingCancelled: async () => {},
-            sendBanNotification: async () => {},
-            sendUnbanNotification: async () => {}
+            sendBookingCreated: (...args) => sendBookingCreatedMock(...args),
+            sendBookingApproved: (...args) => sendBookingApprovedMock(...args),
+            sendBookingModified: (...args) => sendBookingModifiedMock(...args),
+            sendBookingReminder: (...args) => sendBookingReminderMock(...args),
+            sendBookingCancelled: (...args) => sendBookingCancelledMock(...args),
+            sendBanNotification: (...args) => sendBanNotificationMock(...args),
+            sendUnbanNotification: (...args) => sendUnbanNotificationMock(...args)
         };
     }
 
@@ -67,6 +75,7 @@ const { describe, it, before, after, afterEach } = require('node:test');
 const assert = require('node:assert');
 const request = require('supertest');
 const express = require('express');
+const xlsx = require('xlsx');
 const db = require('./setup');
 
 const User = require('../models/User');
@@ -74,6 +83,8 @@ const Room = require('../models/Room');
 const Booking = require('../models/Booking');
 const Setting = require('../models/Setting');
 const Report = require('../models/Report');
+const AuditLog = require('../models/AuditLog');
+const { runReminderJob } = require('../cron/scheduler');
 
 function createTestApp() {
     const app = express();
@@ -86,6 +97,17 @@ function createTestApp() {
     app.use('/api/auth', require('../routes/authRoutes'));
     app.use('/api/reports', require('../routes/reportRoutes'));
     app.use('/api/users', require('../routes/userRoutes'));
+
+    app.use((err, req, res, next) => {
+        if (!err) {
+            return next();
+        }
+
+        res.status(err.status || 400).json({
+            success: false,
+            error: err.message || 'Server Error'
+        });
+    });
 
     return app;
 }
@@ -116,6 +138,17 @@ const getNextWeekdayRange = (daysAhead = 7, startHour = 10, durationHours = 1) =
     end.setHours(end.getHours() + durationHours);
 
     return { start, end };
+};
+
+const createWorkbookBuffer = (sheets) => {
+    const workbook = xlsx.utils.book_new();
+
+    Object.entries(sheets).forEach(([sheetName, rows]) => {
+        const sheet = xlsx.utils.json_to_sheet(rows);
+        xlsx.utils.book_append_sheet(workbook, sheet, sheetName);
+    });
+
+    return xlsx.write(workbook, { type: 'buffer', bookType: 'xlsx' });
 };
 
 async function seedUser(token, role = 'student') {
@@ -166,6 +199,13 @@ describe('Server API Tests', async () => {
     });
 
     afterEach(async () => {
+        sendBookingCreatedMock = async () => ({ success: true });
+        sendBookingApprovedMock = async () => ({ success: true });
+        sendBookingModifiedMock = async () => ({ success: true });
+        sendBookingReminderMock = async () => ({ success: true });
+        sendBookingCancelledMock = async () => ({ success: true });
+        sendBanNotificationMock = async () => ({ success: true });
+        sendUnbanNotificationMock = async () => ({ success: true });
         await db.clear();
     });
 
@@ -225,6 +265,55 @@ describe('Server API Tests', async () => {
             assert.ok(res.body.data.adminPinToken);
             assert.ok(res.body.data.expiresAt);
         });
+
+        it('POST /api/auth/verify-pin should return a readable error for invalid pin', async () => {
+            await seedUser('admin-token', 'admin');
+
+            const res = await request(app)
+                .post('/api/auth/verify-pin')
+                .set(authHeader('admin-token'))
+                .send({ pin: 'wrong-pin' });
+
+            assert.strictEqual(res.status, 401);
+            assert.strictEqual(res.body.success, false);
+            assert.strictEqual(res.body.error, 'PIN ไม่ถูกต้อง');
+        });
+
+        it('POST /api/auth/logout-pin should revoke the current admin pin session', async () => {
+            await seedUser('admin-token', 'admin');
+            const adminPinToken = await issueAdminPinToken(app);
+
+            const logoutRes = await request(app)
+                .post('/api/auth/logout-pin')
+                .set(authHeader('admin-token'))
+                .set('x-admin-pin-token', adminPinToken);
+
+            assert.strictEqual(logoutRes.status, 200);
+            assert.strictEqual(logoutRes.body.success, true);
+
+            const revokedRes = await request(app)
+                .get('/api/users')
+                .set(authHeader('admin-token'))
+                .set('x-admin-pin-token', adminPinToken);
+
+            assert.strictEqual(revokedRes.status, 403);
+            assert.strictEqual(revokedRes.body.code, 'ADMIN_PIN_REVOKED');
+        });
+
+        it('PUT /api/auth/profile should reject invalid phone numbers', async () => {
+            await seedUser('student-token', 'student');
+
+            const res = await request(app)
+                .put('/api/auth/profile')
+                .set(authHeader('student-token'))
+                .send({
+                    phone: 'abc###'
+                });
+
+            assert.strictEqual(res.status, 400);
+            assert.strictEqual(res.body.success, false);
+            assert.strictEqual(res.body.code, 'VALIDATION_ERROR');
+        });
     });
 
     describe('Booking API', async () => {
@@ -265,6 +354,26 @@ describe('Server API Tests', async () => {
                 .send({ topic: 'Test' });
 
             assert.strictEqual(res.status, 401);
+        });
+
+        it('POST /api/bookings should reject overly long topics', async () => {
+            await seedUser('student-token', 'student');
+            const room = await seedRoom();
+            const { start, end } = getNextWeekdayRange();
+
+            const res = await request(app)
+                .post('/api/bookings')
+                .set(authHeader('student-token'))
+                .send({
+                    room: room._id.toString(),
+                    topic: 'A'.repeat(121),
+                    startTime: start.toISOString(),
+                    endTime: end.toISOString()
+                });
+
+            assert.strictEqual(res.status, 400);
+            assert.strictEqual(res.body.success, false);
+            assert.strictEqual(res.body.code, 'VALIDATION_ERROR');
         });
 
         it('PUT /api/bookings/:id should let an admin approve only with a valid admin pin token', async () => {
@@ -390,6 +499,40 @@ describe('Server API Tests', async () => {
             assert.strictEqual(otherBooking.note, undefined);
         });
 
+        it('GET /api/bookings/notification-summary should allow admins without admin pin token', async () => {
+            await seedUser('admin-token', 'admin');
+            const room = await seedRoom();
+            const { start, end } = getNextWeekdayRange();
+
+            await Booking.create({
+                room: room._id,
+                topic: 'Pending Approval',
+                user: { name: 'Student User', email: 'student@kmutnb.ac.th', department: 'CS' },
+                startTime: start,
+                endTime: end,
+                status: 'pending',
+                isImported: false
+            });
+
+            await Booking.create({
+                room: room._id,
+                topic: 'Imported Pending',
+                user: { name: 'Imported User', email: 'imported@system.com', department: 'System' },
+                startTime: new Date(start.getTime() + (2 * 60 * 60 * 1000)),
+                endTime: new Date(end.getTime() + (2 * 60 * 60 * 1000)),
+                status: 'pending',
+                isImported: true
+            });
+
+            const res = await request(app)
+                .get('/api/bookings/notification-summary')
+                .set(authHeader('admin-token'));
+
+            assert.strictEqual(res.status, 200);
+            assert.strictEqual(res.body.success, true);
+            assert.strictEqual(res.body.data.pendingCount, 1);
+        });
+
         it('GET /api/bookings should block students from filtering another email', async () => {
             await seedUser('student-token', 'student');
 
@@ -399,6 +542,114 @@ describe('Server API Tests', async () => {
 
             assert.strictEqual(res.status, 403);
             assert.strictEqual(res.body.success, false);
+        });
+
+        it('POST /api/bookings/import should reject import ranges that are too large', async () => {
+            await seedUser('admin-token', 'admin');
+            const headers = await getAdminHeaders(app);
+            const workbookBuffer = createWorkbookBuffer({
+                Monday: [
+                    {
+                        room: 'Import Room',
+                        startTime: '09:00',
+                        endTime: '10:00',
+                        subject: 'Networks',
+                        teacher: 'Teacher A'
+                    }
+                ]
+            });
+
+            const res = await applyHeaders(
+                request(app).post('/api/bookings/import'),
+                headers
+            )
+                .field('startDate', '2026-01-01')
+                .field('endDate', '2026-08-01')
+                .attach('file', workbookBuffer, 'schedule.xlsx');
+
+            assert.strictEqual(res.status, 400);
+            assert.strictEqual(res.body.code, 'IMPORT_RANGE_TOO_LARGE');
+        });
+
+        it('POST /api/bookings/import should reject non-excel uploads', async () => {
+            await seedUser('admin-token', 'admin');
+            const headers = await getAdminHeaders(app);
+
+            const res = await applyHeaders(
+                request(app).post('/api/bookings/import'),
+                headers
+            )
+                .field('startDate', '2026-06-01')
+                .field('endDate', '2026-06-30')
+                .attach('file', Buffer.from('not-an-excel-file'), 'schedule.txt');
+
+            assert.strictEqual(res.status, 400);
+            assert.strictEqual(res.body.success, false);
+            assert.match(res.body.error, /Excel files only/i);
+        });
+
+        it('POST /api/bookings/import should skip internal and existing conflicts', async () => {
+            await seedUser('admin-token', 'admin');
+            const headers = await getAdminHeaders(app);
+            const room = await seedRoom({ name: 'Import Room' });
+            const importDate = new Date(2026, 5, 15);
+
+            await Booking.create({
+                room: room._id,
+                topic: 'Existing Class',
+                user: { name: 'System', email: 'system@kmutnb.ac.th', department: 'CS' },
+                startTime: new Date(2026, 5, 15, 9, 0, 0, 0),
+                endTime: new Date(2026, 5, 15, 10, 0, 0, 0),
+                status: 'approved'
+            });
+
+            const workbookBuffer = createWorkbookBuffer({
+                Import: [
+                    {
+                        room: 'Import Room',
+                        date: importDate,
+                        startTime: '09:00',
+                        endTime: '10:00',
+                        subject: 'Conflict Existing',
+                        teacher: 'Teacher A'
+                    },
+                    {
+                        room: 'Import Room',
+                        date: importDate,
+                        startTime: '10:00',
+                        endTime: '11:00',
+                        subject: 'Accepted Slot',
+                        teacher: 'Teacher B'
+                    },
+                    {
+                        room: 'Import Room',
+                        date: importDate,
+                        startTime: '10:30',
+                        endTime: '11:30',
+                        subject: 'Conflict Import',
+                        teacher: 'Teacher C'
+                    }
+                ]
+            });
+
+            const res = await applyHeaders(
+                request(app).post('/api/bookings/import'),
+                headers
+            )
+                .field('startDate', '2026-06-01')
+                .field('endDate', '2026-06-30')
+                .attach('file', workbookBuffer, 'schedule.xlsx');
+
+            assert.strictEqual(res.status, 200);
+            assert.strictEqual(res.body.success, true);
+            assert.strictEqual(res.body.count, 1);
+            assert.strictEqual(res.body.errorCount, 2);
+            assert.ok(res.body.errors.some((message) => message.includes('existing booking')));
+            assert.ok(res.body.errors.some((message) => message.includes('imported booking')));
+
+            const importedBookings = await Booking.find({ isImported: true });
+            assert.strictEqual(importedBookings.length, 1);
+            assert.strictEqual(importedBookings[0].topic, 'Accepted Slot');
         });
     });
 
@@ -424,6 +675,66 @@ describe('Server API Tests', async () => {
 
             assert.strictEqual(res.status, 503);
             assert.strictEqual(res.body.code, 'MAINTENANCE_MODE');
+        });
+
+        it('GET /api/settings should expose only the public settings subset', async () => {
+            await Setting.create({
+                systemName: 'Public Room Booking',
+                contactEmail: 'admin@kmutnb.ac.th',
+                maintenanceMode: true,
+                maxBookingHours: 6,
+                maxBookingDays: 14,
+                requireApproval: false,
+                weekendBooking: true
+            });
+
+            const res = await request(app)
+                .get('/api/settings');
+
+            assert.strictEqual(res.status, 200);
+            assert.strictEqual(res.body.success, true);
+            assert.strictEqual(res.body.data.systemName, 'Public Room Booking');
+            assert.strictEqual(res.body.data.maintenanceMode, undefined);
+            assert.strictEqual(res.body.data.maxBookingHours, 6);
+            assert.strictEqual(res.body.data.requireApproval, false);
+        });
+
+        it('GET /api/settings/runtime should include maintenance mode for authenticated users', async () => {
+            await seedUser('student-token', 'student');
+            await Setting.create({
+                maintenanceMode: true,
+                systemName: 'Runtime Settings'
+            });
+
+            const res = await request(app)
+                .get('/api/settings/runtime')
+                .set(authHeader('student-token'));
+
+            assert.strictEqual(res.status, 200);
+            assert.strictEqual(res.body.success, true);
+            assert.strictEqual(res.body.data.systemName, 'Runtime Settings');
+            assert.strictEqual(res.body.data.maintenanceMode, true);
+        });
+
+        it('GET /api/settings/admin should require a valid admin pin token', async () => {
+            await seedUser('admin-token', 'admin');
+
+            const noPinRes = await request(app)
+                .get('/api/settings/admin')
+                .set(authHeader('admin-token'));
+
+            assert.strictEqual(noPinRes.status, 403);
+            assert.strictEqual(noPinRes.body.code, 'ADMIN_PIN_REQUIRED');
+
+            const headers = await getAdminHeaders(app);
+            const withPinRes = await applyHeaders(
+                request(app).get('/api/settings/admin'),
+                headers
+            );
+
+            assert.strictEqual(withPinRes.status, 200);
+            assert.strictEqual(withPinRes.body.success, true);
+            assert.notStrictEqual(withPinRes.body.data.maintenanceMode, undefined);
         });
 
         it('PUT /api/settings should persist login guide content for unlocked admins', async () => {
@@ -471,6 +782,85 @@ describe('Server API Tests', async () => {
         });
     });
 
+    describe('Realtime and Operations Hardening', async () => {
+        it('runReminderJob should keep reminderSent false when email delivery fails', async () => {
+            await seedUser('student-token', 'student');
+            const room = await seedRoom({ name: 'Reminder Room' });
+            const startTime = new Date(Date.now() + (30 * 60 * 1000));
+            const endTime = new Date(startTime.getTime() + (60 * 60 * 1000));
+
+            const booking = await Booking.create({
+                room: room._id,
+                topic: 'Reminder Failure',
+                user: {
+                    name: 'Student User',
+                    email: 'student@kmutnb.ac.th',
+                    department: 'CS'
+                },
+                startTime,
+                endTime,
+                status: 'approved',
+                reminderSent: false
+            });
+
+            sendBookingReminderMock = async () => ({
+                success: false,
+                code: 'EMAIL_SEND_FAILED'
+            });
+
+            await runReminderJob();
+
+            const storedBooking = await Booking.findById(booking._id);
+            assert.strictEqual(storedBooking.reminderSent, false);
+        });
+
+        it('runReminderJob should mark reminderSent true after a successful delivery', async () => {
+            await seedUser('student-token', 'student');
+            const room = await seedRoom({ name: 'Reminder Success Room' });
+            const startTime = new Date(Date.now() + (30 * 60 * 1000));
+            const endTime = new Date(startTime.getTime() + (60 * 60 * 1000));
+
+            const booking = await Booking.create({
+                room: room._id,
+                topic: 'Reminder Success',
+                user: {
+                    name: 'Student User',
+                    email: 'student@kmutnb.ac.th',
+                    department: 'CS'
+                },
+                startTime,
+                endTime,
+                status: 'approved',
+                reminderSent: false
+            });
+
+            sendBookingReminderMock = async () => ({
+                success: true
+            });
+
+            await runReminderJob();
+
+            const storedBooking = await Booking.findById(booking._id);
+            assert.strictEqual(storedBooking.reminderSent, true);
+        });
+
+        it('audit logs should store only the first forwarded IP and trim oversized details', async () => {
+            await seedUser('student-token', 'student');
+
+            await request(app)
+                .post('/api/auth/google')
+                .set('x-forwarded-for', '203.0.113.10, 198.51.100.4')
+                .send({ idToken: 'student-token' });
+
+            await new Promise((resolve) => setTimeout(resolve, 25));
+
+            const auditLog = await AuditLog.findOne({ action: 'user:login' }).sort({ createdAt: -1 });
+
+            assert.ok(auditLog);
+            assert.strictEqual(auditLog.ipAddress, '203.0.113.10');
+        });
+    });
+
     describe('Report API', async () => {
         it('POST /api/reports should create a report for authenticated users', async () => {
             const student = await seedUser('student-token', 'student');
@@ -497,6 +887,65 @@ describe('Server API Tests', async () => {
                 .send({ topic: 'Test' });
 
             assert.strictEqual(res.status, 401);
+        });
+
+        it('POST /api/reports should reject unsupported images payloads', async () => {
+            await seedUser('student-token', 'student');
+            const room = await seedRoom({ name: 'Room B202' });
+
+            const res = await request(app)
+                .post('/api/reports')
+                .set(authHeader('student-token'))
+                .send({
+                    topic: 'Broken Projector',
+                    description: 'Not working',
+                    urgency: 'urgent',
+                    roomId: room._id.toString(),
+                    images: ['fake-image.png']
+                });
+
+            assert.strictEqual(res.status, 400);
+            assert.strictEqual(res.body.code, 'UNSUPPORTED_REPORT_IMAGES');
+        });
+
+        it('POST /api/reports should reject unknown rooms', async () => {
+            await seedUser('student-token', 'student');
+
+            const res = await request(app)
+                .post('/api/reports')
+                .set(authHeader('student-token'))
+                .send({
+                    topic: 'Broken Projector',
+                    description: 'Not working',
+                    urgency: 'urgent',
+                    roomId: '507f1f77bcf86cd799439011'
+                });
+
+            assert.strictEqual(res.status, 404);
+            assert.strictEqual(res.body.code, 'ROOM_NOT_FOUND');
+        });
+
+        it('GET /api/reports/notification-summary should allow admins without admin pin token', async () => {
+            await seedUser('admin-token', 'admin');
+            const room = await seedRoom({ name: 'Room B404' });
+            const reporter = await seedUser('student-token', 'student');
+
+            await Report.create({
+                topic: 'Projector issue',
+                description: 'Lamp is dim',
+                urgency: 'normal',
+                status: 'pending',
+                room: room._id,
+                reporter: reporter._id
+            });
+
+            const res = await request(app)
+                .get('/api/reports/notification-summary')
+                .set(authHeader('admin-token'));
+
+            assert.strictEqual(res.status, 200);
+            assert.strictEqual(res.body.success, true);
+            assert.strictEqual(res.body.data.pendingCount, 1);
         });
 
         it('GET /api/reports should require a valid admin pin token for admin access', async () => {

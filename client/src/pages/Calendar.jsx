@@ -5,7 +5,16 @@ import { useSettings } from '../contexts/SettingsContext';
 import { useToast } from '../contexts/ToastContext';
 import api from '../services/api';
 import { FaTimes, FaClock, FaUser, FaBuilding, FaTag, FaChevronLeft, FaChevronRight, FaCalendarDay, FaListUl, FaCalendarAlt, FaDownload, FaPhone, FaStickyNote, FaGraduationCap } from 'react-icons/fa';
-import * as XLSX from 'xlsx';
+
+let xlsxModulePromise;
+
+const loadXlsxModule = async () => {
+    if (!xlsxModulePromise) {
+        xlsxModulePromise = import('xlsx').then((module) => module.default ?? module);
+    }
+
+    return xlsxModulePromise;
+};
 
 // Helper to get YYYY-MM-DD in local time
 const toLocalISOString = (date) => {
@@ -159,21 +168,27 @@ const Calendar = () => {
         }
     };
 
-    const handleDownloadTemplate = () => {
-        const wb = XLSX.utils.book_new();
-        const headers = [['Room', 'StartTime', 'EndTime', 'Subject', 'Teacher']];
-        const days = ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'];
-        
-        days.forEach(day => {
-            const ws = XLSX.utils.aoa_to_sheet(headers);
-            const wscols = [
-                {wch: 15}, {wch: 12}, {wch: 12}, {wch: 25}, {wch: 25}
-            ];
-            ws['!cols'] = wscols;
-            XLSX.utils.book_append_sheet(wb, ws, day);
-        });
-        
-        XLSX.writeFile(wb, 'import_schedule_template.xlsx');
+    const handleDownloadTemplate = async () => {
+        try {
+            const XLSX = await loadXlsxModule();
+            const wb = XLSX.utils.book_new();
+            const headers = [['Room', 'StartTime', 'EndTime', 'Subject', 'Teacher']];
+            const days = ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'];
+
+            days.forEach((day) => {
+                const ws = XLSX.utils.aoa_to_sheet(headers);
+                const wscols = [
+                    { wch: 15 }, { wch: 12 }, { wch: 12 }, { wch: 25 }, { wch: 25 }
+                ];
+                ws['!cols'] = wscols;
+                XLSX.utils.book_append_sheet(wb, ws, day);
+            });
+
+            XLSX.writeFile(wb, 'import_schedule_template.xlsx');
+        } catch (error) {
+            console.error('Template download error', error);
+            toast.error('ไม่สามารถดาวน์โหลดไฟล์ template ได้');
+        }
     };
 
     const handleImportSubmit = async (e) => {
