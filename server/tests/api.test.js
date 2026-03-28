@@ -75,6 +75,8 @@ Module.prototype.require = function (id) {
 
 const { describe, it, before, after, afterEach } = require('node:test');
 const assert = require('node:assert');
+const fs = require('node:fs');
+const path = require('node:path');
 const request = require('supertest');
 const express = require('express');
 const xlsx = require('xlsx');
@@ -151,6 +153,28 @@ const createWorkbookBuffer = (sheets) => {
     });
 
     return xlsx.write(workbook, { type: 'buffer', bookType: 'xlsx' });
+};
+
+const createTinyPngBuffer = () => Buffer.from(
+    'iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mP8Xw8AAoMBgL9enZ8AAAAASUVORK5CYII=',
+    'base64'
+);
+
+const cleanupUploadedFiles = (filenames = []) => {
+    filenames.forEach((filename) => {
+        if (!filename) {
+            return;
+        }
+
+        const filePath = path.join(__dirname, '../uploads', filename);
+        try {
+            fs.unlinkSync(filePath);
+        } catch (error) {
+            if (error?.code !== 'ENOENT') {
+                throw error;
+            }
+        }
+    });
 };
 
 async function seedUser(token, role = 'student') {
@@ -316,6 +340,53 @@ describe('Server API Tests', async () => {
             assert.strictEqual(res.status, 400);
             assert.strictEqual(res.body.success, false);
             assert.strictEqual(res.body.code, 'VALIDATION_ERROR');
+        });
+    });
+
+    describe('Room API', async () => {
+        it('POST /api/rooms should allow admins to upload 7 room images', async () => {
+            await seedUser('admin-token', 'admin');
+            const headers = await getAdminHeaders(app);
+            let req = applyHeaders(
+                request(app).post('/api/rooms'),
+                headers
+            )
+                .field('name', `Room Gallery ${Date.now()}`)
+                .field('capacity', '40')
+                .field('description', 'Room with multiple images');
+
+            for (let index = 0; index < 7; index += 1) {
+                req = req.attach('images', createTinyPngBuffer(), `room-${index}.png`);
+            }
+
+            const res = await req;
+
+            assert.strictEqual(res.status, 201);
+            assert.strictEqual(res.body.success, true);
+            assert.strictEqual(res.body.data.images.length, 7);
+
+            cleanupUploadedFiles(res.body.data.images);
+        });
+
+        it('POST /api/rooms should reject more than 8 uploaded images with a readable error', async () => {
+            await seedUser('admin-token', 'admin');
+            const headers = await getAdminHeaders(app);
+            let req = applyHeaders(
+                request(app).post('/api/rooms'),
+                headers
+            )
+                .field('name', `Room Overflow ${Date.now()}`)
+                .field('capacity', '20');
+
+            for (let index = 0; index < 9; index += 1) {
+                req = req.attach('images', createTinyPngBuffer(), `overflow-${index}.png`);
+            }
+
+            const res = await req;
+
+            assert.strictEqual(res.status, 400);
+            assert.strictEqual(res.body.success, false);
+            assert.strictEqual(res.body.code, 'ROOM_IMAGE_LIMIT');
         });
     });
 

@@ -30,6 +30,11 @@ const {
     sanitizeOptionalMultilineText,
     getValidationErrorResponse
 } = require('../utils/inputValidation');
+const {
+    DEFAULT_TIME_ZONE,
+    getMinutesSinceMidnightInTimeZone,
+    getDayOfWeekInTimeZone
+} = require('../utils/timezone');
 
 const ADMIN_BOOKING_UPDATE_FIELDS = ['status', 'startTime', 'endTime', 'room', 'topic', 'note'];
 const ACTIVE_BOOKING_STATUSES = ['approved', 'pending'];
@@ -76,7 +81,7 @@ const validateBookingAgainstSettings = (settings, startTime, endTime) => {
     }
 
     if (!settings.weekendBooking) {
-        const dayOfWeek = start.getDay();
+        const dayOfWeek = getDayOfWeekInTimeZone(start, DEFAULT_TIME_ZONE);
         if (dayOfWeek === 0 || dayOfWeek === 6) {
             return {
                 valid: false,
@@ -88,8 +93,8 @@ const validateBookingAgainstSettings = (settings, startTime, endTime) => {
     if (settings.openTime && settings.closeTime) {
         const [openHour, openMinute] = settings.openTime.split(':').map(Number);
         const [closeHour, closeMinute] = settings.closeTime.split(':').map(Number);
-        const startMinutes = start.getHours() * 60 + start.getMinutes();
-        const endMinutes = end.getHours() * 60 + end.getMinutes();
+        const startMinutes = getMinutesSinceMidnightInTimeZone(start, DEFAULT_TIME_ZONE);
+        const endMinutes = getMinutesSinceMidnightInTimeZone(end, DEFAULT_TIME_ZONE);
         const openMinutes = openHour * 60 + (openMinute || 0);
         const closeMinutes = closeHour * 60 + (closeMinute || 0);
 

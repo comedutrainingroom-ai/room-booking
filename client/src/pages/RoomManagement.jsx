@@ -4,6 +4,10 @@ import { FaPlus, FaEdit, FaTrash, FaTimes, FaSave, FaBuilding } from 'react-icon
 import RoomCard from '../components/RoomCard.jsx';
 import { useToast } from '../contexts/ToastContext';
 
+const ROOM_IMAGE_MAX_FILES = 8;
+const ROOM_IMAGE_MAX_FILE_SIZE_MB = 10;
+const ROOM_IMAGE_MAX_FILE_SIZE_BYTES = ROOM_IMAGE_MAX_FILE_SIZE_MB * 1024 * 1024;
+
 const RoomManagement = () => {
     const toast = useToast();
     const [rooms, setRooms] = useState([]);
@@ -95,11 +99,36 @@ const RoomManagement = () => {
     };
 
     const handleImageChange = (e) => {
-        setSelectedImages(Array.from(e.target.files));
+        const files = Array.from(e.target.files || []);
+
+        if (files.length === 0) {
+            setSelectedImages([]);
+            return;
+        }
+
+        if ((existingImages.length + files.length) > ROOM_IMAGE_MAX_FILES) {
+            toast.error(`ใส่รูปได้สูงสุด ${ROOM_IMAGE_MAX_FILES} รูปต่อห้อง`);
+            e.target.value = '';
+            return;
+        }
+
+        const oversizedFile = files.find((file) => file.size > ROOM_IMAGE_MAX_FILE_SIZE_BYTES);
+        if (oversizedFile) {
+            toast.error(`ไฟล์ ${oversizedFile.name} ต้องมีขนาดไม่เกิน ${ROOM_IMAGE_MAX_FILE_SIZE_MB} MB`);
+            e.target.value = '';
+            return;
+        }
+
+        setSelectedImages(files);
     };
 
     const handleSubmit = async (e) => {
         e.preventDefault();
+
+        if ((existingImages.length + selectedImages.length) > ROOM_IMAGE_MAX_FILES) {
+            toast.error(`ใส่รูปได้สูงสุด ${ROOM_IMAGE_MAX_FILES} รูปต่อห้อง`);
+            return;
+        }
 
         const data = new FormData();
         data.append('name', formData.name);
@@ -136,6 +165,10 @@ const RoomManagement = () => {
             setIsModalOpen(false);
         } catch (error) {
             console.error("Error saving room", error);
+            if (error.response?.status === 413) {
+                toast.error('ขนาดไฟล์รวมใหญ่เกินไป กรุณาลดขนาดรูปหรือจำนวนรูปแล้วลองใหม่');
+                return;
+            }
             const errorMessage = error.response?.data?.error || 'เกิดข้อผิดพลาดในการบันทึกข้อมูล';
             toast.error(errorMessage);
         }
@@ -343,6 +376,12 @@ const RoomManagement = () => {
                                         onChange={handleImageChange}
                                         className="w-full text-sm px-3 py-1.5 rounded-lg border border-gray-300 focus:outline-none focus:ring-2 focus:ring-primary/50"
                                     />
+                                    <p className="mt-1 text-[11px] text-gray-400">
+                                        รองรับสูงสุด {ROOM_IMAGE_MAX_FILES} รูปต่อห้อง และรูปละไม่เกิน {ROOM_IMAGE_MAX_FILE_SIZE_MB} MB
+                                    </p>
+                                    <p className="text-[11px] text-gray-400">
+                                        ตอนนี้เลือกไว้ {existingImages.length + selectedImages.length} / {ROOM_IMAGE_MAX_FILES} รูป
+                                    </p>
                                     {selectedImages.length > 0 && (
                                         <div className="mt-1 flex flex-wrap gap-1">
                                             {selectedImages.map((file, index) => (
