@@ -149,7 +149,7 @@ const Layout = ({ children }) => {
                         ? 'translate-x-0 w-64 shadow-2xl md:shadow-none bg-white/95 backdrop-blur-md border-r border-gray-100/50 md:min-w-[16rem] opacity-100' 
                         : '-translate-x-full w-64 md:translate-x-0 md:w-0 md:min-w-0 border-none opacity-0'}
                 `}>
-                    <div className="h-full w-64 overflow-y-auto custom-scrollbar">
+                    <div className="h-full w-64 overflow-y-auto overflow-x-hidden custom-scrollbar">
                         <Sidebar isOpen={isSidebarOpen} />
                     </div>
                 </div>
