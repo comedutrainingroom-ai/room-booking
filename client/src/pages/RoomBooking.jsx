@@ -374,11 +374,11 @@ const RoomBooking = () => {
                                     }}
                                     disabled={occupied}
                                     className={`
-                                        group relative overflow-hidden rounded-lg p-3 md:p-4 transition-all duration-200 border
+                                        group relative overflow-hidden rounded-xl p-3 md:p-4 transition-all duration-200 border
                                         ${occupied
                                             ? isImported
-                                                ? 'bg-gray-50 text-gray-400 border-gray-200 cursor-not-allowed'
-                                                : 'bg-orange-50 text-orange-600 border-orange-200 cursor-not-allowed'
+                                                ? 'bg-slate-100 text-slate-500 border-slate-300 cursor-not-allowed'
+                                                : 'bg-gray-100 text-gray-500 border-gray-300 cursor-not-allowed'
                                             : inRange
                                                 ? 'bg-gray-900 text-white border-gray-900 shadow-md'
                                                 : 'bg-white text-gray-800 border-gray-200 hover:border-gray-400 hover:shadow-sm cursor-pointer'
@@ -392,12 +392,12 @@ const RoomBooking = () => {
                                         <div className="mt-1.5 md:mt-3 flex items-center justify-center">
                                             {occupied ? (
                                                 isImported ? (
-                                                    <span className="inline-flex items-center gap-1 px-2 py-0.5 bg-gray-200 rounded text-[10px] font-medium text-gray-500">
-                                                        <FaBook className="text-[8px]" /> ตารางสอน
+                                                    <span className="inline-flex items-center gap-1.5 px-2.5 py-0.5 bg-slate-300/70 rounded-md text-[10px] md:text-xs font-semibold text-slate-700">
+                                                        <FaBook className="text-[10px]" /> ตารางสอน
                                                     </span>
                                                 ) : (
-                                                    <span className="inline-flex items-center gap-1 px-2 py-0.5 bg-orange-100 rounded text-[10px] font-medium text-orange-700">
-                                                        <FaLock className="text-[8px]" /> จองแล้ว
+                                                    <span className="inline-flex items-center gap-1.5 px-2.5 py-0.5 bg-gray-300/70 rounded-md text-[10px] md:text-xs font-semibold text-gray-700">
+                                                        <FaLock className="text-[10px]" /> จองแล้ว
                                                     </span>
                                                 )
                                             ) : inRange ? (
@@ -425,7 +425,7 @@ const RoomBooking = () => {
                             <span>กำลังเลือก</span>
                         </div>
                         <div className="flex items-center gap-2 text-xs md:text-sm text-gray-600">
-                            <div className="w-5 h-5 bg-orange-50 border border-orange-200 rounded"></div>
+                            <div className="w-5 h-5 bg-gray-100 border border-gray-300 rounded"></div>
                             <span>จองแล้ว</span>
                         </div>
                         <div className="flex items-center gap-2 text-xs md:text-sm text-gray-600">
