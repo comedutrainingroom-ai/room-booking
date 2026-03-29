@@ -63,6 +63,27 @@ describe('Email Service Templates', async () => {
         assert.ok(!capturedMailOptions.html.includes('<script>alert("x")</script>'));
     });
 
+    it('sendBookingCreated should render UTC booking timestamps in Bangkok time inside the email', async () => {
+        await sendBookingCreated({
+            topic: 'POP',
+            room: {
+                name: '44-703'
+            },
+            user: {
+                name: 'Student User',
+                email: 'student@example.com'
+            },
+            startTime: '2026-04-01T00:00:00.000Z',
+            endTime: '2026-04-01T03:00:00.000Z'
+        });
+
+        assert.ok(capturedMailOptions);
+        assert.ok(capturedMailOptions.html.includes('1/4/2569 07:00:00'));
+        assert.ok(capturedMailOptions.html.includes('1/4/2569 10:00:00'));
+        assert.ok(!capturedMailOptions.html.includes('1/4/2569 00:00:00'));
+        assert.ok(!capturedMailOptions.html.includes('1/4/2569 03:00:00'));
+    });
+
     it('sendBanNotification should escape the ban reason in email html', async () => {
         await sendBanNotification(
             {

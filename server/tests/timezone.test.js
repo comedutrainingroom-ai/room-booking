@@ -5,7 +5,10 @@ const {
     DEFAULT_TIME_ZONE,
     getTimeZoneDateTimeParts,
     getMinutesSinceMidnightInTimeZone,
-    getDayOfWeekInTimeZone
+    getDayOfWeekInTimeZone,
+    formatThaiDateInTimeZone,
+    formatThaiTimeInTimeZone,
+    formatThaiDateTimeInTimeZone
 } = require('../utils/timezone');
 
 describe('timezone utils', async () => {
@@ -30,5 +33,13 @@ describe('timezone utils', async () => {
 
         assert.strictEqual(getDayOfWeekInTimeZone(saturdayMorningBangkok), 6);
         assert.strictEqual(getDayOfWeekInTimeZone(sundayMorningBangkok), 0);
+    });
+
+    it('should format UTC timestamps for Thai recipients using Bangkok time', () => {
+        const bookingInstant = '2026-04-01T00:00:00.000Z';
+
+        assert.strictEqual(formatThaiDateInTimeZone(bookingInstant), '1/4/2569');
+        assert.strictEqual(formatThaiTimeInTimeZone(bookingInstant), '07:00:00');
+        assert.strictEqual(formatThaiDateTimeInTimeZone(bookingInstant), '1/4/2569 07:00:00');
     });
 });

@@ -1,4 +1,8 @@
 const nodemailer = require('nodemailer');
+const {
+    formatThaiDateTimeInTimeZone,
+    formatThaiTimeInTimeZone
+} = require('../utils/timezone');
 
 const SYSTEM_NAME = 'ระบบจัดการห้องอบรม';
 const SYSTEM_UNIT = 'ภาควิชาคอมพิวเตอร์ศึกษา';
@@ -32,8 +36,8 @@ const normalizeEmailText = (value, fallback = '') => {
     return normalizedValue || fallback;
 };
 
-const formatThaiDateTime = (value) => new Date(value).toLocaleString('th-TH');
-const formatThaiTime = (value) => new Date(value).toLocaleTimeString('th-TH');
+const formatThaiDateTime = (value) => formatThaiDateTimeInTimeZone(value);
+const formatThaiTime = (value) => formatThaiTimeInTimeZone(value);
 
 const buildSubject = (title) => `[${SYSTEM_NAME}] ${title}`;
 
