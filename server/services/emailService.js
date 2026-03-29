@@ -1,5 +1,10 @@
 const nodemailer = require('nodemailer');
 
+const SYSTEM_NAME = 'ระบบจัดการห้องอบรม';
+const SYSTEM_UNIT = 'ภาควิชาคอมพิวเตอร์ศึกษา';
+const SYSTEM_UNIVERSITY = 'มหาวิทยาลัยเทคโนโลยีพระจอมเกล้าพระนครเหนือ';
+const SYSTEM_REPLY_NOTE = 'อีเมลฉบับนี้ถูกจัดส่งโดยอัตโนมัติจากระบบ';
+
 if (!process.env.EMAIL_USER || !process.env.EMAIL_PASS) {
     console.warn('[EMAIL] Warning: EMAIL_USER or EMAIL_PASS not set in .env - emails will not be sent');
 }
@@ -30,8 +35,146 @@ const normalizeEmailText = (value, fallback = '') => {
 const formatThaiDateTime = (value) => new Date(value).toLocaleString('th-TH');
 const formatThaiTime = (value) => new Date(value).toLocaleTimeString('th-TH');
 
+const buildSubject = (title) => `[${SYSTEM_NAME}] ${title}`;
+
+const getToneStyles = (tone = 'info') => {
+    const toneMap = {
+        info: {
+            accent: '#1d4ed8',
+            badgeBackground: '#eff6ff',
+            badgeText: '#1d4ed8',
+            sectionBorder: '#bfdbfe',
+            sectionBackground: '#f8fbff'
+        },
+        success: {
+            accent: '#15803d',
+            badgeBackground: '#f0fdf4',
+            badgeText: '#15803d',
+            sectionBorder: '#bbf7d0',
+            sectionBackground: '#f7fcf8'
+        },
+        warning: {
+            accent: '#c2410c',
+            badgeBackground: '#fff7ed',
+            badgeText: '#c2410c',
+            sectionBorder: '#fed7aa',
+            sectionBackground: '#fffaf5'
+        },
+        danger: {
+            accent: '#b91c1c',
+            badgeBackground: '#fef2f2',
+            badgeText: '#b91c1c',
+            sectionBorder: '#fecaca',
+            sectionBackground: '#fff8f8'
+        },
+        neutral: {
+            accent: '#334155',
+            badgeBackground: '#f8fafc',
+            badgeText: '#334155',
+            sectionBorder: '#cbd5e1',
+            sectionBackground: '#fafcff'
+        }
+    };
+
+    return toneMap[tone] || toneMap.info;
+};
+
+const renderRows = (rows = []) => rows.map(({ label, value, noGap = false }) => `
+    <tr>
+        <td style="padding: ${noGap ? '0' : '0 0 10px'}; vertical-align: top; width: 148px; color: #475569; font-size: 13px; font-weight: 600;">
+            ${label}
+        </td>
+        <td style="padding: ${noGap ? '0' : '0 0 10px'}; vertical-align: top; color: #0f172a; font-size: 13px; line-height: 1.75;">
+            ${value}
+        </td>
+    </tr>
+`).join('');
+
+const renderSection = ({
+    title,
+    rows = [],
+    tone = 'info'
+}) => {
+    const styles = getToneStyles(tone);
+
+    return `
+        <div style="margin: 20px 0; border: 1px solid ${styles.sectionBorder}; border-radius: 14px; background-color: ${styles.sectionBackground}; overflow: hidden;">
+            ${title ? `
+                <div style="padding: 12px 18px; border-bottom: 1px solid ${styles.sectionBorder}; background-color: #ffffff;">
+                    <p style="margin: 0; color: #0f172a; font-size: 13px; font-weight: 700;">${title}</p>
+                </div>
+            ` : ''}
+            <div style="padding: 16px 18px;">
+                <table role="presentation" cellpadding="0" cellspacing="0" width="100%" style="border-collapse: collapse;">
+                    ${renderRows(rows)}
+                </table>
+            </div>
+        </div>
+    `;
+};
+
+const renderParagraph = (text, withMarginBottom = true) => `
+    <p style="margin: 0 0 ${withMarginBottom ? '12px' : '0'}; color: #334155; font-size: 14px; line-height: 1.85;">
+        ${text}
+    </p>
+`;
+
+const renderEmailLayout = ({
+    tone = 'info',
+    category,
+    title,
+    recipientName,
+    intro,
+    sections = [],
+    note,
+    replyNote
+}) => {
+    const styles = getToneStyles(tone);
+
+    return `
+        <div style="margin: 0; padding: 24px 0; background-color: #f5f7fb;">
+            <div style="max-width: 680px; margin: 0 auto; background-color: #ffffff; border: 1px solid #dbe1ea; border-radius: 18px; overflow: hidden;">
+                <div style="padding: 22px 28px; background-color: #0f172a;">
+                    <p style="margin: 0; color: rgba(255,255,255,0.76); font-size: 12px; letter-spacing: 0.08em;">
+                        ${SYSTEM_UNIT}
+                    </p>
+                    <h1 style="margin: 8px 0 0; color: #ffffff; font-size: 24px; font-weight: 700;">
+                        ${SYSTEM_NAME}
+                    </h1>
+                </div>
+
+                <div style="padding: 28px;">
+                    <div style="display: inline-block; padding: 6px 12px; border-radius: 999px; background-color: ${styles.badgeBackground}; color: ${styles.badgeText}; font-size: 12px; font-weight: 700; letter-spacing: 0.03em;">
+                        ${category}
+                    </div>
+
+                    <h2 style="margin: 16px 0 12px; color: #0f172a; font-size: 24px; line-height: 1.45; font-weight: 700;">
+                        ${title}
+                    </h2>
+
+                    ${renderParagraph(`เรียนคุณ ${recipientName}`)}
+                    ${renderParagraph(intro)}
+
+                    ${sections.join('')}
+
+                    ${note ? renderParagraph(note, false) : ''}
+                </div>
+
+                <div style="padding: 16px 28px 20px; border-top: 1px solid #e2e8f0; background-color: #f8fafc;">
+                    <p style="margin: 0 0 6px; color: #475569; font-size: 12px; line-height: 1.7;">
+                        ${SYSTEM_REPLY_NOTE}
+                    </p>
+                    <p style="margin: 0; color: #64748b; font-size: 12px; line-height: 1.7;">
+                        ${replyNote || `${SYSTEM_NAME} ${SYSTEM_UNIT} ${SYSTEM_UNIVERSITY}`}
+                    </p>
+                </div>
+            </div>
+        </div>
+    `;
+};
+
 const getSafeBookingEmailDetails = (booking = {}) => {
-    const topicText = normalizeEmailText(booking.topic, 'รายการจองห้อง');
+    const topicText = normalizeEmailText(booking.topic, 'รายการจองห้องอบรม');
 
     return {
         topicText,
@@ -50,34 +193,6 @@ const getSafeBookingEmailDetails = (booking = {}) => {
     };
 };
 
-const renderEmailLayout = ({ accentColor, title, body }) => `
-    <div style="font-family: 'Segoe UI', Arial, sans-serif; max-width: 640px; margin: 0 auto; border: 1px solid #e5e7eb; border-radius: 16px; overflow: hidden;">
-        <div style="background: ${accentColor}; padding: 24px 28px;">
-            <h2 style="margin: 0; color: #ffffff; font-size: 22px; font-weight: 700;">${title}</h2>
-        </div>
-        <div style="padding: 24px 28px; color: #334155; font-size: 14px; line-height: 1.8;">
-            ${body}
-        </div>
-    </div>
-`;
-
-const renderInfoCard = (rows, options = {}) => {
-    const borderColor = options.borderColor || '#dbeafe';
-    const backgroundColor = options.backgroundColor || '#f8fafc';
-
-    return `
-        <div style="background-color: ${backgroundColor}; border-left: 4px solid ${borderColor}; border-radius: 12px; padding: 16px 18px; margin: 18px 0;">
-            ${rows.join('')}
-        </div>
-    `;
-};
-
-const renderLabelValue = (label, value) => `
-    <p style="margin: 0 0 8px; color: #334155;">
-        <strong style="color: #0f172a;">${label}:</strong> ${value}
-    </p>
-`;
-
 const sendEmail = async (to, subject, html, options = {}) => {
     if (!process.env.EMAIL_USER || !process.env.EMAIL_PASS) {
         console.warn('[EMAIL] Skipped: Email not configured');
@@ -90,7 +205,7 @@ const sendEmail = async (to, subject, html, options = {}) => {
 
     try {
         const info = await transporter.sendMail({
-            from: `"Meeting Room Booking" <${process.env.EMAIL_USER}>`,
+            from: `"${SYSTEM_NAME}" <${process.env.EMAIL_USER}>`,
             to,
             subject,
             html,
@@ -122,24 +237,30 @@ const sendBookingCreated = async (booking) => {
         endDateTime
     } = getSafeBookingEmailDetails(booking);
 
-    const subject = `ได้รับคำขอจองห้อง: ${topicText}`;
-    const html = renderEmailLayout({
-        accentColor: 'linear-gradient(135deg, #16a34a, #15803d)',
-        title: 'ได้รับคำขอจองห้องเรียบร้อยแล้ว',
-        body: `
-            <p style="margin-top: 0;">เรียนคุณ ${userNameHtml},</p>
-            <p>ระบบได้รับข้อมูลการจองของคุณแล้ว และกำลังรอการพิจารณาอนุมัติจากเจ้าหน้าที่</p>
-            ${renderInfoCard([
-                renderLabelValue('หัวข้อ', topicHtml),
-                renderLabelValue('ห้อง', roomNameHtml),
-                renderLabelValue('เวลาเริ่ม', startDateTime),
-                renderLabelValue('เวลาสิ้นสุด', endDateTime)
-            ])}
-            <p style="margin-bottom: 0; color: #64748b;">ระบบจะแจ้งผลการอนุมัติให้ทราบทางอีเมลอีกครั้ง</p>
-        `
-    });
-
-    return sendEmail(booking.user.email, subject, html);
+    return sendEmail(
+        booking.user.email,
+        buildSubject(`แจ้งรับคำขอจองห้องอบรม: ${topicText}`),
+        renderEmailLayout({
+            tone: 'info',
+            category: 'แจ้งรับคำขอ',
+            title: 'ระบบได้รับคำขอจองห้องอบรมเรียบร้อยแล้ว',
+            recipientName: userNameHtml,
+            intro: 'คำขอจองห้องอบรมของท่านถูกบันทึกเข้าสู่ระบบแล้ว และอยู่ระหว่างการพิจารณาจากเจ้าหน้าที่',
+            sections: [
+                renderSection({
+                    title: 'รายละเอียดคำขอ',
+                    tone: 'info',
+                    rows: [
+                        { label: 'หัวข้อ', value: topicHtml },
+                        { label: 'ห้องอบรม', value: roomNameHtml },
+                        { label: 'เวลาเริ่มใช้งาน', value: startDateTime },
+                        { label: 'เวลาสิ้นสุด', value: endDateTime, noGap: true }
+                    ]
+                })
+            ],
+            note: 'เมื่อมีผลการพิจารณา ระบบจะแจ้งให้ท่านทราบทางอีเมลอีกครั้ง'
+        })
+    );
 };
 
 const sendBookingApproved = async (booking) => {
@@ -152,26 +273,29 @@ const sendBookingApproved = async (booking) => {
         endTime
     } = getSafeBookingEmailDetails(booking);
 
-    const subject = `อนุมัติการจองห้อง: ${topicText}`;
-    const html = renderEmailLayout({
-        accentColor: 'linear-gradient(135deg, #16a34a, #0f766e)',
-        title: 'การจองของคุณได้รับการอนุมัติแล้ว',
-        body: `
-            <p style="margin-top: 0;">เรียนคุณ ${userNameHtml},</p>
-            <p>รายการจองห้องของคุณได้รับการอนุมัติเรียบร้อยแล้ว กรุณาตรวจสอบรายละเอียดดังต่อไปนี้</p>
-            ${renderInfoCard([
-                renderLabelValue('หัวข้อ', topicHtml),
-                renderLabelValue('ห้อง', roomNameHtml),
-                renderLabelValue('วันและเวลา', `${startDateTime} - ${endTime}`)
-            ], {
-                borderColor: '#16a34a',
-                backgroundColor: '#f0fdf4'
-            })}
-            <p style="margin-bottom: 0; color: #64748b;">กรุณามาถึงก่อนเวลาใช้งานประมาณ 5-10 นาที</p>
-        `
-    });
-
-    return sendEmail(booking.user.email, subject, html);
+    return sendEmail(
+        booking.user.email,
+        buildSubject(`แจ้งผลการอนุมัติการจองห้องอบรม: ${topicText}`),
+        renderEmailLayout({
+            tone: 'success',
+            category: 'อนุมัติการจอง',
+            title: 'คำขอจองห้องอบรมของท่านได้รับการอนุมัติแล้ว',
+            recipientName: userNameHtml,
+            intro: 'เจ้าหน้าที่ได้อนุมัติคำขอของท่านเรียบร้อยแล้ว กรุณาตรวจสอบรายละเอียดการใช้งานด้านล่าง',
+            sections: [
+                renderSection({
+                    title: 'รายละเอียดการใช้งาน',
+                    tone: 'success',
+                    rows: [
+                        { label: 'หัวข้อ', value: topicHtml },
+                        { label: 'ห้องอบรม', value: roomNameHtml },
+                        { label: 'วันและเวลา', value: `${startDateTime} - ${endTime}`, noGap: true }
+                    ]
+                })
+            ],
+            note: 'กรุณามาถึงก่อนเวลาใช้งานประมาณ 5-10 นาที เพื่อความเรียบร้อยในการเข้าห้องอบรม'
+        })
+    );
 };
 
 const sendBookingReminder = async (booking) => {
@@ -183,26 +307,29 @@ const sendBookingReminder = async (booking) => {
         startDateTime
     } = getSafeBookingEmailDetails(booking);
 
-    const subject = `แจ้งเตือนใกล้ถึงเวลาใช้งานห้อง: ${topicText}`;
-    const html = renderEmailLayout({
-        accentColor: 'linear-gradient(135deg, #f97316, #ea580c)',
-        title: 'แจ้งเตือนใกล้ถึงเวลาใช้งานห้อง',
-        body: `
-            <p style="margin-top: 0;">เรียนคุณ ${userNameHtml},</p>
-            <p>รายการจองของคุณกำลังจะเริ่มภายใน 1 ชั่วโมง กรุณาตรวจสอบรายละเอียดก่อนเข้าใช้งาน</p>
-            ${renderInfoCard([
-                renderLabelValue('หัวข้อ', topicHtml),
-                renderLabelValue('ห้อง', roomNameHtml),
-                renderLabelValue('เวลาเริ่ม', startDateTime)
-            ], {
-                borderColor: '#ea580c',
-                backgroundColor: '#fff7ed'
-            })}
-            <p style="margin-bottom: 0; color: #64748b;">หากมีการเปลี่ยนแปลง กรุณาติดต่อเจ้าหน้าที่โดยเร็ว</p>
-        `
-    });
-
-    return sendEmail(booking.user.email, subject, html);
+    return sendEmail(
+        booking.user.email,
+        buildSubject(`แจ้งเตือนกำหนดการใช้งานห้องอบรม: ${topicText}`),
+        renderEmailLayout({
+            tone: 'warning',
+            category: 'แจ้งเตือนก่อนใช้งาน',
+            title: 'ใกล้ถึงเวลาการใช้งานห้องอบรมของท่าน',
+            recipientName: userNameHtml,
+            intro: 'รายการจองห้องอบรมของท่านจะเริ่มใช้งานภายใน 1 ชั่วโมง กรุณาตรวจสอบข้อมูลก่อนเข้าห้องอบรม',
+            sections: [
+                renderSection({
+                    title: 'รายละเอียดรายการจอง',
+                    tone: 'warning',
+                    rows: [
+                        { label: 'หัวข้อ', value: topicHtml },
+                        { label: 'ห้องอบรม', value: roomNameHtml },
+                        { label: 'เวลาเริ่มใช้งาน', value: startDateTime, noGap: true }
+                    ]
+                })
+            ],
+            note: 'หากมีการเปลี่ยนแปลงหรือไม่สามารถเข้าใช้งานได้ กรุณาดำเนินการในระบบหรือติดต่อเจ้าหน้าที่โดยเร็ว'
+        })
+    );
 };
 
 const sendBookingModified = async (booking, oldStartTime, oldEndTime) => {
@@ -215,32 +342,36 @@ const sendBookingModified = async (booking, oldStartTime, oldEndTime) => {
         endTime
     } = getSafeBookingEmailDetails(booking);
 
-    const subject = `มีการแก้ไขเวลาจองห้อง: ${topicText}`;
-    const html = renderEmailLayout({
-        accentColor: 'linear-gradient(135deg, #2563eb, #1d4ed8)',
-        title: 'เวลาจองห้องของคุณถูกแก้ไข',
-        body: `
-            <p style="margin-top: 0;">เรียนคุณ ${userNameHtml},</p>
-            <p>เจ้าหน้าที่ได้ทำการแก้ไขเวลาใช้งานห้องของคุณ กรุณาตรวจสอบรายละเอียดใหม่ด้านล่าง</p>
-            ${renderInfoCard([
-                renderLabelValue('เวลาเดิม', `${formatThaiDateTime(oldStartTime)} - ${formatThaiTime(oldEndTime)}`)
-            ], {
-                borderColor: '#ef4444',
-                backgroundColor: '#fef2f2'
-            })}
-            ${renderInfoCard([
-                renderLabelValue('เวลาใหม่', `${startDateTime} - ${endTime}`),
-                renderLabelValue('หัวข้อ', topicHtml),
-                renderLabelValue('ห้อง', roomNameHtml)
-            ], {
-                borderColor: '#16a34a',
-                backgroundColor: '#f0fdf4'
-            })}
-            <p style="margin-bottom: 0; color: #64748b;">หากมีข้อสงสัย กรุณาติดต่อเจ้าหน้าที่</p>
-        `
-    });
-
-    return sendEmail(booking.user.email, subject, html);
+    return sendEmail(
+        booking.user.email,
+        buildSubject(`แจ้งเปลี่ยนแปลงเวลาการใช้งานห้องอบรม: ${topicText}`),
+        renderEmailLayout({
+            tone: 'info',
+            category: 'แก้ไขรายการจอง',
+            title: 'มีการแก้ไขเวลาการใช้งานห้องอบรมของท่าน',
+            recipientName: userNameHtml,
+            intro: 'เจ้าหน้าที่ได้ปรับปรุงข้อมูลเวลาใช้งานห้องอบรมของท่าน กรุณาตรวจสอบรายละเอียดใหม่ด้านล่าง',
+            sections: [
+                renderSection({
+                    title: 'ข้อมูลเดิม',
+                    tone: 'danger',
+                    rows: [
+                        { label: 'วันและเวลาเดิม', value: `${formatThaiDateTime(oldStartTime)} - ${formatThaiTime(oldEndTime)}`, noGap: true }
+                    ]
+                }),
+                renderSection({
+                    title: 'ข้อมูลที่แก้ไขแล้ว',
+                    tone: 'success',
+                    rows: [
+                        { label: 'หัวข้อ', value: topicHtml },
+                        { label: 'ห้องอบรม', value: roomNameHtml },
+                        { label: 'วันและเวลาใหม่', value: `${startDateTime} - ${endTime}`, noGap: true }
+                    ]
+                })
+            ],
+            note: 'หากข้อมูลดังกล่าวไม่ถูกต้อง กรุณาติดต่อเจ้าหน้าที่เพื่อดำเนินการตรวจสอบเพิ่มเติม'
+        })
+    );
 };
 
 const sendBookingCancelled = async (booking) => {
@@ -254,104 +385,132 @@ const sendBookingCancelled = async (booking) => {
         cancelledByLabel
     } = getSafeBookingEmailDetails(booking);
 
-    const subject = `การจองห้องถูกยกเลิก: ${topicText}`;
-    const reasonSection = cancellationReasonHtml
-        ? renderInfoCard([
-            renderLabelValue('เหตุผลในการยกเลิก', cancellationReasonHtml)
-        ], {
-            borderColor: '#f97316',
-            backgroundColor: '#fff7ed'
+    const sections = [
+        renderSection({
+            title: 'รายละเอียดรายการที่ถูกยกเลิก',
+            tone: 'danger',
+            rows: [
+                { label: 'หัวข้อ', value: topicHtml },
+                { label: 'ห้องอบรม', value: roomNameHtml },
+                { label: 'วันและเวลา', value: startDateTime },
+                { label: 'ผู้ดำเนินการยกเลิก', value: escapeHtml(cancelledByLabel), noGap: true }
+            ]
         })
-        : '';
+    ];
 
-    const html = renderEmailLayout({
-        accentColor: 'linear-gradient(135deg, #ef4444, #dc2626)',
-        title: 'การจองของคุณถูกยกเลิก',
-        body: `
-            <p style="margin-top: 0;">เรียนคุณ ${userNameHtml},</p>
-            <p>รายการจองห้องของคุณถูกยกเลิกโดย${escapeHtml(cancelledByLabel)}</p>
-            ${renderInfoCard([
-                renderLabelValue('หัวข้อ', topicHtml),
-                renderLabelValue('ห้อง', roomNameHtml),
-                renderLabelValue('วันและเวลา', startDateTime)
-            ], {
-                borderColor: '#dc2626',
-                backgroundColor: '#fef2f2'
-            })}
-            ${reasonSection}
-            <p style="margin-bottom: 0; color: #64748b;">หากคุณไม่ได้เป็นผู้ดำเนินการ กรุณาติดต่อเจ้าหน้าที่</p>
-        `
-    });
+    if (cancellationReasonHtml) {
+        sections.push(renderSection({
+            title: 'เหตุผลประกอบการยกเลิก',
+            tone: 'warning',
+            rows: [
+                { label: 'รายละเอียด', value: cancellationReasonHtml, noGap: true }
+            ]
+        }));
+    }
 
-    return sendEmail(booking.user.email, subject, html);
+    return sendEmail(
+        booking.user.email,
+        buildSubject(`แจ้งยกเลิกการจองห้องอบรม: ${topicText}`),
+        renderEmailLayout({
+            tone: 'danger',
+            category: 'ยกเลิกรายการจอง',
+            title: 'รายการจองห้องอบรมของท่านถูกยกเลิกแล้ว',
+            recipientName: userNameHtml,
+            intro: 'ระบบขอแจ้งให้ทราบว่ารายการจองห้องอบรมของท่านถูกยกเลิกเรียบร้อยแล้ว',
+            sections,
+            note: 'หากท่านไม่ได้เป็นผู้ดำเนินการ กรุณาติดต่อเจ้าหน้าที่เพื่อดำเนินการตรวจสอบทันที'
+        })
+    );
 };
 
 const sendBanNotification = async (user, reason) => {
     const safeUserName = escapeHtml(normalizeEmailText(user?.name, 'ผู้ใช้งาน'));
     const safeUserEmail = escapeHtml(normalizeEmailText(user?.email, ''));
     const safeReason = escapeHtml(normalizeEmailText(reason, ''));
-    const subject = 'บัญชีของคุณถูกระงับการใช้งาน';
-    const reasonSection = safeReason
-        ? renderInfoCard([
-            renderLabelValue('เหตุผล', safeReason)
-        ], {
-            borderColor: '#dc2626',
-            backgroundColor: '#fef2f2'
+    const sections = [
+        renderSection({
+            title: 'ข้อมูลผู้ใช้งาน',
+            tone: 'danger',
+            rows: [
+                { label: 'ชื่อผู้ใช้งาน', value: safeUserName },
+                { label: 'อีเมล', value: safeUserEmail },
+                {
+                    label: 'วันที่ดำเนินการ',
+                    value: new Date().toLocaleString('th-TH', {
+                        year: 'numeric',
+                        month: 'long',
+                        day: 'numeric',
+                        hour: '2-digit',
+                        minute: '2-digit'
+                    }),
+                    noGap: true
+                }
+            ]
         })
-        : '';
+    ];
 
-    const html = renderEmailLayout({
-        accentColor: 'linear-gradient(135deg, #dc2626, #b91c1c)',
-        title: 'บัญชีถูกระงับการใช้งาน',
-        body: `
-            <p style="margin-top: 0;">เรียนคุณ ${safeUserName},</p>
-            <p>บัญชีของคุณในระบบจองห้องถูกระงับการใช้งานโดยเจ้าหน้าที่</p>
-            ${reasonSection}
-            ${renderInfoCard([
-                renderLabelValue('อีเมล', safeUserEmail),
-                renderLabelValue('วันที่ระงับ', new Date().toLocaleString('th-TH', {
-                    year: 'numeric',
-                    month: 'long',
-                    day: 'numeric',
-                    hour: '2-digit',
-                    minute: '2-digit'
-                }))
-            ])}
-            <p style="margin-bottom: 0; color: #64748b;">หากมีข้อสงสัย กรุณาติดต่อเจ้าหน้าที่ประจำระบบ</p>
-        `
-    });
+    if (safeReason) {
+        sections.push(renderSection({
+            title: 'เหตุผลในการระงับสิทธิ์',
+            tone: 'warning',
+            rows: [
+                { label: 'รายละเอียด', value: safeReason, noGap: true }
+            ]
+        }));
+    }
 
-    return sendEmail(user.email, subject, html);
+    return sendEmail(
+        user.email,
+        buildSubject('แจ้งระงับสิทธิ์การใช้งานระบบ'),
+        renderEmailLayout({
+            tone: 'danger',
+            category: 'ระงับสิทธิ์การใช้งาน',
+            title: 'บัญชีของท่านถูกระงับการใช้งานระบบ',
+            recipientName: safeUserName,
+            intro: 'เจ้าหน้าที่ได้ดำเนินการระงับสิทธิ์การใช้งานระบบจัดการห้องอบรมของท่าน',
+            sections,
+            note: 'หากมีข้อสงสัยเกี่ยวกับการดำเนินการดังกล่าว กรุณาติดต่อเจ้าหน้าที่ประจำระบบ'
+        })
+    );
 };
 
 const sendUnbanNotification = async (user) => {
     const safeUserName = escapeHtml(normalizeEmailText(user?.name, 'ผู้ใช้งาน'));
     const safeUserEmail = escapeHtml(normalizeEmailText(user?.email, ''));
-    const subject = 'บัญชีของคุณถูกปลดระงับแล้ว';
-    const html = renderEmailLayout({
-        accentColor: 'linear-gradient(135deg, #16a34a, #15803d)',
-        title: 'ปลดระงับบัญชีเรียบร้อยแล้ว',
-        body: `
-            <p style="margin-top: 0;">เรียนคุณ ${safeUserName},</p>
-            <p>บัญชีของคุณได้รับการปลดระงับแล้ว และสามารถกลับเข้าใช้งานระบบได้ตามปกติ</p>
-            ${renderInfoCard([
-                renderLabelValue('อีเมล', safeUserEmail),
-                renderLabelValue('วันที่ปลดระงับ', new Date().toLocaleString('th-TH', {
-                    year: 'numeric',
-                    month: 'long',
-                    day: 'numeric',
-                    hour: '2-digit',
-                    minute: '2-digit'
-                }))
-            ], {
-                borderColor: '#16a34a',
-                backgroundColor: '#f0fdf4'
-            })}
-            <p style="margin-bottom: 0; color: #64748b;">กรุณาใช้งานระบบตามระเบียบที่กำหนด</p>
-        `
-    });
 
-    return sendEmail(user.email, subject, html);
+    return sendEmail(
+        user.email,
+        buildSubject('แจ้งปลดระงับสิทธิ์การใช้งานระบบ'),
+        renderEmailLayout({
+            tone: 'success',
+            category: 'ปลดระงับสิทธิ์',
+            title: 'บัญชีของท่านได้รับการปลดระงับแล้ว',
+            recipientName: safeUserName,
+            intro: 'เจ้าหน้าที่ได้ปลดระงับสิทธิ์การใช้งานระบบของท่านเรียบร้อยแล้ว และท่านสามารถกลับเข้าใช้งานได้ตามปกติ',
+            sections: [
+                renderSection({
+                    title: 'ข้อมูลผู้ใช้งาน',
+                    tone: 'success',
+                    rows: [
+                        { label: 'ชื่อผู้ใช้งาน', value: safeUserName },
+                        { label: 'อีเมล', value: safeUserEmail },
+                        {
+                            label: 'วันที่ดำเนินการ',
+                            value: new Date().toLocaleString('th-TH', {
+                                year: 'numeric',
+                                month: 'long',
+                                day: 'numeric',
+                                hour: '2-digit',
+                                minute: '2-digit'
+                            }),
+                            noGap: true
+                        }
+                    ]
+                })
+            ],
+            note: 'กรุณาใช้งานระบบตามระเบียบและข้อกำหนดที่เกี่ยวข้อง'
+        })
+    );
 };
 
 const sendAdminContactEmail = async ({ recipient, adminUser, subject, message }) => {
@@ -361,32 +520,46 @@ const sendAdminContactEmail = async ({ recipient, adminUser, subject, message })
     const safeSubject = normalizeEmailText(subject, 'ข้อความจากผู้ดูแลระบบ');
     const safeMessage = escapeHtml(message).replace(/\n/g, '<br />');
 
-    const html = renderEmailLayout({
-        accentColor: 'linear-gradient(135deg, #16a34a, #0f766e)',
-        title: 'ข้อความจากผู้ดูแลระบบ',
-        body: `
-            <p style="margin-top: 0;">เรียนคุณ ${recipientName},</p>
-            <p>ผู้ดูแลระบบได้ส่งข้อความถึงคุณผ่านระบบจัดการผู้ใช้งาน</p>
-            ${renderInfoCard([
-                renderLabelValue('หัวข้อ', escapeHtml(safeSubject))
-            ])}
-            <div style="background-color: #ffffff; border: 1px solid #e5e7eb; border-radius: 12px; padding: 16px 18px; margin: 18px 0;">
-                <p style="margin: 0 0 8px; color: #0f172a; font-weight: 700;">ข้อความ</p>
-                <p style="margin: 0; color: #334155; line-height: 1.8;">${safeMessage}</p>
-            </div>
-            ${renderInfoCard([
-                renderLabelValue('ส่งโดย', adminName),
-                renderLabelValue('อีเมลติดต่อกลับ', adminEmail)
-            ], {
-                borderColor: '#16a34a',
-                backgroundColor: '#f0fdf4'
-            })}
-        `
-    });
-
-    return sendEmail(recipient.email, safeSubject, html, {
-        replyTo: adminUser?.email || undefined
-    });
+    return sendEmail(
+        recipient.email,
+        buildSubject(`ข้อความจากผู้ดูแลระบบ: ${safeSubject}`),
+        renderEmailLayout({
+            tone: 'neutral',
+            category: 'ติดต่อจากผู้ดูแลระบบ',
+            title: 'ท่านได้รับข้อความจากผู้ดูแลระบบห้องอบรม',
+            recipientName,
+            intro: 'ผู้ดูแลระบบได้ส่งข้อความถึงท่านผ่านระบบจัดการห้องอบรม กรุณาตรวจสอบรายละเอียดดังต่อไปนี้',
+            sections: [
+                renderSection({
+                    title: 'หัวข้อข้อความ',
+                    tone: 'neutral',
+                    rows: [
+                        { label: 'หัวข้อ', value: escapeHtml(safeSubject), noGap: true }
+                    ]
+                }),
+                renderSection({
+                    title: 'ข้อความ',
+                    tone: 'neutral',
+                    rows: [
+                        { label: 'รายละเอียด', value: safeMessage, noGap: true }
+                    ]
+                }),
+                renderSection({
+                    title: 'ผู้ติดต่อ',
+                    tone: 'info',
+                    rows: [
+                        { label: 'ชื่อผู้ดูแลระบบ', value: adminName },
+                        { label: 'อีเมลติดต่อกลับ', value: adminEmail, noGap: true }
+                    ]
+                })
+            ],
+            note: 'หากต้องการติดต่อกลับ สามารถตอบกลับอีเมลฉบับนี้ได้โดยตรง',
+            replyNote: `อีเมลนี้ตั้งค่าให้ตอบกลับไปยัง ${adminEmail}`
+        }),
+        {
+            replyTo: adminUser?.email || undefined
+        }
+    );
 };
 
 module.exports = {

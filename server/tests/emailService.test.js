@@ -59,6 +59,7 @@ describe('Email Service Templates', async () => {
         assert.ok(capturedMailOptions.html.includes('Alice &amp; Bob'));
         assert.ok(capturedMailOptions.html.includes('&lt;script&gt;alert(&quot;x&quot;)&lt;/script&gt;'));
         assert.ok(capturedMailOptions.html.includes('&lt;b&gt;44-703&lt;/b&gt;'));
+        assert.ok(capturedMailOptions.html.includes('มหาวิทยาลัยเทคโนโลยีพระจอมเกล้าพระนครเหนือ'));
         assert.ok(!capturedMailOptions.html.includes('<script>alert("x")</script>'));
     });
 
