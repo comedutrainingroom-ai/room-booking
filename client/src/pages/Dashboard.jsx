@@ -553,9 +553,9 @@ const Dashboard = () => {
                 }
 
                 const normalizedBookings = (response.data?.data || []).filter((booking) => !booking.isImported && booking.user?.department !== 'Imported');
-                startTransition(() => {
-                    setBookings(normalizedBookings);
-                });
+                // Remove startTransition so this batches synchronously with setLoading(false) in finally block
+                // This prevents the numbers from flickering at "0" before rendering
+                setBookings(normalizedBookings);
             } catch (error) {
                 if (!isMounted) {
                     return;

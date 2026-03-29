@@ -258,7 +258,7 @@ const AdminReports = () => {
 
             {loading ? (
                 <div className="flex justify-center py-20">
-                    <div className="h-10 w-10 animate-spin rounded-full border-b-2 border-green-500" />
+                    <div className="loader scale-75" />
                 </div>
             ) : (
                 <>

@@ -2,6 +2,7 @@ import { useState, useEffect } from 'react';
 import api from '../services/api';
 import { Link } from 'react-router-dom';
 import { FaCalendarAlt, FaSearch, FaUsers, FaPlug, FaRegImage, FaRegFrown, FaLock } from 'react-icons/fa';
+import Loader from '../components/Loader';
 
 const Home = () => {
     const [rooms, setRooms] = useState([]);
@@ -23,11 +24,7 @@ const Home = () => {
     }, []);
 
     if (loading) {
-        return (
-            <div className="flex justify-center items-center h-64">
-                <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-primary"></div>
-            </div>
-        );
+        return <Loader />;
     }
 
     return (
@@ -42,7 +39,7 @@ const Home = () => {
 
                 <div className="relative flex flex-col md:flex-row">
                     {/* Left Accent Bar */}
-                    <div className="hidden md:block w-1.5 bg-gradient-to-b from-emerald-500 via-emerald-400 to-transparent shrink-0"></div>
+                    <div className="hidden md:block w-1.5 bg-emerald-500 shrink-0"></div>
 
                     {/* Main Content */}
                     <div className="flex-1 p-5 sm:p-8 md:p-10 lg:p-12">

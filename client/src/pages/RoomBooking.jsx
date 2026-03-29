@@ -223,7 +223,7 @@ const RoomBooking = () => {
         return (
             <div className="flex justify-center items-center min-h-[60vh]">
                 <div className="text-center">
-                    <div className="w-16 h-16 border-4 border-primary border-t-transparent rounded-full animate-spin mx-auto"></div>
+                    <div className="loader mx-auto scale-75"></div>
                     <p className="mt-4 text-gray-500">กำลังโหลด...</p>
                 </div>
             </div>

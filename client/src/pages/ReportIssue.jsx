@@ -63,7 +63,7 @@ const ReportIssue = () => {
 
                         <div className="grid grid-cols-[88px_1fr] gap-3 border-t border-dashed border-gray-200 pt-3">
                             <span className="text-gray-500">เบอร์ติดต่อ</span>
-                            <span className="font-bold tracking-[0.04em] text-gray-900">098-542-1998</span>
+                            <span className="font-bold tracking-[0.04em] text-gray-900">081-789-2333</span>
                         </div>
                     </div>
                 </div>
@@ -91,45 +91,45 @@ const ReportIssue = () => {
         <div className="min-h-[calc(100vh-4rem)] bg-gray-50/50 p-2 md:p-8 flex items-start md:items-center justify-center">
             <div className="w-full max-w-6xl bg-white rounded-2xl md:rounded-3xl shadow-xl overflow-hidden flex flex-col md:flex-row animate-in fade-in zoom-in duration-300">
 
-                {/* Mobile Compact Banner - shown only on mobile */}
-                <div className="md:hidden bg-gradient-to-r from-red-500 to-orange-600 p-3 flex items-center gap-3">
-                    <div className="bg-white/20 backdrop-blur-md p-2 rounded-xl">
-                        <FaExclamationTriangle className="text-lg text-white" />
+                {/* Mobile Compact Banner */}
+                <div className="md:hidden bg-emerald-800 p-3 flex items-center gap-3">
+                    <div className="bg-emerald-700/40 p-2 rounded-xl">
+                        <FaExclamationTriangle className="text-lg text-emerald-100" />
                     </div>
                     <div>
                         <h1 className="text-base font-bold text-white">พบปัญหา แจ้งเราทันที</h1>
-                        <p className="text-red-100 text-[10px]">ช่วยกันดูแลรักษาอุปกรณ์และสถานที่</p>
+                        <p className="text-emerald-200/90 text-[10px]">ช่วยกันดูแลรักษาอุปกรณ์และสถานที่</p>
                     </div>
                 </div>
 
-                {/* Desktop Side Panel - hidden on mobile */}
-                <div className="hidden md:flex md:w-2/5 bg-gradient-to-br from-red-500 to-orange-600 p-10 text-white flex-col justify-between relative overflow-hidden">
-                    <div className="absolute top-0 right-0 -m-10 opacity-10">
+                {/* Desktop Side Panel */}
+                <div className="hidden md:flex md:w-2/5 bg-emerald-800 p-10 text-white flex-col justify-between relative overflow-hidden">
+                    <div className="absolute top-0 right-0 -m-10 opacity-[0.05]">
                         <FaTools className="text-[300px]" />
                     </div>
 
                     <div className="relative z-10">
-                        <div className="bg-white/20 backdrop-blur-md p-4 rounded-2xl w-fit mb-6 shadow-lg border border-white/20">
-                            <FaExclamationTriangle className="text-4xl text-white" />
+                        <div className="bg-emerald-700/30 border border-emerald-600/20 p-4 rounded-2xl w-fit mb-6">
+                            <FaExclamationTriangle className="text-4xl text-emerald-200" />
                         </div>
                         <h1 className="text-4xl font-bold mb-4 leading-tight">พบปัญหา<br />แจ้งเราทันที</h1>
-                        <p className="text-red-100 text-lg">
+                        <p className="text-white text-lg">
                             ช่วยกันดูแลรักษาอุปกรณ์และสถานที่ เพื่อการใช้งานที่ราบรื่นสำหรับทุกคน
                         </p>
                     </div>
 
-                    <div className="relative z-10 mt-12 space-y-4">
-                        <div className="flex items-center gap-3 bg-white/10 p-3 rounded-xl backdrop-blur-sm border border-white/10">
-                            <FaCheckCircle className="text-green-300 text-xl" />
-                            <span className="text-sm">แจ้งปัญหาง่ายๆ ใน 1 นาที</span>
+                    <div className="relative z-10 mt-12 space-y-3">
+                        <div className="flex items-center gap-3 bg-emerald-700/40 p-3 rounded-xl border border-emerald-600/30">
+                            <FaCheckCircle className="text-emerald-200 text-lg" />
+                            <span className="text-sm text-white">แจ้งปัญหาการใช้ห้อง</span>
                         </div>
-                        <div className="flex items-center gap-3 bg-white/10 p-3 rounded-xl backdrop-blur-sm border border-white/10">
-                            <FaCheckCircle className="text-green-300 text-xl" />
-                            <span className="text-sm">ติดตามสถานะการซ่อมได้</span>
+                        <div className="flex items-center gap-3 bg-emerald-700/40 p-3 rounded-xl border border-emerald-600/30">
+                            <FaCheckCircle className="text-emerald-200 text-lg" />
+                            <span className="text-sm text-white">ติดต่อเจ้าหน้าที่ได้เลย</span>
                         </div>
-                        <div className="flex items-center gap-3 bg-white/10 p-3 rounded-xl backdrop-blur-sm border border-white/10">
-                            <FaCheckCircle className="text-green-300 text-xl" />
-                            <span className="text-sm">เจ้าหน้าที่พร้อมดูแล 24 ชม.</span>
+                        <div className="flex items-center gap-3 bg-emerald-700/40 p-3 rounded-xl border border-emerald-600/30">
+                            <FaCheckCircle className="text-emerald-200 text-lg" />
+                            <span className="text-sm text-white">ติดต่อได้ที่ห้องตึก 44 ชั้น 7</span>
                         </div>
                     </div>
                 </div>
@@ -151,7 +151,7 @@ const ReportIssue = () => {
                                 required
                                 value={formData.topic}
                                 onChange={handleChange}
-                                className="block w-full px-3 md:px-5 py-2.5 md:py-3.5 bg-gray-50 border border-gray-200 rounded-lg md:rounded-xl focus:ring-2 focus:ring-red-500/20 focus:border-red-500 transition-colors outline-none font-medium text-sm"
+                                className="block w-full px-3 md:px-5 py-2.5 md:py-3.5 bg-gray-50 border border-gray-200 rounded-lg md:rounded-xl focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-500 transition-colors outline-none font-medium text-sm"
                                 placeholder="เช่น แอร์ไม่เย็น, โปรเจคเตอร์เปิดไม่ติด"
                             />
                         </div>
@@ -167,7 +167,7 @@ const ReportIssue = () => {
                                     name="roomId"
                                     value={formData.roomId}
                                     onChange={handleChange}
-                                    className="block w-full pl-9 md:pl-11 pr-4 md:pr-5 py-2.5 md:py-3.5 bg-gray-50 border border-gray-200 rounded-lg md:rounded-xl focus:ring-2 focus:ring-red-500/20 focus:border-red-500 transition-colors outline-none appearance-none font-medium text-gray-600 text-sm"
+                                    className="block w-full pl-9 md:pl-11 pr-4 md:pr-5 py-2.5 md:py-3.5 bg-gray-50 border border-gray-200 rounded-lg md:rounded-xl focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-500 transition-colors outline-none appearance-none font-medium text-gray-600 text-sm"
                                 >
                                     <option value="">-- เลือกห้องที่เป็นปัญหา --</option>
                                     {rooms.map(room => (
@@ -188,7 +188,7 @@ const ReportIssue = () => {
                                 rows="3"
                                 value={formData.description}
                                 onChange={handleChange}
-                                className="block w-full px-3 md:px-5 py-2.5 md:py-3.5 bg-gray-50 border border-gray-200 rounded-lg md:rounded-xl focus:ring-2 focus:ring-red-500/20 focus:border-red-500 transition-colors outline-none resize-none text-sm"
+                                className="block w-full px-3 md:px-5 py-2.5 md:py-3.5 bg-gray-50 border border-gray-200 rounded-lg md:rounded-xl focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-500 transition-colors outline-none resize-none text-sm"
                                 placeholder="ระบุรายละเอียดให้ครบถ้วน..."
                             ></textarea>
                         </div>
@@ -198,8 +198,11 @@ const ReportIssue = () => {
                             <button
                                 type="submit"
                                 disabled={loading}
-                                className={`w-full py-3 md:py-4 rounded-lg md:rounded-xl font-bold text-sm md:text-lg text-white shadow-lg flex items-center justify-center gap-2 md:gap-3 transition-all duration-300 transform active:scale-[0.98]
-                                    ${loading ? 'bg-gray-400 cursor-not-allowed' : 'bg-gradient-to-r from-red-500 to-orange-600 hover:shadow-red-500/30 hover:-translate-y-1'}`}
+                                className={`w-full py-3.5 md:py-4 px-6 rounded-xl md:rounded-2xl text-white font-bold text-sm md:text-base transition-all duration-300 flex items-center justify-center gap-2 mt-4 md:mt-8 shadow-lg shadow-emerald-500/25
+                                    ${loading
+                                        ? 'bg-gray-400 cursor-not-allowed shadow-none'
+                                        : 'bg-emerald-600 hover:bg-emerald-700 hover:-translate-y-0.5'
+                                    }`}
                             >
                                 {loading ? (
                                     <span className="animate-spin rounded-full h-6 w-6 border-b-2 border-white"></span>

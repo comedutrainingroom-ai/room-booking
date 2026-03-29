@@ -8,6 +8,7 @@ import ErrorBoundary from './components/ErrorBoundary';
 import Layout from './components/Layout';
 import AdminGuard from './components/AdminGuard';
 import { Suspense, lazy } from 'react';
+import Loader from './components/Loader';
 
 // Lazy Load Pages
 const Home = lazy(() => import('./pages/Home'));
@@ -28,15 +29,11 @@ const RoomRules = lazy(() => import('./pages/RoomRules'));
 const UserManagement = lazy(() => import('./pages/UserManagement'));
 const UserGuide = lazy(() => import('./pages/UserGuide'));
 
-const LoadingFallback = () => (
-  <div className="flex items-center justify-center min-h-screen">
-    <div className="w-12 h-12 border-4 border-primary border-t-transparent rounded-full animate-spin"></div>
-  </div>
-);
+const LoadingFallback = () => <Loader fullScreen={true} />;
 
 const ProtectedRoute = ({ children }) => {
   const { currentUser, loading } = useAuth();
-  if (loading) return <div>Loading...</div>;
+  if (loading) return <Loader fullScreen={true} />;
   if (!currentUser) {
     return <Navigate to="/login" />;
   }

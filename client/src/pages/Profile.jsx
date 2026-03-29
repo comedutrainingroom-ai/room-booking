@@ -61,7 +61,7 @@ const Profile = () => {
             <div className="bg-white rounded-2xl shadow-sm border border-gray-100 overflow-hidden">
                 <div className="bg-green-50/50 p-4 md:p-6 flex flex-col items-center border-b border-gray-100">
                     <img
-                        src={currentUser?.photoURL || dbUser?.picture}
+                        src={currentUser?.photoURL || dbUser?.picture || `https://ui-avatars.com/api/?name=${encodeURIComponent(currentUser?.displayName || 'User')}&background=16a34a&color=fff&size=128`}
                         alt="Profile"
                         className="w-20 h-20 md:w-24 md:h-24 rounded-full border-4 border-white shadow-md object-cover mb-3"
                         onError={(e) => {

@@ -596,7 +596,7 @@ const Calendar = () => {
                                 className={`
                                     flex items-center gap-3 px-4 py-3 transition-all duration-200
                                     ${!bookable ? 'cursor-not-allowed bg-gray-200/60' : 'cursor-pointer bg-gray-50 hover:bg-gray-100'}
-                                    ${isToday && bookable ? 'bg-gradient-to-r from-primary to-emerald-400 text-white shadow-md shadow-primary/20 cursor-pointer' : ''}
+                                    ${isToday && bookable ? 'bg-primary text-white shadow-md shadow-primary/20 cursor-pointer' : ''}
                                     ${isToday && !bookable ? 'bg-gray-400 text-white cursor-not-allowed' : ''}
                                     ${!isToday && bookable ? 'text-gray-700' : ''}
                                 `}
