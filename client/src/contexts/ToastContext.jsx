@@ -69,7 +69,7 @@ const Toast = ({ id, type, message, onClose }) => {
 };
 
 // Premium Confirm Modal Component
-const ConfirmModal = ({ title, message, type, onConfirm, onCancel }) => {
+const ConfirmModal = ({ title, message, content, type, onConfirm, onCancel }) => {
     const config = {
         warning: {
             accent: 'bg-amber-500',
@@ -86,6 +86,7 @@ const ConfirmModal = ({ title, message, type, onConfirm, onCancel }) => {
     };
 
     const { accent, confirmBtn } = config[type] || config.warning;
+    const hasContent = Boolean(content);
 
     return (
         <div className="fixed inset-0 z-[9999] flex items-center justify-center p-4">
@@ -96,7 +97,7 @@ const ConfirmModal = ({ title, message, type, onConfirm, onCancel }) => {
             ></div>
 
             {/* Modal */}
-            <div className="relative bg-white rounded-lg shadow-lg max-w-sm w-full overflow-hidden border border-gray-200">
+            <div className={`relative bg-white rounded-2xl shadow-lg w-full overflow-hidden border border-gray-200 ${hasContent ? 'max-w-md' : 'max-w-sm'}`}>
                 {/* Accent bar */}
                 <div className={`h-1 w-full ${accent}`}></div>
 
@@ -105,9 +106,16 @@ const ConfirmModal = ({ title, message, type, onConfirm, onCancel }) => {
                     <h3 className="text-lg font-extrabold text-gray-900 mb-1">
                         {title}
                     </h3>
-                    <p className="text-gray-500 text-sm leading-relaxed mb-6">
-                        {message}
-                    </p>
+                    {message && (
+                        <p className={`text-gray-500 text-sm leading-relaxed whitespace-pre-line ${hasContent ? 'mb-4' : 'mb-6'}`}>
+                            {message}
+                        </p>
+                    )}
+                    {content && (
+                        <div className="mb-6">
+                            {content}
+                        </div>
+                    )}
 
                     {/* Actions */}
                     <div className="flex gap-3 justify-end">
@@ -149,11 +157,12 @@ export const ToastProvider = ({ children }) => {
         return id;
     }, [removeToast]);
 
-    const confirm = useCallback(({ title, message, type = 'warning' }) => {
+    const confirm = useCallback(({ title, message, content, type = 'warning' }) => {
         return new Promise((resolve) => {
             setConfirmData({
                 title,
                 message,
+                content,
                 type,
                 onConfirm: () => { setConfirmData(null); resolve(true); },
                 onCancel: () => { setConfirmData(null); resolve(false); }
@@ -194,6 +203,7 @@ export const ToastProvider = ({ children }) => {
                 <ConfirmModal
                     title={confirmData.title}
                     message={confirmData.message}
+                    content={confirmData.content}
                     type={confirmData.type}
                     onConfirm={confirmData.onConfirm}
                     onCancel={confirmData.onCancel}

@@ -2,6 +2,7 @@ import { useState, useEffect, useCallback } from 'react';
 import api from '../services/api';
 import { FaCheck, FaTimes, FaCalendarAlt, FaClock, FaUser, FaBuilding, FaEdit, FaSave, FaBan } from 'react-icons/fa';
 import { useToast } from '../contexts/ToastContext';
+import { getBookingStatusLabel } from '../utils/bookingStatus';
 
 const AdminApprove = () => {
     const toast = useToast();
@@ -143,14 +144,16 @@ const AdminApprove = () => {
         }
     }, [editingBooking, editForm, toast, fetchBookings]);
 
-    const getStatusBadge = (status) => {
+    const getStatusBadge = (booking) => {
+        const status = booking?.status;
+
         switch (status) {
             case 'pending':
                 return <span className="bg-yellow-100 text-yellow-700 text-xs px-2 py-1 rounded-full font-bold">รออนุมัติ</span>;
             case 'approved':
                 return <span className="bg-green-100 text-green-700 text-xs px-2 py-1 rounded-full font-bold">อนุมัติแล้ว</span>;
             case 'cancelled':
-                return <span className="bg-gray-100 text-gray-700 text-xs px-2 py-1 rounded-full font-bold">ยกเลิกแล้ว</span>;
+                return <span className="bg-gray-100 text-gray-700 text-xs px-2 py-1 rounded-full font-bold">{getBookingStatusLabel(booking)}</span>;
             default:
                 return <span className="bg-gray-100 text-gray-500 text-xs px-2 py-1 rounded-full font-bold">{status}</span>;
         }
@@ -210,7 +213,7 @@ const AdminApprove = () => {
                             <div className="flex-grow space-y-3">
                                 <div className="flex items-start justify-between">
                                     <h3 className="text-lg font-bold text-gray-800">{booking.topic}</h3>
-                                    {getStatusBadge(booking.status)}
+                                    {getStatusBadge(booking)}
                                 </div>
 
                                 <div className="grid grid-cols-1 md:grid-cols-2 gap-x-8 gap-y-2 text-sm text-gray-600">
@@ -245,6 +248,13 @@ const AdminApprove = () => {
                                     <div className="bg-gray-50 p-3 rounded-lg text-sm border border-gray-100 mt-2">
                                         <span className="font-bold text-gray-700 block mb-1">รายละเอียดเพิ่มเติม:</span>
                                         <p className="text-gray-600">{booking.note}</p>
+                                    </div>
+                                )}
+
+                                {booking.cancellationReason && (
+                                    <div className="bg-red-50 p-3 rounded-lg text-sm border border-red-100 mt-2">
+                                        <span className="font-bold text-red-800 block mb-1">เหตุผลการยกเลิก:</span>
+                                        <p className="text-red-700 whitespace-pre-line">{booking.cancellationReason}</p>
                                     </div>
                                 )}
 

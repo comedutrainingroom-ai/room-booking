@@ -42,9 +42,9 @@ const createReport = async (req, res) => {
             });
         }
 
-        // Handle "other" or empty roomId
         let roomToSave = null;
         const normalizedRoomId = typeof roomId === 'string' ? roomId.trim() : roomId;
+
         if (normalizedRoomId && normalizedRoomId !== 'other') {
             if (!mongoose.isValidObjectId(normalizedRoomId)) {
                 return res.status(400).json({
@@ -71,7 +71,7 @@ const createReport = async (req, res) => {
             description: sanitizedDescription,
             urgency: sanitizedUrgency,
             room: roomToSave,
-            reporter: req.user._id, // Assumes auth middleware sets req.user
+            reporter: req.user._id,
             images: []
         });
 
@@ -80,13 +80,17 @@ const createReport = async (req, res) => {
             data: report
         });
 
-        // Audit log
-        logAction({ action: 'report:create', performedBy: req.user._id, targetType: 'report', targetId: report._id, details: `แจ้งปัญหา: ${report.topic}`, req });
+        logAction({
+            action: 'report:create',
+            performedBy: req.user._id,
+            targetType: 'report',
+            targetId: report._id,
+            details: `แจ้งปัญหา: ${report.topic}`,
+            req
+        });
 
-        // Emit real-time notification to admin room
         const io = req.app.get('io');
         emitReportCreatedNotification(io, report);
-
     } catch (error) {
         const validationResponse = getValidationErrorResponse(error, 'Report validation failed');
         if (validationResponse) {
@@ -142,7 +146,10 @@ const getAllReports = async (req, res) => {
 // @access  Private (Admin)
 const updateReportStatus = async (req, res) => {
     try {
-        const { status } = req.body;
+        const status = sanitizeEnumValue(req.body?.status, {
+            fieldName: 'Status',
+            allowedValues: ['pending', 'in_progress', 'resolved', 'rejected']
+        });
 
         let report = await Report.findById(req.params.id);
 
@@ -154,65 +161,32 @@ const updateReportStatus = async (req, res) => {
         report.updatedAt = Date.now();
         await report.save();
 
+        report = await Report.findById(req.params.id)
+            .populate('reporter', 'name email picture studentId phone')
+            .populate('room', 'name');
+
         res.status(200).json({
             success: true,
             data: report
         });
 
-        // Audit log
-        logAction({ action: 'report:update_status', performedBy: req.user._id, targetType: 'report', targetId: report._id, details: `เปลี่ยนสถานะ: ${status}`, req });
-
-        // Emit real-time notification
-        const io = req.app.get('io');
-        emitReportUpdatedNotification(io, report);
-
-    } catch (error) {
-        res.status(500).json({ success: false, error: 'Server Error' });
-    }
-};
-
-// @desc    Set room maintenance status (disable/enable room)
-// @route   PUT /api/reports/:id/maintenance
-// @access  Private (Admin)
-const setRoomMaintenance = async (req, res) => {
-    try {
-        const { isActive } = req.body;
-
-        let report = await Report.findById(req.params.id).populate('room');
-
-        if (!report) {
-            return res.status(404).json({ success: false, error: 'Report not found' });
-        }
-
-        if (!report.room) {
-            return res.status(400).json({ success: false, error: 'ไม่มีห้องที่เกี่ยวข้องกับรายงานนี้' });
-        }
-
-        // Update room status
-        await Room.findByIdAndUpdate(report.room._id, { isActive });
-
-        // Update report status
-        report.status = !isActive ? 'in_progress' : 'resolved';
-        report.updatedAt = Date.now();
-        await report.save();
-
-        // Re-fetch to get updated data
-        report = await Report.findById(req.params.id)
-            .populate('reporter', 'name email picture studentId phone')
-            .populate('room', 'name isActive');
-
-        res.status(200).json({
-            success: true,
-            data: report,
-            message: isActive ? 'เปิดใช้งานห้องแล้ว' : 'ปิดห้องเพื่อซ่อมบำรุง'
+        logAction({
+            action: 'report:update_status',
+            performedBy: req.user._id,
+            targetType: 'report',
+            targetId: report._id,
+            details: `เปลี่ยนสถานะ: ${status}`,
+            req
         });
 
-        // Audit log
-        logAction({ action: 'report:set_maintenance', performedBy: req.user._id, targetType: 'room', targetId: report.room._id, details: isActive ? 'เปิดใช้งานห้อง' : 'ปิดห้องซ่อมบำรุง', req });
         const io = req.app.get('io');
         emitReportUpdatedNotification(io, report);
     } catch (error) {
-        console.error('Set Maintenance Error:', error);
+        const validationResponse = getValidationErrorResponse(error, 'Report validation failed');
+        if (validationResponse) {
+            return res.status(validationResponse.statusCode).json(validationResponse.body);
+        }
+
         res.status(500).json({ success: false, error: 'Server Error' });
     }
 };
@@ -240,6 +214,5 @@ module.exports = {
     getMyReports,
     getAllReports,
     getReportNotificationSummary,
-    updateReportStatus,
-    setRoomMaintenance
+    updateReportStatus
 };

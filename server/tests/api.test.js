@@ -473,6 +473,35 @@ describe('Server API Tests', async () => {
             assert.strictEqual(res.body.data.status, 'approved');
         });
 
+        it('PUT /api/bookings/:id should record when an admin cancels a booking', async () => {
+            await seedUser('admin-token', 'admin');
+            const room = await seedRoom();
+            const { start, end } = getNextWeekdayRange();
+            const booking = await Booking.create({
+                room: room._id,
+                topic: 'Admin Cancelled Booking',
+                user: { name: 'Student User', email: 'student@kmutnb.ac.th', department: 'CS' },
+                startTime: start,
+                endTime: end,
+                status: 'approved'
+            });
+
+            const headers = await getAdminHeaders(app);
+            const res = await applyHeaders(
+                request(app).put(`/api/bookings/${booking._id}`),
+                headers
+            ).send({ status: 'cancelled' });
+
+            assert.strictEqual(res.status, 200);
+            assert.strictEqual(res.body.data.status, 'cancelled');
+            assert.strictEqual(res.body.data.cancelledByRole, 'admin');
+            assert.strictEqual(res.body.data.cancellationReason, undefined);
+
+            const storedBooking = await Booking.findById(booking._id);
+            assert.strictEqual(storedBooking.cancelledByRole, 'admin');
+            assert.strictEqual(storedBooking.cancellationReason, undefined);
+        });
+
         it('DELETE /api/bookings/:id should let an admin delete with a valid admin pin token', async () => {
             await seedUser('admin-token', 'admin');
             const room = await seedRoom();
@@ -522,6 +551,63 @@ describe('Server API Tests', async () => {
             const storedBooking = await Booking.findById(booking._id);
             assert.strictEqual(storedBooking.status, 'pending');
             assert.strictEqual(storedBooking.topic, 'Original Topic');
+        });
+
+        it('PUT /api/bookings/:id should require a cancellation reason when a student cancels', async () => {
+            await seedUser('student-token', 'student');
+            const room = await seedRoom();
+            const { start, end } = getNextWeekdayRange();
+            const booking = await Booking.create({
+                room: room._id,
+                topic: 'Missing Cancellation Reason',
+                user: { name: 'Student User', email: 'student@kmutnb.ac.th', department: 'CS' },
+                startTime: start,
+                endTime: end,
+                status: 'pending'
+            });
+
+            const res = await request(app)
+                .put(`/api/bookings/${booking._id}`)
+                .set(authHeader('student-token'))
+                .send({ status: 'cancelled' });
+
+            assert.strictEqual(res.status, 400);
+            assert.strictEqual(res.body.error, 'Cancellation reason is required');
+
+            const storedBooking = await Booking.findById(booking._id);
+            assert.strictEqual(storedBooking.status, 'pending');
+            assert.strictEqual(storedBooking.cancellationReason, undefined);
+        });
+
+        it('PUT /api/bookings/:id should record when a student cancels their own booking', async () => {
+            await seedUser('student-token', 'student');
+            const room = await seedRoom();
+            const { start, end } = getNextWeekdayRange();
+            const booking = await Booking.create({
+                room: room._id,
+                topic: 'Student Cancelled Booking',
+                user: { name: 'Student User', email: 'student@kmutnb.ac.th', department: 'CS' },
+                startTime: start,
+                endTime: end,
+                status: 'pending'
+            });
+
+            const res = await request(app)
+                .put(`/api/bookings/${booking._id}`)
+                .set(authHeader('student-token'))
+                .send({
+                    status: 'cancelled',
+                    cancellationReason: 'ติดธุระด่วน ไม่สามารถเข้าใช้งานห้องได้'
+                });
+
+            assert.strictEqual(res.status, 200);
+            assert.strictEqual(res.body.data.status, 'cancelled');
+            assert.strictEqual(res.body.data.cancelledByRole, 'student');
+            assert.strictEqual(res.body.data.cancellationReason, 'ติดธุระด่วน ไม่สามารถเข้าใช้งานห้องได้');
+
+            const storedBooking = await Booking.findById(booking._id);
+            assert.strictEqual(storedBooking.cancelledByRole, 'student');
+            assert.strictEqual(storedBooking.cancellationReason, 'ติดธุระด่วน ไม่สามารถเข้าใช้งานห้องได้');
         });
 
         it('GET /api/bookings should hide other user details from students', async () => {

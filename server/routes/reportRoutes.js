@@ -5,8 +5,7 @@ const {
     getMyReports,
     getAllReports,
     getReportNotificationSummary,
-    updateReportStatus,
-    setRoomMaintenance
+    updateReportStatus
 } = require('../controllers/reportController');
 const { protect, admin, adminUnlocked } = require('../middleware/authMiddleware');
 
@@ -18,7 +17,6 @@ router.get('/notification-summary', protect, admin, getReportNotificationSummary
 router.route('/my').get(protect, getMyReports);
 
 router.route('/:id/status').put(protect, admin, adminUnlocked, updateReportStatus);
-router.route('/:id/maintenance').put(protect, admin, adminUnlocked, setRoomMaintenance);
 
 module.exports = router;
 

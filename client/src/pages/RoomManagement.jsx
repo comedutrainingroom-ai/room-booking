@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
 import api from '../services/api';
-import { FaPlus, FaEdit, FaTrash, FaTimes, FaSave, FaBuilding } from 'react-icons/fa';
+import { FaPlus, FaTimes, FaSave, FaBuilding } from 'react-icons/fa';
 import RoomCard from '../components/RoomCard.jsx';
 import { useToast } from '../contexts/ToastContext';
 
@@ -14,11 +14,13 @@ const RoomManagement = () => {
     const [loading, setLoading] = useState(true);
     const [isModalOpen, setIsModalOpen] = useState(false);
     const [editingRoom, setEditingRoom] = useState(null);
+    const [statusLoadingId, setStatusLoadingId] = useState(null);
     const [formData, setFormData] = useState({
         name: '',
         capacity: '',
         description: '',
-        equipment: ''
+        equipment: '',
+        isActive: true
     });
 
     const fetchRooms = async () => {
@@ -82,7 +84,8 @@ const RoomManagement = () => {
             name: room.name,
             capacity: room.capacity,
             description: room.description || '',
-            equipment: room.equipment ? room.equipment.join(', ') : ''
+            equipment: room.equipment ? room.equipment.join(', ') : '',
+            isActive: room.isActive !== false
         });
         setExistingImages(room.images || []); // Set existing images
         setSelectedImages([]);
@@ -91,11 +94,40 @@ const RoomManagement = () => {
 
     const handleAddNew = () => {
         setEditingRoom(null);
-        setFormData({ name: '', capacity: '', description: '', equipment: '' });
+        setFormData({ name: '', capacity: '', description: '', equipment: '', isActive: true });
         setSelectedImages([]);
         setExistingImages([]); // Reset existing images
         setIsCustomOpen(false); // Reset custom toggle
         setIsModalOpen(true);
+    };
+
+    const handleToggleStatus = async (room) => {
+        const nextIsActive = room.isActive === false;
+        const confirmed = await toast.confirm({
+            title: nextIsActive ? 'ยืนยันเปิดใช้งานห้อง' : 'ยืนยันปิดปรับปรุงห้อง',
+            message: nextIsActive
+                ? `ห้อง "${room.name}" จะกลับมาเป็นพร้อมใช้งาน`
+                : `ห้อง "${room.name}" จะถูกตั้งเป็นปิดปรับปรุง และผู้ใช้จะยังไม่สามารถจองได้`,
+            type: nextIsActive ? 'info' : 'warning'
+        });
+
+        if (!confirmed) return;
+
+        setStatusLoadingId(room._id);
+        try {
+            const res = await api.put(`/rooms/${room._id}/status`, { isActive: nextIsActive });
+            if (res.data.success) {
+                setRooms((prev) => prev.map((item) => (
+                    item._id === room._id ? res.data.data : item
+                )));
+                toast.success(res.data.message || 'อัปเดตสถานะห้องเรียบร้อยแล้ว');
+            }
+        } catch (error) {
+            console.error('Error updating room status', error);
+            toast.error(error.response?.data?.error || 'เกิดข้อผิดพลาดในการอัปเดตสถานะห้อง');
+        } finally {
+            setStatusLoadingId(null);
+        }
     };
 
     const handleImageChange = (e) => {
@@ -133,6 +165,7 @@ const RoomManagement = () => {
         const data = new FormData();
         data.append('name', formData.name);
         data.append('capacity', formData.capacity);
+        data.append('isActive', String(formData.isActive));
 
         // Send existing images that we want to keep
         if (editingRoom) {
@@ -218,6 +251,8 @@ const RoomManagement = () => {
                         room={room}
                         onEdit={handleEdit}
                         onDelete={handleDelete}
+                        onToggleStatus={handleToggleStatus}
+                        statusLoading={statusLoadingId === room._id}
                     />
                 ))}
             </div>
@@ -270,6 +305,40 @@ const RoomManagement = () => {
                                         className="w-full px-4 py-2 rounded-lg border border-gray-300 focus:outline-none focus:ring-2 focus:ring-primary/50"
                                         placeholder="เช่น 10"
                                     />
+                                </div>
+                            </div>
+
+                            <div className="rounded-xl border border-gray-200 bg-gray-50 px-4 py-3">
+                                <div className="flex items-center justify-between gap-4">
+                                    <div>
+                                        <label className="block text-sm font-medium text-gray-700">สถานะห้อง</label>
+                                        <p className="mt-1 text-xs text-gray-500">
+                                            {formData.isActive
+                                                ? 'ห้องพร้อมให้ผู้ใช้จองและใช้งานได้ตามปกติ'
+                                                : 'ห้องจะถูกปิดรับการจองชั่วคราวระหว่างปรับปรุง'}
+                                        </p>
+                                    </div>
+                                    <button
+                                        type="button"
+                                        role="switch"
+                                        aria-checked={formData.isActive}
+                                        aria-label="สลับสถานะห้อง"
+                                        onClick={() => setFormData({ ...formData, isActive: !formData.isActive })}
+                                        className={`relative inline-flex h-7 w-12 items-center rounded-full border transition-colors duration-200 ${
+                                            formData.isActive
+                                                ? 'border-emerald-600 bg-emerald-600'
+                                                : 'border-gray-300 bg-gray-300'
+                                        }`}
+                                    >
+                                        <span
+                                            className={`inline-block h-5 w-5 transform rounded-full bg-white shadow-sm transition-transform duration-200 ${
+                                                formData.isActive ? 'translate-x-6' : 'translate-x-1'
+                                            }`}
+                                        />
+                                    </button>
+                                </div>
+                                <div className="mt-2 text-sm font-semibold text-gray-800">
+                                    {formData.isActive ? 'พร้อมใช้งาน' : 'ปิดปรับปรุง'}
                                 </div>
                             </div>
 

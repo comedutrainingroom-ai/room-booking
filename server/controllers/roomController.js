@@ -138,6 +138,44 @@ const updateRoom = async (req, res) => {
     }
 };
 
+// @desc    Update room active status
+// @route   PUT /api/rooms/:id/status
+// @access  Private (Admin)
+const updateRoomStatus = async (req, res) => {
+    try {
+        const { isActive } = req.body;
+
+        if (typeof isActive !== 'boolean') {
+            return res.status(400).json({
+                success: false,
+                error: 'Room status must be a boolean value'
+            });
+        }
+
+        const room = await Room.findByIdAndUpdate(
+            req.params.id,
+            { isActive },
+            {
+                returnDocument: 'after',
+                runValidators: true
+            }
+        );
+
+        if (!room) {
+            return res.status(404).json({ success: false, error: 'Room not found' });
+        }
+
+        res.status(200).json({
+            success: true,
+            data: room,
+            message: isActive ? 'อัปเดตห้องเป็นพร้อมใช้งานแล้ว' : 'อัปเดตห้องเป็นปิดปรับปรุงแล้ว'
+        });
+    } catch (error) {
+        console.error('Update Room Status Error:', error);
+        res.status(500).json({ success: false, error: 'Server Error' });
+    }
+};
+
 // @desc    Delete room
 // @route   DELETE /api/rooms/:id
 // @access  Public
@@ -163,5 +201,6 @@ module.exports = {
     getRoom,
     createRoom,
     updateRoom,
+    updateRoomStatus,
     deleteRoom
 };

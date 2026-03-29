@@ -6,6 +6,8 @@ import { useToast } from '../contexts/ToastContext';
 import { useSettings } from '../contexts/SettingsContext';
 import { FaArrowLeft, FaUsers, FaCalendarAlt, FaChevronLeft, FaChevronRight, FaTimes, FaClock, FaCheck, FaLock, FaBook } from 'react-icons/fa';
 
+const ACTIVE_BOOKING_STATUSES = ['pending', 'approved'];
+
 const RoomBooking = () => {
     const { id } = useParams();
     const navigate = useNavigate();
@@ -48,7 +50,7 @@ const RoomBooking = () => {
             ]);
 
             setRoom(roomRes.data.data);
-            setBookings(bookingsRes.data.data.filter(b => b.status !== 'rejected'));
+            setBookings(bookingsRes.data.data.filter((booking) => ACTIVE_BOOKING_STATUSES.includes(booking.status)));
         } catch (error) {
             console.error("Error fetching room data", error);
             toast.error("ไม่สามารถโหลดข้อมูลห้องได้");

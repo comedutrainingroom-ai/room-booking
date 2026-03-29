@@ -36,6 +36,10 @@ const RoomSelection = () => {
     }, [fetchRooms]);
 
     const handleBookRoom = (room) => {
+        if (room?.isActive === false) {
+            toast.warning('ห้องนี้อยู่ระหว่างปิดปรับปรุงและยังไม่สามารถจองได้');
+            return;
+        }
         const datePart = queryDate ? `?date=${queryDate}` : '';
         navigate(`/book-room/${room._id}${datePart}`);
     };
@@ -138,11 +142,11 @@ const RoomSelection = () => {
                     onClick={() => setSelectedRoom(null)}
                 >
                     <div 
-                        className="bg-white rounded-2xl shadow-xl w-full max-w-3xl max-h-[90vh] overflow-hidden flex flex-col md:flex-row animate-modal-slideUp"
+                        className="bg-white rounded-2xl shadow-xl w-full max-w-3xl max-h-[90vh] overflow-hidden flex flex-col md:flex-row md:h-[540px] animate-modal-slideUp"
                         onClick={(e) => e.stopPropagation()}
                     >
                         {/* Modal Image Section */}
-                        <div className="md:w-1/2 relative bg-gray-100 min-h-[250px] md:min-h-full flex-shrink-0">
+                        <div className="md:w-1/2 relative bg-gray-100 min-h-[250px] md:h-full flex-shrink-0">
                             {selectedRoom.images && selectedRoom.images.length > 0 ? (
                                 <img
                                     src={`/uploads/${selectedRoom.images[0]}`}
@@ -152,6 +156,12 @@ const RoomSelection = () => {
                             ) : (
                                 <div className="w-full h-full absolute inset-0 flex items-center justify-center bg-gradient-to-br from-gray-50 to-gray-200">
                                     <FaBuilding className="text-6xl text-gray-300" />
+                                </div>
+                            )}
+
+                            {selectedRoom.isActive === false && (
+                                <div className="absolute top-4 left-4 z-10 rounded-md border border-gray-200 bg-white/95 px-3 py-1.5 text-xs font-medium text-gray-700 shadow-sm backdrop-blur-sm">
+                                    ปิดปรับปรุงชั่วคราว
                                 </div>
                             )}
                             
@@ -172,7 +182,7 @@ const RoomSelection = () => {
                         </div>
                         
                         {/* Modal Content Section */}
-                        <div className="p-6 md:p-8 md:w-1/2 flex flex-col relative overflow-y-auto w-full custom-scrollbar">
+                        <div className="w-full p-6 md:w-1/2 md:px-8 md:py-7 flex flex-col relative overflow-hidden">
                             {/* Desktop Close Button */}
                             <button
                                 onClick={() => setSelectedRoom(null)}
@@ -181,15 +191,15 @@ const RoomSelection = () => {
                                 <FaTimes />
                             </button>
 
-                            <div className="mb-6 pr-8">
-                                <h2 className="text-2xl md:text-3xl font-bold text-gray-800 mb-3">{selectedRoom.name}</h2>
+                            <div className="mb-5 pr-8">
+                                <h2 className="text-2xl md:text-3xl font-bold text-gray-800 mb-2">{selectedRoom.name}</h2>
                                 <div className="hidden md:inline-flex items-center gap-2 text-sm text-gray-700 bg-emerald-50 px-3 py-1.5 rounded-lg border border-emerald-100">
                                     <FaUsers className="text-emerald-600" />
                                     <span>รองรับผู้เข้าร่วมได้สูงสุด <strong>{selectedRoom.capacity}</strong> ท่าน</span>
                                 </div>
                             </div>
 
-                            <div className="mb-8">
+                            <div className="mb-6">
                                 <h3 className="text-sm font-bold text-gray-800 mb-2 uppercase tracking-wide">รายละเอียดห้อง</h3>
                                 <p className="text-gray-600 text-sm md:text-base leading-relaxed whitespace-pre-wrap bg-gray-50 p-4 rounded-xl border border-gray-100">
                                     {selectedRoom.description || 'ไม่มีข้อมูลรายละเอียดเพิ่มเติมสำหรับห้องนี้'}
@@ -197,9 +207,9 @@ const RoomSelection = () => {
                             </div>
 
                             {selectedRoom.equipment && selectedRoom.equipment.length > 0 && (
-                                <div className="mb-8">
-                                    <h3 className="text-sm font-bold text-gray-800 mb-3 uppercase tracking-wide">อุปกรณ์อำนวยความสะดวก</h3>
-                                    <div className="flex flex-wrap gap-2">
+                                <div className="mb-6">
+                                    <h3 className="text-sm font-bold text-gray-800 mb-2.5 uppercase tracking-wide">อุปกรณ์อำนวยความสะดวก</h3>
+                                    <div className="flex flex-wrap gap-1.5">
                                         {selectedRoom.equipment.map((eq, idx) => (
                                             <span key={idx} className="px-3 py-1.5 bg-white border border-gray-200 shadow-sm text-gray-700 text-xs md:text-sm font-medium rounded-lg flex items-center gap-1.5">
                                                 <span className="w-1.5 h-1.5 rounded-full bg-green-500"></span>
@@ -210,13 +220,24 @@ const RoomSelection = () => {
                                 </div>
                             )}
 
-                            <div className="mt-auto pt-6 border-t border-gray-100">
+                            <div className="mt-auto pt-5 border-t border-gray-100">
                                 <button
                                     onClick={() => handleBookRoom(selectedRoom)}
-                                    className="w-full py-3.5 bg-gray-900 hover:bg-emerald-600 text-white font-bold rounded-xl flex items-center justify-center gap-2 transition-all duration-300 shadow-md hover:shadow-lg active:scale-[0.97]"
+                                    disabled={selectedRoom.isActive === false}
+                                    className={`w-full py-3.5 font-bold rounded-xl flex items-center justify-center gap-2 transition-all duration-300 ${
+                                        selectedRoom.isActive === false
+                                            ? 'bg-gray-100 text-gray-500 border border-gray-200 cursor-not-allowed shadow-none'
+                                            : 'bg-gray-900 hover:bg-emerald-600 text-white shadow-md hover:shadow-lg active:scale-[0.97]'
+                                    }`}
                                 >
-                                    <FaCalendarPlus className="text-lg" />
-                                    ดำเนินการจองห้องนี้
+                                    {selectedRoom.isActive === false ? (
+                                        'ไม่สามารถจองได้ในขณะนี้'
+                                    ) : (
+                                        <>
+                                            <FaCalendarPlus className="text-lg" />
+                                            ดำเนินการจองห้องนี้
+                                        </>
+                                    )}
                                 </button>
                             </div>
                         </div>

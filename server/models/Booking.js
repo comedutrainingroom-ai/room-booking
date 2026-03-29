@@ -57,6 +57,15 @@ const bookingSchema = mongoose.Schema({
         enum: ['pending', 'approved', 'rejected', 'cancelled'],
         default: 'pending'
     },
+    cancelledByRole: {
+        type: String,
+        enum: ['student', 'admin']
+    },
+    cancellationReason: {
+        type: String,
+        trim: true,
+        maxlength: [FIELD_LIMITS.BOOKING_NOTE, `Cancellation reason must be ${FIELD_LIMITS.BOOKING_NOTE} characters or fewer`]
+    },
     createdAt: {
         type: Date,
         default: Date.now

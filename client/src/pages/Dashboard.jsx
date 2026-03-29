@@ -17,18 +17,17 @@ import {
     FiPieChart,
     FiRefreshCw,
     FiSearch,
-    FiTrendingDown,
-    FiTrendingUp,
     FiUsers,
     FiXCircle
 } from 'react-icons/fi';
-import { FaDoorOpen, FaFileExcel, FaFilePdf } from 'react-icons/fa';
+import { FaFileExcel, FaFilePdf } from 'react-icons/fa';
 import api from '../services/api';
 import { useToast } from '../contexts/ToastContext';
 import {
     createDashboardExportReport,
     filterDashboardBookingsBySearch
 } from '../services/dashboardReportBuilder';
+import { getBookingStatusLabel } from '../utils/bookingStatus';
 
 const MONTH_LABELS = ['ม.ค.', 'ก.พ.', 'มี.ค.', 'เม.ย.', 'พ.ค.', 'มิ.ย.', 'ก.ค.', 'ส.ค.', 'ก.ย.', 'ต.ค.', 'พ.ย.', 'ธ.ค.'];
 const PIE_COLORS = ['#0f766e', '#10b981', '#38bdf8', '#f59e0b', '#94a3b8'];
@@ -172,27 +171,6 @@ const countGroupedStatuses = (bookings) => bookings.reduce((summary, booking) =>
     return summary;
 }, { total: 0, approved: 0, pending: 0, rejected: 0 });
 
-const calculateTrend = (currentValue, previousValue) => {
-    if (previousValue === 0) {
-        if (currentValue === 0) {
-            return { direction: 'flat', value: 0, label: 'เท่ากับช่วงก่อนหน้า' };
-        }
-
-        return { direction: 'up', value: 100, label: 'เริ่มมีการใช้งานในช่วงนี้' };
-    }
-
-    const percent = Math.round(((currentValue - previousValue) / previousValue) * 100);
-    if (percent === 0) {
-        return { direction: 'flat', value: 0, label: 'เท่ากับช่วงก่อนหน้า' };
-    }
-
-    return {
-        direction: percent > 0 ? 'up' : 'down',
-        value: Math.abs(percent),
-        label: percent > 0 ? 'มากกว่าช่วงก่อนหน้า' : 'น้อยกว่าช่วงก่อนหน้า'
-    };
-};
-
 const createEmptyBucket = (label) => ({ label, approved: 0, pending: 0, rejected: 0 });
 const addBookingToBucket = (bucket, booking) => {
     bucket[getStatusGroup(booking.status)] += 1;
@@ -291,32 +269,20 @@ const LoadingCards = () => (
     </div>
 );
 
-const StatCard = ({ icon: Icon, label, value, accentClass, trend, subtitle }) => {
-    const TrendIcon = trend.direction === 'down' ? FiTrendingDown : FiTrendingUp;
-    const trendClass = trend.direction === 'down'
-        ? 'bg-rose-50 text-rose-600'
-        : trend.direction === 'up'
-            ? 'bg-emerald-50 text-emerald-600'
-            : 'bg-slate-100 text-slate-500';
-
+const StatCard = ({ icon: Icon, label, value, accentClass }) => {
     return (
-        <div className="group relative overflow-hidden rounded-[2rem] border border-white/80 bg-white/80 p-6 shadow-[0_24px_60px_rgba(15,23,42,0.07)] backdrop-blur-xl transition-transform duration-300 hover:-translate-y-1">
-            <div className="absolute inset-x-6 top-0 h-px bg-gradient-to-r from-transparent via-slate-200 to-transparent" />
-            <div className="flex items-start justify-between gap-4">
-                <div className={`rounded-[1.25rem] border p-3 ${accentClass}`}>
-                    <Icon size={24} />
+        <div className="group relative overflow-hidden rounded-[1.75rem] border border-white/80 bg-white/85 p-5 shadow-[0_18px_42px_rgba(15,23,42,0.06)] backdrop-blur-xl transition-transform duration-300 hover:-translate-y-1">
+            <div className="absolute inset-x-5 top-0 h-px bg-gradient-to-r from-transparent via-slate-200 to-transparent" />
+            <div className="flex items-center gap-4">
+                <div className={`flex h-14 w-14 shrink-0 items-center justify-center rounded-[1.1rem] border ${accentClass}`}>
+                    <Icon size={22} />
                 </div>
-
-                <span className={`inline-flex items-center gap-1 rounded-full px-2.5 py-1 text-xs font-semibold ${trendClass}`}>
-                    <TrendIcon size={12} />
-                    {trend.value}%
-                </span>
-            </div>
-
-            <div className="mt-6 space-y-2">
-                <p className="text-sm font-medium text-slate-500">{label}</p>
-                <h2 className="text-4xl font-black tracking-tight text-slate-900">{formatNumber(value)}</h2>
-                <p className="text-xs text-slate-400">{subtitle || trend.label}</p>
+                <div className="min-w-0 flex-1">
+                    <p className="text-sm font-semibold leading-5 text-slate-500">{label}</p>
+                    <h2 className="mt-1 text-4xl font-black leading-none tracking-tight text-slate-900">
+                        {formatNumber(value)}
+                    </h2>
+                </div>
             </div>
         </div>
     );
@@ -548,14 +514,14 @@ const CustomPieChart = ({ data }) => {
     );
 };
 
-const StatusBadge = ({ status }) => {
-    const meta = getStatusMeta(status);
+const StatusBadge = ({ booking }) => {
+    const meta = getStatusMeta(booking?.status);
     const Icon = meta.icon;
 
     return (
-        <span className={`inline-flex items-center gap-1.5 rounded-full border px-3 py-1 text-xs font-semibold ${meta.badgeClass}`}>
+        <span className={`inline-flex w-[148px] items-center justify-center gap-1.5 whitespace-nowrap rounded-full border px-3 py-1 text-center text-xs font-semibold leading-none ${meta.badgeClass}`}>
             <Icon size={14} />
-            {meta.label}
+            {getBookingStatusLabel(booking)}
         </span>
     );
 };
@@ -623,9 +589,6 @@ const Dashboard = () => {
     )), [bookings, rangeConfig]);
 
     const summary = useMemo(() => countGroupedStatuses(currentRangeBookings), [currentRangeBookings]);
-    const previousSummary = useMemo(() => countGroupedStatuses(previousRangeBookings), [previousRangeBookings]);
-    const trend = useMemo(() => calculateTrend(summary.total, previousSummary.total), [summary.total, previousSummary.total]);
-
     const uniqueUsers = useMemo(() => (
         new Set(currentRangeBookings.map((booking) => booking.user?.email || booking.user?.name).filter(Boolean)).size
     ), [currentRangeBookings]);
@@ -746,16 +709,9 @@ const Dashboard = () => {
                 <header className="rounded-[2.25rem] border border-white/80 bg-white/80 p-6 shadow-[0_28px_70px_rgba(15,23,42,0.06)] backdrop-blur-xl lg:p-8">
                     <div className="flex flex-col gap-6 lg:flex-row lg:items-end lg:justify-between">
                         <div className="max-w-3xl">
-                            <div className="inline-flex items-center gap-2 rounded-full border border-emerald-100 bg-emerald-50/80 px-3 py-1 text-xs font-semibold uppercase tracking-[0.24em] text-emerald-700">
-                                <FaDoorOpen className="text-sm" />
-                                Room Intelligence
-                            </div>
-                            <h1 className="mt-4 text-3xl font-black tracking-tight text-slate-900 lg:text-4xl">
+                            <h1 className="text-3xl font-black tracking-tight text-slate-900 lg:text-4xl">
                                 ระบบจัดการห้องประชุม
                             </h1>
-                            <p className="mt-2 text-sm leading-7 text-slate-500 lg:text-base">
-                                ภาพรวมการจองจากฐานข้อมูลจริงของระบบ พร้อมสรุปสถานะ แนวโน้ม และรายการล่าสุดที่พาไปจัดการต่อได้ทันที
-                            </p>
 
                             <div className="mt-5 flex flex-wrap items-center gap-2.5 text-sm">
                                 <span className="inline-flex items-center gap-2 rounded-full border border-slate-200 bg-slate-50 px-3 py-1.5 text-slate-600">
@@ -855,29 +811,24 @@ const Dashboard = () => {
                         icon={FiCalendar}
                         label="การจองทั้งหมด"
                         value={summary.total}
-                        trend={trend}
                         accentClass="border-sky-100 bg-sky-50 text-sky-600"
                     />
                     <StatCard
                         icon={FiCheckCircle}
                         label="อนุมัติแล้ว"
                         value={summary.approved}
-                        trend={calculateTrend(summary.approved, previousSummary.approved)}
                         accentClass="border-emerald-100 bg-emerald-50 text-emerald-600"
                     />
                     <StatCard
                         icon={FiClock}
                         label="รอตรวจสอบ"
                         value={summary.pending}
-                        trend={calculateTrend(summary.pending, previousSummary.pending)}
                         accentClass="border-amber-100 bg-amber-50 text-amber-600"
-                        subtitle={summary.pending > 0 ? 'ยังมีรายการที่รอให้ตรวจสอบ' : 'ไม่มีคิวค้างในช่วงนี้'}
                     />
                     <StatCard
                         icon={FiXCircle}
                         label="ถูกปฏิเสธ / ยกเลิก"
                         value={summary.rejected}
-                        trend={calculateTrend(summary.rejected, previousSummary.rejected)}
                         accentClass="border-rose-100 bg-rose-50 text-rose-600"
                     />
                 </div>
@@ -887,9 +838,6 @@ const Dashboard = () => {
                         <div className="flex flex-col gap-4 md:flex-row md:items-start md:justify-between">
                             <div>
                                 <h2 className="text-lg font-black text-slate-900">สถิติเปรียบเทียบการจอง</h2>
-                                <p className="mt-1 text-sm text-slate-500">
-                                    จำแนกตามสถานะในช่วง {rangeConfig.label}
-                                </p>
                             </div>
 
                             <div className="flex flex-wrap items-center gap-3 text-sm font-medium">
@@ -916,11 +864,6 @@ const Dashboard = () => {
                     <section className="rounded-[2rem] border border-white/80 bg-white/80 p-6 shadow-[0_24px_60px_rgba(15,23,42,0.06)] backdrop-blur-xl">
                         <div className="mb-3">
                             <h2 className="text-lg font-black text-slate-900">สัดส่วนการใช้งานห้อง</h2>
-                            <p className="mt-1 text-sm text-slate-500">
-                                {statusFilter === 'all'
-                                    ? 'นับจากทุกสถานะในช่วงที่เลือก'
-                                    : `โฟกัสเฉพาะสถานะ ${statusFilter === 'approved' ? 'อนุมัติ' : statusFilter === 'pending' ? 'รอตรวจสอบ' : 'ไม่อนุมัติ / ยกเลิก'}`}
-                            </p>
                         </div>
 
                         <CustomPieChart data={roomShareData} />
@@ -931,9 +874,6 @@ const Dashboard = () => {
                     <div className="flex flex-col gap-4 lg:flex-row lg:items-end lg:justify-between">
                         <div>
                             <h2 className="text-lg font-black text-slate-900">รายการจองล่าสุด</h2>
-                            <p className="mt-1 text-sm text-slate-500">
-                                แสดงรายการจริงจากฐานข้อมูล พร้อมค้นหาจากรหัส หัวข้อ ชื่อผู้จอง หรือชื่อห้อง
-                            </p>
                         </div>
 
                         <div className="relative w-full max-w-md">
@@ -1003,7 +943,17 @@ const Dashboard = () => {
                                                 </div>
                                             </td>
                                             <td className="px-4 py-4">
-                                                <StatusBadge status={booking.status} />
+                                                <div className="flex max-w-[240px] flex-col gap-2">
+                                                    <StatusBadge booking={booking} />
+                                                    {booking.status === 'cancelled' && booking.cancellationReason?.trim() ? (
+                                                        <div
+                                                            className="px-1 text-xs leading-5 text-slate-500"
+                                                            title={booking.cancellationReason}
+                                                        >
+                                                            <span className="font-semibold text-slate-600">เหตุผล:</span> {booking.cancellationReason}
+                                                        </div>
+                                                    ) : null}
+                                                </div>
                                             </td>
                                             <td className="px-4 py-4 text-right">
                                                 <button

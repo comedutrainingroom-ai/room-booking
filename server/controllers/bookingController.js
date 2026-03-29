@@ -443,8 +443,10 @@ const updateBooking = async (req, res) => {
             }
         } else {
             const requestKeys = Object.keys(req.body || {});
-            const onlyCancellingStatus = requestKeys.length === 1 &&
-                requestKeys[0] === 'status' &&
+            const allowedStudentUpdateFields = ['status', 'cancellationReason'];
+            const onlyCancellingStatus = requestKeys.length > 0 &&
+                requestKeys.every((key) => allowedStudentUpdateFields.includes(key)) &&
+                requestKeys.includes('status') &&
                 req.body.status === 'cancelled';
 
             if (!onlyCancellingStatus) {
@@ -461,7 +463,23 @@ const updateBooking = async (req, res) => {
                 });
             }
 
-            updateData = { status: 'cancelled' };
+            const cancellationReason = sanitizeOptionalMultilineText(req.body.cancellationReason, {
+                fieldName: 'Cancellation reason',
+                maxLength: FIELD_LIMITS.BOOKING_NOTE,
+                emptyValue: ''
+            });
+
+            if (!cancellationReason) {
+                return res.status(400).json({
+                    success: false,
+                    error: 'Cancellation reason is required'
+                });
+            }
+
+            updateData = {
+                status: 'cancelled',
+                cancellationReason
+            };
         }
 
         const oldStartTime = originalBooking.startTime;
@@ -530,7 +548,33 @@ const updateBooking = async (req, res) => {
             updateData.endTime = nextEndTime;
         }
 
-        const booking = await Booking.findByIdAndUpdate(req.params.id, updateData, {
+        if (Object.prototype.hasOwnProperty.call(updateData, 'status') && updateData.status === 'cancelled') {
+            updateData.cancelledByRole = isAdmin ? 'admin' : 'student';
+        }
+
+        const updateOperation = {
+            $set: updateData
+        };
+
+        if (Object.prototype.hasOwnProperty.call(updateData, 'status') && updateData.status !== 'cancelled') {
+            updateOperation.$unset = {
+                cancelledByRole: 1,
+                cancellationReason: 1
+            };
+        }
+
+        if (
+            Object.prototype.hasOwnProperty.call(updateData, 'status') &&
+            updateData.status === 'cancelled' &&
+            !Object.prototype.hasOwnProperty.call(updateData, 'cancellationReason')
+        ) {
+            updateOperation.$unset = {
+                ...(updateOperation.$unset || {}),
+                cancellationReason: 1
+            };
+        }
+
+        const booking = await Booking.findByIdAndUpdate(req.params.id, updateOperation, {
             returnDocument: 'after',
             runValidators: true
         }).populate('room');

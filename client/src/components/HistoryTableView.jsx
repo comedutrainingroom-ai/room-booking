@@ -1,4 +1,5 @@
 import { FaCheckCircle, FaTimesCircle, FaHourglassHalf, FaBan, FaEnvelope } from 'react-icons/fa';
+import { getBookingStatusLabel } from '../utils/bookingStatus';
 
 const HistoryTableView = ({ bookings, onCancel, settings, isAdmin }) => {
 
@@ -35,6 +36,11 @@ const HistoryTableView = ({ bookings, onCancel, settings, isAdmin }) => {
                                             {booking.note}
                                         </div>
                                     )}
+                                    {booking.cancellationReason && (
+                                        <div className="mt-1 max-w-[240px] truncate text-xs font-medium text-red-600">
+                                            เหตุผลการยกเลิก: {booking.cancellationReason}
+                                        </div>
+                                    )}
                                 </td>
                                 {isAdmin && (
                                     <td className="py-4 px-6">
@@ -67,14 +73,14 @@ const HistoryTableView = ({ bookings, onCancel, settings, isAdmin }) => {
                                     {new Date(booking.endTime).toLocaleTimeString('th-TH', { hour: '2-digit', minute: '2-digit' })}
                                 </td>
                                 <td className="py-4 px-6">
-                                    {getStatusBadge(booking.status)}
+                                    {getStatusBadge(booking)}
                                 </td>
                                 {!isAdmin && (
                                     <td className="py-4 px-6">
                                         {booking.status === 'pending' && (
                                             <button
-                                                onClick={() => onCancel(booking._id)}
-                                                className="flex items-center gap-1.5 bg-red-50 text-red-600 px-3 py-1.5 rounded-lg hover:bg-red-100 transition text-xs font-medium"
+                                                onClick={() => onCancel(booking)}
+                                                className="inline-flex w-[148px] items-center justify-center gap-1.5 whitespace-nowrap rounded-lg bg-red-50 px-3 py-1.5 text-xs font-semibold leading-none text-red-600 transition hover:bg-red-100"
                                             >
                                                 <FaBan /> ยกเลิก
                                             </button>
@@ -82,13 +88,21 @@ const HistoryTableView = ({ bookings, onCancel, settings, isAdmin }) => {
                                         {booking.status === 'approved' && (
                                             <a
                                                 href={`mailto:${settings?.contactEmail || 'admin@email.com'}`}
-                                                className="flex items-center gap-1.5 bg-primary/10 text-primary px-3 py-1.5 rounded-lg hover:bg-primary/20 transition text-xs font-medium"
+                                                className="inline-flex w-[148px] items-center justify-center gap-1.5 whitespace-nowrap rounded-lg bg-primary/10 px-3 py-1.5 text-xs font-semibold leading-none text-primary transition hover:bg-primary/20"
                                             >
                                                 <FaEnvelope /> ติดต่อ
                                             </a>
                                         )}
-                                        {(booking.status === 'cancelled' || booking.status === 'rejected') && (
-                                            <span className="text-gray-300 text-xs">-</span>
+                                        {booking.status === 'cancelled' && (
+                                            <div className="inline-flex w-[148px] items-center justify-center whitespace-nowrap rounded-lg bg-red-50 px-3 py-1.5 text-xs font-semibold leading-none text-red-600">
+                                                <span>ทำการยกเลิกแล้ว</span>
+                                            </div>
+                                        )}
+                                        {booking.status === 'rejected' && (
+                                            <div className="inline-flex w-[148px] flex-col rounded-lg border border-gray-200 bg-gray-50 px-3 py-2 text-center">
+                                                <span className="text-[11px] font-semibold text-gray-600">รายการสิ้นสุดแล้ว</span>
+                                                <span className="mt-0.5 text-[10px] text-gray-400">ไม่สามารถดำเนินการต่อได้</span>
+                                            </div>
                                         )}
                                     </td>
                                 )}
@@ -106,8 +120,13 @@ const HistoryTableView = ({ bookings, onCancel, settings, isAdmin }) => {
                             <div>
                                 <div className="font-bold text-gray-800 text-sm mb-0.5">{booking.topic}</div>
                                 {booking.note && <div className="text-xs text-gray-500 line-clamp-1">{booking.note}</div>}
+                                {booking.cancellationReason && (
+                                    <div className="mt-1 text-xs font-medium text-red-600 line-clamp-2">
+                                        เหตุผลการยกเลิก: {booking.cancellationReason}
+                                    </div>
+                                )}
                             </div>
-                            <div className="flex-shrink-0">{getStatusBadge(booking.status)}</div>
+                            <div className="flex-shrink-0">{getStatusBadge(booking)}</div>
                         </div>
 
                         {isAdmin && (
@@ -144,7 +163,7 @@ const HistoryTableView = ({ bookings, onCancel, settings, isAdmin }) => {
                                 <div className="flex gap-2">
                                     {booking.status === 'pending' && (
                                         <button
-                                            onClick={() => onCancel(booking._id)}
+                                            onClick={() => onCancel(booking)}
                                             className="flex items-center gap-1.5 bg-red-50 text-red-600 px-3 py-1.5 rounded-lg hover:bg-red-100 transition font-medium"
                                         >
                                             <FaBan /> ยกเลิก
@@ -182,7 +201,8 @@ const HistoryTableView = ({ bookings, onCancel, settings, isAdmin }) => {
     );
 };
 
-const getStatusBadge = (status) => {
+const getStatusBadge = (booking) => {
+    const status = booking?.status;
     const styles = {
         approved: 'bg-green-100 text-green-700',
         pending: 'bg-yellow-100 text-yellow-700',
@@ -195,15 +215,10 @@ const getStatusBadge = (status) => {
         cancelled: <FaBan />,
         rejected: <FaTimesCircle />
     };
-    const labels = {
-        approved: 'อนุมัติ',
-        pending: 'รออนุมัติ',
-        cancelled: 'ยกเลิก',
-        rejected: 'ปฏิเสธ'
-    };
+
     return (
-        <span className={`inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-bold ${styles[status] || 'bg-gray-100 text-gray-700'}`}>
-            {icons[status]} {labels[status] || status}
+        <span className={`inline-flex w-[152px] items-center justify-center gap-1.5 whitespace-nowrap rounded-full px-3 py-1 text-xs font-bold ${styles[status] || 'bg-gray-100 text-gray-700'}`}>
+            {icons[status]} {getBookingStatusLabel(booking)}
         </span>
     );
 };

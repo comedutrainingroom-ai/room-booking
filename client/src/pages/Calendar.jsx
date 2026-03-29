@@ -313,36 +313,6 @@ const Calendar = () => {
         });
     };
 
-    const handleCancelBooking = async () => {
-        if (!selectedEvent) return;
-        if (!confirm('คุณต้องการยกเลิกการจองนี้ใช่หรือไม่?')) return;
-
-        try {
-            await api.put(`/bookings/${selectedEvent.id}`, { status: 'cancelled' });
-            toast.success('ยกเลิกการจองเรียบร้อยแล้ว');
-            fetchBookings();
-            setSelectedEvent(null);
-        } catch (error) {
-            console.error("Cancellation Error", error);
-            toast.error('ไม่สามารถยกเลิกการจองได้');
-        }
-    };
-
-    const handleDeleteBooking = async () => {
-        if (!selectedEvent) return;
-        if (!confirm('คุณต้องการลบรายการนี้ใช่หรือไม่? การลบจะไม่สามารถกู้คืนได้')) return;
-
-        try {
-            await api.delete(`/bookings/${selectedEvent.id}`);
-            toast.success('ลบรายการเรียบร้อยแล้ว');
-            fetchBookings();
-            setSelectedEvent(null);
-        } catch (error) {
-            console.error("Deletion Error", error);
-            toast.error('ไม่สามารถลบรายการได้');
-        }
-    };
-
     // ── Formatters ──
     const formatTime = (date) => {
         return new Date(date).toLocaleTimeString('th-TH', { hour: '2-digit', minute: '2-digit' });
@@ -357,9 +327,6 @@ const Calendar = () => {
         });
     };
 
-    const canCancel = selectedEvent && selectedEvent.status !== 'cancelled' &&
-        (isAdmin || (currentUser?.email === selectedEvent.user?.email));
-    const canDelete = isAdmin;
     const isLimitedSelectedEvent = selectedEvent?.visibility === 'limited';
     const selectedEventStatusMeta = selectedEvent
         ? selectedEvent.status === 'pending'
@@ -1072,22 +1039,6 @@ const Calendar = () => {
                         {/* ── Footer ── */}
                         <div className="flex-shrink-0 border-t border-stone-200 px-5 py-4 sm:px-6">
                             <div className="flex flex-col gap-2 sm:flex-row sm:justify-end">
-                                {canCancel && (
-                                    <button
-                                        onClick={handleCancelBooking}
-                                        className="inline-flex w-full items-center justify-center rounded-xl border border-amber-200 bg-amber-50 px-5 py-2.5 text-sm font-semibold text-amber-700 shadow-sm transition-all duration-200 hover:border-amber-300 hover:bg-amber-100 active:scale-[0.98] sm:w-auto"
-                                    >
-                                        ยกเลิกการจอง
-                                    </button>
-                                )}
-                                {canDelete && (
-                                    <button
-                                        onClick={handleDeleteBooking}
-                                        className="inline-flex w-full items-center justify-center rounded-xl border border-rose-200 bg-rose-50 px-5 py-2.5 text-sm font-semibold text-rose-700 shadow-sm transition-all duration-200 hover:border-rose-300 hover:bg-rose-100 active:scale-[0.98] sm:w-auto"
-                                    >
-                                        ลบรายการ
-                                    </button>
-                                )}
                                 <button
                                     onClick={() => setSelectedEvent(null)}
                                     className="inline-flex w-full items-center justify-center rounded-xl border border-stone-200 bg-white px-5 py-2.5 text-sm font-semibold text-stone-700 shadow-sm transition-all duration-200 hover:border-stone-300 hover:bg-stone-50 active:scale-[0.98] sm:w-auto"

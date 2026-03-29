@@ -5,6 +5,7 @@ import { useSettings } from '../contexts/SettingsContext';
 import { useToast } from '../contexts/ToastContext';
 import { FaCalendarAlt, FaClock, FaCheckCircle, FaTimesCircle, FaHourglassHalf, FaBuilding, FaSearch, FaHistory, FaBan, FaThList, FaStream, FaEnvelope, FaChevronLeft, FaChevronRight, FaUser } from 'react-icons/fa';
 import HistoryTableView from '../components/HistoryTableView';
+import { getBookingStatusLabel } from '../utils/bookingStatus';
 
 const History = () => {
     const { currentUser, isAdmin } = useAuth();
@@ -14,8 +15,11 @@ const History = () => {
     const [importedSchedules, setImportedSchedules] = useState([]);
     const [loading, setLoading] = useState(true);
     const [filter, setFilter] = useState('all'); // all, approved, pending, cancelled, rejected
-    const [viewMode, setViewMode] = useState('timeline'); // timeline, table
+    const [viewMode, setViewMode] = useState('table'); // timeline, table
     const [mainTab, setMainTab] = useState('bookings'); // 'bookings' or 'schedules'
+    const [cancelTargetBooking, setCancelTargetBooking] = useState(null);
+    const [cancelReason, setCancelReason] = useState('');
+    const [isSubmittingCancel, setIsSubmittingCancel] = useState(false);
 
     // Pagination for schedules
     const [currentPage, setCurrentPage] = useState(1);
@@ -49,23 +53,37 @@ const History = () => {
         fetchMyBookings();
     }, [fetchMyBookings]);
 
-    // Student can cancel their own pending bookings
-    const handleCancelBooking = async (bookingId) => {
-        const confirmed = await toast.confirm({
-            title: 'ยืนยันการยกเลิก',
-            message: 'การจองที่ถูกยกเลิกจะไม่สามารถกู้คืนได้',
-            type: 'danger'
-        });
+    const openCancelDialog = (booking) => {
+        setCancelTargetBooking(booking);
+        setCancelReason('');
+    };
 
-        if (!confirmed) return;
+    const closeCancelDialog = () => {
+        setCancelTargetBooking(null);
+        setCancelReason('');
+    };
+
+    // Student can cancel their own pending bookings
+    const handleCancelBooking = async () => {
+        if (!cancelTargetBooking || !cancelReason.trim()) {
+            return;
+        }
+
+        setIsSubmittingCancel(true);
 
         try {
-            await api.put(`/bookings/${bookingId}`, { status: 'cancelled' });
+            await api.put(`/bookings/${cancelTargetBooking._id}`, {
+                status: 'cancelled',
+                cancellationReason: cancelReason.trim()
+            });
             toast.success('ยกเลิกการจองเรียบร้อยแล้ว');
-            fetchMyBookings();
+            closeCancelDialog();
+            await fetchMyBookings();
         } catch (error) {
             console.error("Error cancelling booking", error);
-            toast.error('เกิดข้อผิดพลาดในการยกเลิก');
+            toast.error(error.response?.data?.error || 'เกิดข้อผิดพลาดในการยกเลิก');
+        } finally {
+            setIsSubmittingCancel(false);
         }
     };
 
@@ -259,7 +277,7 @@ const History = () => {
                     {viewMode === 'table' ? (
                         <HistoryTableView
                             bookings={filteredBookings}
-                            onCancel={handleCancelBooking}
+                            onCancel={openCancelDialog}
                             settings={settings}
                             isAdmin={isAdmin}
                         />
@@ -310,8 +328,8 @@ const History = () => {
 
                                             <div className="flex justify-between items-start mb-2 md:mb-4">
                                                 <div>
-                                                    <span className={`inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-bold border ${getStatusColor(booking.status)} mb-2`}>
-                                                        {getStatusIcon(booking.status)} {booking.status.toUpperCase()}
+                                                    <span className={`inline-flex w-[152px] items-center justify-center gap-1.5 whitespace-nowrap rounded-full border px-3 py-1 text-xs font-bold ${getStatusColor(booking.status)} mb-2`}>
+                                                        {getStatusIcon(booking.status)} {getBookingStatusLabel(booking)}
                                                     </span>
                                                     <h3 className="font-bold text-gray-800 text-sm md:text-lg leading-tight">{booking.topic}</h3>
                                                 </div>
@@ -361,12 +379,19 @@ const History = () => {
                                                 </div>
                                             )}
 
+                                            {booking.cancellationReason && (
+                                                <div className="mt-2 rounded-xl border border-red-100 bg-red-50 px-3 py-3 text-sm text-red-700">
+                                                    <div className="font-semibold text-red-800">เหตุผลการยกเลิก</div>
+                                                    <p className="mt-1 whitespace-pre-line leading-6">{booking.cancellationReason}</p>
+                                                </div>
+                                            )}
+
                                             {/* Action Buttons for Students */}
                                             {!isAdmin && (
                                                 <div className="mt-2 md:mt-4 pt-2 md:pt-4 border-t border-gray-100">
                                                     {booking.status === 'pending' && (
                                                         <button
-                                                            onClick={() => handleCancelBooking(booking._id)}
+                                                            onClick={() => openCancelDialog(booking)}
                                                             className="w-full flex items-center justify-center gap-2 bg-red-50 text-red-600 px-4 py-2.5 rounded-xl hover:bg-red-100 transition font-medium text-sm"
                                                         >
                                                             <FaBan /> ยกเลิกการจอง
@@ -394,6 +419,75 @@ const History = () => {
                 </div>
             )}
         </div>
+            )}
+
+            {cancelTargetBooking && !isAdmin && (
+                <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 p-4">
+                    <div className="w-full max-w-lg overflow-hidden rounded-2xl bg-white shadow-xl">
+                        <div className="border-b border-gray-100 px-5 py-4">
+                            <h2 className="text-lg font-bold text-gray-900">ยืนยันการยกเลิกการจอง</h2>
+                            <p className="mt-1 text-sm text-gray-500">
+                                กรุณาระบุเหตุผลในการยกเลิก เพื่อให้เจ้าหน้าที่รับทราบและดำเนินการได้ถูกต้อง
+                            </p>
+                        </div>
+
+                        <div className="space-y-4 px-5 py-5">
+                            <div className="rounded-xl border border-gray-200 bg-gray-50 px-4 py-3 text-sm text-gray-700">
+                                <div className="font-semibold text-gray-800">{cancelTargetBooking.topic}</div>
+                                <div className="mt-1 text-gray-500">ห้อง {cancelTargetBooking.room?.name || '-'}</div>
+                                <div className="mt-1 text-gray-500">
+                                    {new Date(cancelTargetBooking.startTime).toLocaleDateString('th-TH', {
+                                        day: 'numeric',
+                                        month: 'long',
+                                        year: 'numeric'
+                                    })}{' '}
+                                    เวลา{' '}
+                                    {new Date(cancelTargetBooking.startTime).toLocaleTimeString('th-TH', { hour: '2-digit', minute: '2-digit' })}
+                                    {' - '}
+                                    {new Date(cancelTargetBooking.endTime).toLocaleTimeString('th-TH', { hour: '2-digit', minute: '2-digit' })}
+                                </div>
+                            </div>
+
+                            <div>
+                                <label htmlFor="cancel-reason" className="mb-2 block text-sm font-semibold text-gray-800">
+                                    เหตุผลในการยกเลิก <span className="text-red-500">*</span>
+                                </label>
+                                <textarea
+                                    id="cancel-reason"
+                                    value={cancelReason}
+                                    onChange={(event) => setCancelReason(event.target.value)}
+                                    rows={5}
+                                    maxLength={1000}
+                                    className="w-full rounded-xl border border-gray-200 px-4 py-3 text-sm text-gray-700 outline-none transition focus:border-red-300 focus:ring-2 focus:ring-red-100"
+                                    placeholder="ระบุเหตุผลที่ต้องการยกเลิกการจอง"
+                                />
+                                <div className="mt-2 flex items-center justify-between text-xs text-gray-400">
+                                    <span>ข้อความนี้จะแสดงให้เจ้าหน้าที่เห็น</span>
+                                    <span>{cancelReason.length}/1000</span>
+                                </div>
+                            </div>
+                        </div>
+
+                        <div className="flex flex-col-reverse gap-2 border-t border-gray-100 px-5 py-4 sm:flex-row sm:justify-end">
+                            <button
+                                type="button"
+                                onClick={closeCancelDialog}
+                                disabled={isSubmittingCancel}
+                                className="inline-flex items-center justify-center rounded-xl border border-gray-200 bg-white px-4 py-2.5 text-sm font-semibold text-gray-700 transition hover:bg-gray-50 disabled:cursor-not-allowed disabled:opacity-60"
+                            >
+                                กลับ
+                            </button>
+                            <button
+                                type="button"
+                                onClick={handleCancelBooking}
+                                disabled={!cancelReason.trim() || isSubmittingCancel}
+                                className="inline-flex items-center justify-center rounded-xl bg-red-600 px-4 py-2.5 text-sm font-semibold text-white transition hover:bg-red-700 disabled:cursor-not-allowed disabled:bg-red-300"
+                            >
+                                {isSubmittingCancel ? 'กำลังบันทึก...' : 'ยืนยันการยกเลิก'}
+                            </button>
+                        </div>
+                    </div>
+                </div>
             )}
         </div>
     );

@@ -12,7 +12,6 @@ const ReportIssue = () => {
     const [formData, setFormData] = useState({
         topic: '',
         description: '',
-        urgency: 'normal',
         roomId: ''
     });
 
@@ -38,6 +37,44 @@ const ReportIssue = () => {
 
     const handleSubmit = async (e) => {
         e.preventDefault();
+        const confirmed = await toast.confirm({
+            title: 'ยืนยันการส่งแจ้งซ่อม',
+            message: 'กรุณาตรวจสอบข้อมูลก่อนส่งเรื่องแจ้งซ่อม',
+            content: (
+                <div className="overflow-hidden rounded-xl border border-gray-200 bg-white">
+                    <div
+                        className="border-b border-gray-200 px-4 py-3"
+                        style={{
+                            backgroundImage: 'linear-gradient(135deg, rgba(229,231,235,0.55) 25%, transparent 25%, transparent 50%, rgba(229,231,235,0.55) 50%, rgba(229,231,235,0.55) 75%, transparent 75%, transparent)',
+                            backgroundSize: '16px 16px'
+                        }}
+                    >
+                        <div className="flex items-center gap-2 text-sm font-semibold text-gray-800">
+                            <FaExclamationTriangle className="h-4 w-4 text-amber-600" />
+                            ข้อมูลติดต่อกรณีเร่งด่วน
+                        </div>
+                    </div>
+
+                    <div className="space-y-3 px-4 py-4 text-sm text-gray-700">
+                        <div className="grid grid-cols-[88px_1fr] gap-3">
+                            <span className="text-gray-500">เจ้าหน้าที่</span>
+                            <span className="font-semibold text-gray-900">พี่ไม้</span>
+                        </div>
+
+                        <div className="grid grid-cols-[88px_1fr] gap-3 border-t border-dashed border-gray-200 pt-3">
+                            <span className="text-gray-500">เบอร์ติดต่อ</span>
+                            <span className="font-bold tracking-[0.04em] text-gray-900">098-542-1998</span>
+                        </div>
+                    </div>
+                </div>
+            ),
+            type: 'warning'
+        });
+
+        if (!confirmed) {
+            return;
+        }
+
         setLoading(true);
         try {
             await api.post('/reports', formData);
@@ -138,41 +175,7 @@ const ReportIssue = () => {
                                             {room.name}
                                         </option>
                                     ))}
-                                    <option value="other">อื่นๆ / พื้นที่ส่วนกลาง</option>
                                 </select>
-                            </div>
-                        </div>
-
-                        {/* Urgency */}
-                        <div>
-                            <label className="block text-xs md:text-sm font-bold text-gray-700 mb-2 md:mb-3">ระดับความเร่งด่วน</label>
-                            <div className="grid grid-cols-3 gap-2 sm:gap-4">
-                                <label className={`cursor-pointer relative flex flex-col items-center justify-center p-2.5 md:p-4 rounded-lg md:rounded-xl border-2 transition-all
-                                    ${formData.urgency === 'normal'
-                                        ? 'bg-blue-50 border-blue-500 shadow-md'
-                                        : 'border-gray-100 hover:border-gray-200 hover:bg-gray-50'}`}>
-                                    <input type="radio" name="urgency" value="normal" className="sr-only" checked={formData.urgency === 'normal'} onChange={e => setFormData({ ...formData, urgency: e.target.value })} />
-                                    <span className={`font-bold mb-0.5 md:mb-1 text-sm md:text-base ${formData.urgency === 'normal' ? 'text-blue-700' : 'text-gray-600'}`}>ปกติ</span>
-                                    <span className="text-[10px] md:text-xs text-gray-400">รอได้ 1-2 วัน</span>
-                                </label>
-
-                                <label className={`cursor-pointer relative flex flex-col items-center justify-center p-2.5 md:p-4 rounded-lg md:rounded-xl border-2 transition-all
-                                    ${formData.urgency === 'urgent'
-                                        ? 'bg-orange-50 border-orange-500 shadow-md'
-                                        : 'border-gray-100 hover:border-gray-200 hover:bg-gray-50'}`}>
-                                    <input type="radio" name="urgency" value="urgent" className="sr-only" checked={formData.urgency === 'urgent'} onChange={e => setFormData({ ...formData, urgency: e.target.value })} />
-                                    <span className={`font-bold mb-0.5 md:mb-1 text-sm md:text-base ${formData.urgency === 'urgent' ? 'text-orange-700' : 'text-gray-600'}`}>ด่วน</span>
-                                    <span className="text-[10px] md:text-xs text-gray-400">ภายใน 24 ชม.</span>
-                                </label>
-
-                                <label className={`cursor-pointer relative flex flex-col items-center justify-center p-2.5 md:p-4 rounded-lg md:rounded-xl border-2 transition-all
-                                    ${formData.urgency === 'emergency'
-                                        ? 'bg-red-50 border-red-500 shadow-md'
-                                        : 'border-gray-100 hover:border-gray-200 hover:bg-gray-50'}`}>
-                                    <input type="radio" name="urgency" value="emergency" className="sr-only" checked={formData.urgency === 'emergency'} onChange={e => setFormData({ ...formData, urgency: e.target.value })} />
-                                    <span className={`font-bold mb-0.5 md:mb-1 text-sm md:text-base ${formData.urgency === 'emergency' ? 'text-red-700' : 'text-gray-600'}`}>ฉุกเฉิน</span>
-                                    <span className="text-[10px] md:text-xs text-gray-400">ทันที</span>
-                                </label>
                             </div>
                         </div>
 
