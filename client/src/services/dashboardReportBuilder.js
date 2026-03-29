@@ -36,35 +36,6 @@ const countGroupedStatuses = (bookings = []) => bookings.reduce((summary, bookin
     return summary;
 }, { total: 0, approved: 0, pending: 0, rejected: 0 });
 
-const calculateTrend = (currentValue, previousValue) => {
-    if (previousValue === 0) {
-        if (currentValue === 0) {
-            return { direction: 'flat', value: 0, label: 'เท่ากับช่วงก่อนหน้า' };
-        }
-
-        return { direction: 'up', value: 100, label: 'เริ่มมีการใช้งานในช่วงนี้' };
-    }
-
-    const percent = Math.round(((currentValue - previousValue) / previousValue) * 100);
-    if (percent === 0) {
-        return { direction: 'flat', value: 0, label: 'เท่ากับช่วงก่อนหน้า' };
-    }
-
-    return {
-        direction: percent > 0 ? 'up' : 'down',
-        value: Math.abs(percent),
-        label: percent > 0 ? 'มากกว่าช่วงก่อนหน้า' : 'น้อยกว่าช่วงก่อนหน้า'
-    };
-};
-
-const countUniqueUsers = (bookings = []) => (
-    new Set(bookings.map((booking) => booking.user?.email || booking.user?.name).filter(Boolean)).size
-);
-
-const countActiveRooms = (bookings = []) => (
-    new Set(bookings.map((booking) => getRoomName(booking))).size
-);
-
 const getDashboardStatusFilterLabel = (statusFilter = 'all') => STATUS_LABELS[statusFilter] || STATUS_LABELS.all;
 const getDashboardTimeFilterLabel = (timeFilter = 'year') => TIME_FILTER_LABELS[timeFilter] || TIME_FILTER_LABELS.year;
 
@@ -105,7 +76,6 @@ export const createDashboardExportReport = ({
     statusFilter = 'all',
     rangeLabel = '-',
     currentRangeBookings = [],
-    previousRangeBookings = [],
     statusScopedBookings = [],
     chartData = [],
     roomShareData = [],
@@ -114,17 +84,12 @@ export const createDashboardExportReport = ({
     const statusLabel = getDashboardStatusFilterLabel(statusFilter);
     const searchTerm = String(searchQuery || '').trim();
     const summary = countGroupedStatuses(currentRangeBookings);
-    const previousSummary = countGroupedStatuses(previousRangeBookings);
-    const uniqueUsers = countUniqueUsers(currentRangeBookings);
-    const previousUniqueUsers = countUniqueUsers(previousRangeBookings);
-    const activeRooms = countActiveRooms(currentRangeBookings);
-    const previousActiveRooms = countActiveRooms(previousRangeBookings);
     const tableBookings = sortBookingsForReport(filterDashboardBookingsBySearch(statusScopedBookings, searchTerm));
     const overviewBookings = sortBookingsForReport(currentRangeBookings);
     const topRoom = roomShareData[0];
 
     return {
-        title: 'รายงานวิเคราะห์การใช้งานห้องประชุม',
+        title: 'รายงานระบบจัดการห้องอบรม',
         subtitle: `${getDashboardTimeFilterLabel(timeFilter)} • ${rangeLabel} • ${statusLabel}`,
         generatedAt: new Date(),
         filters: {
@@ -140,55 +105,33 @@ export const createDashboardExportReport = ({
             {
                 key: 'total',
                 label: 'การจองทั้งหมด',
-                value: summary.total,
-                trend: calculateTrend(summary.total, previousSummary.total),
-                subtitle: 'คำขอทั้งหมดในช่วงที่เลือก'
+                value: summary.total
             },
             {
                 key: 'approved',
                 label: 'อนุมัติแล้ว',
-                value: summary.approved,
-                trend: calculateTrend(summary.approved, previousSummary.approved),
-                subtitle: 'รายการที่อนุมัติสำเร็จ'
+                value: summary.approved
             },
             {
                 key: 'pending',
                 label: 'รอตรวจสอบ',
-                value: summary.pending,
-                trend: calculateTrend(summary.pending, previousSummary.pending),
-                subtitle: summary.pending > 0 ? 'รายการที่ควรเร่งติดตาม' : 'ไม่มีรายการค้างตรวจสอบ'
+                value: summary.pending
             },
             {
                 key: 'rejected',
-                label: 'ไม่อนุมัติ / ยกเลิก',
-                value: summary.rejected,
-                trend: calculateTrend(summary.rejected, previousSummary.rejected),
-                subtitle: 'ใช้ทบทวนเหตุผลและประสานงาน'
-            },
-            {
-                key: 'users',
-                label: 'ผู้จองไม่ซ้ำ',
-                value: uniqueUsers,
-                trend: calculateTrend(uniqueUsers, previousUniqueUsers),
-                subtitle: 'ผู้จองที่มีความเคลื่อนไหวในช่วงนี้'
-            },
-            {
-                key: 'rooms',
-                label: 'ห้องที่ถูกใช้งาน',
-                value: activeRooms,
-                trend: calculateTrend(activeRooms, previousActiveRooms),
-                subtitle: 'ห้องที่มีรายการจองจริงในช่วงนี้'
+                label: 'ถูกปฏิเสธ / ยกเลิก',
+                value: summary.rejected
             }
         ],
         chartData,
         roomShareData,
         notes: {
             roomShare: topRoom
-                ? `ห้องที่มีการใช้งานสูงสุดคือ ${topRoom.label} จำนวน ${formatNumber(topRoom.count)} ครั้ง คิดเป็น ${topRoom.percent}% ของรายการภายใต้ตัวกรอง ${statusLabel}`
+                ? `ห้องที่มีการใช้งานสูงสุดคือ ${topRoom.label} จำนวน ${formatNumber(topRoom.count)} ครั้ง คิดเป็น ${topRoom.percent}% ของรายการในช่วงที่เลือก`
                 : `ไม่พบข้อมูลการใช้งานห้องภายใต้ตัวกรอง ${statusLabel} ในช่วง ${rangeLabel}`,
             search: searchTerm
-                ? `ตารางนี้แสดงรายการที่ตรงกับคำค้นหา "${searchTerm}" ภายใต้ตัวกรอง ${statusLabel} รวม ${formatNumber(tableBookings.length)} รายการ เพื่อให้เจ้าหน้าที่ตรวจสอบและติดตามงานต่อได้ทันที`
-                : `ตารางนี้แสดงรายการทั้งหมดตามตัวกรอง ${statusLabel} ในช่วง ${rangeLabel} รวม ${formatNumber(tableBookings.length)} รายการ เหมาะสำหรับตรวจสอบสถานะ ติดต่อผู้จอง และสรุปผลต่อ`
+                ? `ตารางนี้แสดงรายการที่ตรงกับคำค้นหา "${searchTerm}" ภายใต้ตัวกรอง ${statusLabel} รวม ${formatNumber(tableBookings.length)} รายการ`
+                : `ตารางนี้แสดงรายการตามตัวกรอง ${statusLabel} ในช่วง ${rangeLabel} รวม ${formatNumber(tableBookings.length)} รายการ`
         },
         datasets: {
             overviewBookings,

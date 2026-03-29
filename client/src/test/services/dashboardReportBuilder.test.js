@@ -55,7 +55,7 @@ describe('dashboardReportBuilder', () => {
         expect(filterDashboardBookingsBySearch([bookingA, bookingB], 'ธุรการ')).toEqual([bookingB]);
     });
 
-    it('builds an executive dashboard export report with summary cards and filtered table rows', () => {
+    it('builds a dashboard export report that matches the current summary cards and filtered table rows', () => {
         const report = createDashboardExportReport({
             timeFilter: 'month',
             statusFilter: 'pending',
@@ -73,17 +73,15 @@ describe('dashboardReportBuilder', () => {
             searchQuery: 'ธุรการ'
         });
 
-        expect(report.title).toBe('รายงานวิเคราะห์การใช้งานห้องประชุม');
+        expect(report.title).toBe('รายงานระบบจัดการห้องอบรม');
         expect(report.filters.statusLabel).toBe('เฉพาะรอตรวจสอบ');
         expect(report.summary.overviewBookings).toBe(3);
         expect(report.summary.tableBookings).toBe(1);
-        expect(report.cards.map((card) => [card.key, card.value])).toEqual([
-            ['total', 3],
-            ['approved', 1],
-            ['pending', 1],
-            ['rejected', 1],
-            ['users', 3],
-            ['rooms', 2]
+        expect(report.cards.map((card) => [card.key, card.label, card.value])).toEqual([
+            ['total', 'การจองทั้งหมด', 3],
+            ['approved', 'อนุมัติแล้ว', 1],
+            ['pending', 'รอตรวจสอบ', 1],
+            ['rejected', 'ถูกปฏิเสธ / ยกเลิก', 1]
         ]);
         expect(report.notes.roomShare).toContain('ห้องประชุม B');
         expect(report.notes.search).toContain('"ธุรการ"');

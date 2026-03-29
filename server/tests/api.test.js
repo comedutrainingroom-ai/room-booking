@@ -1034,6 +1034,8 @@ describe('Server API Tests', async () => {
 
             const storedBooking = await Booking.findById(booking._id);
             assert.strictEqual(storedBooking.reminderSent, false);
+            assert.strictEqual(Boolean(storedBooking.reminderSentAt), false);
+            assert.strictEqual(Boolean(storedBooking.reminderProcessingAt), false);
         });
 
         it('runReminderJob should mark reminderSent true after a successful delivery', async () => {
@@ -1064,6 +1066,171 @@ describe('Server API Tests', async () => {
 
             const storedBooking = await Booking.findById(booking._id);
             assert.strictEqual(storedBooking.reminderSent, true);
+            assert.ok(storedBooking.reminderSentAt instanceof Date);
+            assert.strictEqual(Boolean(storedBooking.reminderProcessingAt), false);
+        });
+
+        it('runReminderJob should not send the same reminder twice during overlapping runs', async () => {
+            await seedUser('student-token', 'student');
+            const room = await seedRoom({ name: 'Reminder Lock Room' });
+            const startTime = new Date(Date.now() + (30 * 60 * 1000));
+            const endTime = new Date(startTime.getTime() + (60 * 60 * 1000));
+            let reminderCalls = 0;
+
+            const booking = await Booking.create({
+                room: room._id,
+                topic: 'Reminder Lock',
+                user: {
+                    name: 'Student User',
+                    email: 'student@kmutnb.ac.th',
+                    department: 'CS'
+                },
+                startTime,
+                endTime,
+                status: 'approved',
+                reminderSent: false
+            });
+
+            sendBookingReminderMock = async () => {
+                reminderCalls += 1;
+                await new Promise((resolve) => setTimeout(resolve, 40));
+                return { success: true };
+            };
+
+            await Promise.all([runReminderJob(), runReminderJob()]);
+
+            const storedBooking = await Booking.findById(booking._id);
+            assert.strictEqual(reminderCalls, 1);
+            assert.strictEqual(storedBooking.reminderSent, true);
+            assert.ok(storedBooking.reminderSentAt instanceof Date);
+            assert.strictEqual(Boolean(storedBooking.reminderProcessingAt), false);
+        });
+
+        it('POST /api/bookings should keep urgent pending bookings unsent until approval', async () => {
+            await seedUser('student-token', 'student');
+            const room = await seedRoom({ name: 'Pending Reminder Room' });
+            let reminderCalls = 0;
+            const startTime = new Date(Date.now() + (30 * 60 * 1000));
+            const endTime = new Date(startTime.getTime() + (60 * 60 * 1000));
+
+            await Setting.create({
+                requireApproval: true,
+                weekendBooking: true,
+                openTime: '00:00',
+                closeTime: '23:59'
+            });
+
+            sendBookingReminderMock = async () => {
+                reminderCalls += 1;
+                return { success: true };
+            };
+
+            const res = await request(app)
+                .post('/api/bookings')
+                .set(authHeader('student-token'))
+                .send({
+                    room: room._id.toString(),
+                    topic: 'Urgent Pending Booking',
+                    startTime: startTime.toISOString(),
+                    endTime: endTime.toISOString()
+                });
+
+            assert.strictEqual(res.status, 201);
+            assert.strictEqual(res.body.data.status, 'pending');
+            assert.strictEqual(reminderCalls, 0);
+
+            const storedBooking = await Booking.findById(res.body.data._id);
+            assert.strictEqual(storedBooking.reminderSent, false);
+            assert.strictEqual(Boolean(storedBooking.reminderSentAt), false);
+            assert.strictEqual(Boolean(storedBooking.reminderProcessingAt), false);
+        });
+
+        it('PUT /api/bookings/:id should send an immediate reminder when an urgent booking is approved', async () => {
+            await seedUser('admin-token', 'admin');
+            await seedUser('student-token', 'student');
+            const room = await seedRoom({ name: 'Approved Reminder Room' });
+            const headers = await getAdminHeaders(app);
+            const startTime = new Date(Date.now() + (30 * 60 * 1000));
+            const endTime = new Date(startTime.getTime() + (60 * 60 * 1000));
+            let reminderCalls = 0;
+
+            const booking = await Booking.create({
+                room: room._id,
+                topic: 'Urgent Approval',
+                user: {
+                    name: 'Student User',
+                    email: 'student@kmutnb.ac.th',
+                    department: 'CS'
+                },
+                startTime,
+                endTime,
+                status: 'pending',
+                reminderSent: false
+            });
+
+            sendBookingReminderMock = async () => {
+                reminderCalls += 1;
+                return { success: true };
+            };
+
+            const res = await applyHeaders(
+                request(app).put(`/api/bookings/${booking._id}`),
+                headers
+            ).send({ status: 'approved' });
+
+            assert.strictEqual(res.status, 200);
+            assert.strictEqual(res.body.data.status, 'approved');
+            assert.strictEqual(reminderCalls, 1);
+
+            const storedBooking = await Booking.findById(booking._id);
+            assert.strictEqual(storedBooking.reminderSent, true);
+            assert.ok(storedBooking.reminderSentAt instanceof Date);
+            assert.strictEqual(Boolean(storedBooking.reminderProcessingAt), false);
+        });
+
+        it('PUT /api/bookings/:id should reset reminder state when an approved booking changes time', async () => {
+            await seedUser('admin-token', 'admin');
+            const room = await seedRoom({ name: 'Reminder Reset Room' });
+            const headers = await getAdminHeaders(app);
+            const { start, end } = getNextWeekdayRange(7, 10, 1);
+            const { start: updatedStart, end: updatedEnd } = getNextWeekdayRange(10, 14, 1);
+            let reminderCalls = 0;
+
+            const booking = await Booking.create({
+                room: room._id,
+                topic: 'Reminder Reset',
+                user: {
+                    name: 'Student User',
+                    email: 'student@kmutnb.ac.th',
+                    department: 'CS'
+                },
+                startTime: start,
+                endTime: end,
+                status: 'approved',
+                reminderSent: true,
+                reminderSentAt: new Date()
+            });
+
+            sendBookingReminderMock = async () => {
+                reminderCalls += 1;
+                return { success: true };
+            };
+
+            const res = await applyHeaders(
+                request(app).put(`/api/bookings/${booking._id}`),
+                headers
+            ).send({
+                startTime: updatedStart.toISOString(),
+                endTime: updatedEnd.toISOString()
+            });
+
+            assert.strictEqual(res.status, 200);
+            assert.strictEqual(reminderCalls, 0);
+
+            const storedBooking = await Booking.findById(booking._id);
+            assert.strictEqual(storedBooking.reminderSent, false);
+            assert.strictEqual(Boolean(storedBooking.reminderSentAt), false);
+            assert.strictEqual(Boolean(storedBooking.reminderProcessingAt), false);
         });
 
         it('audit logs should store only the first forwarded IP and trim oversized details', async () => {

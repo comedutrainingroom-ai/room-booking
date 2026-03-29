@@ -9,6 +9,18 @@ const {
     sanitizeRequiredSingleLineText
 } = require('../utils/inputValidation');
 
+const sendEmailInBackground = (emailPromise, failureMessage, errorMessage) => {
+    emailPromise
+        .then((deliveryResult) => {
+            if (!deliveryResult?.success) {
+                console.warn(`[EMAIL] ${failureMessage} (${deliveryResult?.code || 'UNKNOWN_FAILURE'})`);
+            }
+        })
+        .catch((error) => {
+            console.error(errorMessage, error);
+        });
+};
+
 // @desc    Get all users
 // @route   GET /api/users
 // @access  Private/Admin
@@ -92,9 +104,17 @@ const toggleBanUser = async (req, res) => {
 
         // Send ban/unban notification email
         if (isBanned) {
-            sendBanNotification(user, reason || null);
+            sendEmailInBackground(
+                sendBanNotification(user, reason || null),
+                `Ban notification email not delivered for user ${user._id}`,
+                'Failed to send ban notification email:'
+            );
         } else {
-            sendUnbanNotification(user);
+            sendEmailInBackground(
+                sendUnbanNotification(user),
+                `Unban notification email not delivered for user ${user._id}`,
+                'Failed to send unban notification email:'
+            );
         }
 
         res.status(200).json({

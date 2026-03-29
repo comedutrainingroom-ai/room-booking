@@ -1,11 +1,9 @@
 const nodemailer = require('nodemailer');
 
-// Validate email config
 if (!process.env.EMAIL_USER || !process.env.EMAIL_PASS) {
     console.warn('[EMAIL] Warning: EMAIL_USER or EMAIL_PASS not set in .env - emails will not be sent');
 }
 
-// Configure Transporter
 const transporter = nodemailer.createTransport({
     service: 'gmail',
     auth: {
@@ -21,9 +19,68 @@ const escapeHtml = (value) => String(value ?? '')
     .replace(/"/g, '&quot;')
     .replace(/'/g, '&#39;');
 
+const normalizeEmailText = (value, fallback = '') => {
+    const normalizedValue = String(value ?? fallback)
+        .replace(/\s+/g, ' ')
+        .trim();
+
+    return normalizedValue || fallback;
+};
+
+const formatThaiDateTime = (value) => new Date(value).toLocaleString('th-TH');
+const formatThaiTime = (value) => new Date(value).toLocaleTimeString('th-TH');
+
+const getSafeBookingEmailDetails = (booking = {}) => {
+    const topicText = normalizeEmailText(booking.topic, 'รายการจองห้อง');
+
+    return {
+        topicText,
+        topicHtml: escapeHtml(topicText),
+        userNameHtml: escapeHtml(normalizeEmailText(booking.user?.name, 'ผู้ใช้งาน')),
+        roomNameHtml: escapeHtml(normalizeEmailText(booking.room?.name, 'N/A')),
+        startDateTime: formatThaiDateTime(booking.startTime),
+        endDateTime: formatThaiDateTime(booking.endTime),
+        endTime: formatThaiTime(booking.endTime),
+        cancellationReasonHtml: escapeHtml(normalizeEmailText(booking.cancellationReason, '')),
+        cancelledByLabel: booking.cancelledByRole === 'admin'
+            ? 'เจ้าหน้าที่'
+            : booking.cancelledByRole === 'student'
+                ? 'ผู้จอง'
+                : 'ระบบ'
+    };
+};
+
+const renderEmailLayout = ({ accentColor, title, body }) => `
+    <div style="font-family: 'Segoe UI', Arial, sans-serif; max-width: 640px; margin: 0 auto; border: 1px solid #e5e7eb; border-radius: 16px; overflow: hidden;">
+        <div style="background: ${accentColor}; padding: 24px 28px;">
+            <h2 style="margin: 0; color: #ffffff; font-size: 22px; font-weight: 700;">${title}</h2>
+        </div>
+        <div style="padding: 24px 28px; color: #334155; font-size: 14px; line-height: 1.8;">
+            ${body}
+        </div>
+    </div>
+`;
+
+const renderInfoCard = (rows, options = {}) => {
+    const borderColor = options.borderColor || '#dbeafe';
+    const backgroundColor = options.backgroundColor || '#f8fafc';
+
+    return `
+        <div style="background-color: ${backgroundColor}; border-left: 4px solid ${borderColor}; border-radius: 12px; padding: 16px 18px; margin: 18px 0;">
+            ${rows.join('')}
+        </div>
+    `;
+};
+
+const renderLabelValue = (label, value) => `
+    <p style="margin: 0 0 8px; color: #334155;">
+        <strong style="color: #0f172a;">${label}:</strong> ${value}
+    </p>
+`;
+
 const sendEmail = async (to, subject, html, options = {}) => {
     if (!process.env.EMAIL_USER || !process.env.EMAIL_PASS) {
-        console.warn(`[EMAIL] Skipped: Email not configured`);
+        console.warn('[EMAIL] Skipped: Email not configured');
         return {
             success: false,
             skipped: true,
@@ -39,6 +96,7 @@ const sendEmail = async (to, subject, html, options = {}) => {
             html,
             ...options
         });
+
         console.log(`Email sent to ${to}`);
         return {
             success: true,
@@ -55,210 +113,276 @@ const sendEmail = async (to, subject, html, options = {}) => {
 };
 
 const sendBookingCreated = async (booking) => {
-    const subject = `ได้รับคำขอจองห้องประชุม: ${booking.topic}`;
-    const html = `
-        <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto; padding: 20px; border: 1px solid #eee; border-radius: 10px;">
-            <h2 style="color: #16a34a;">ได้รับคำขอจองห้องประชุมเรียบร้อยแล้ว</h2>
-            <p>เรียนคุณ ${booking.user.name},</p>
-            <p>ระบบได้รับข้อมูลการจองห้องของคุณแล้ว และกำลังรอการพิจารณาอนุมัติจาก Admin</p>
-            
-            <div style="background-color: #f9fafb; padding: 15px; border-radius: 8px; margin: 20px 0;">
-                <p><strong>หัวข้อ:</strong> ${booking.topic}</p>
-                <p><strong>ห้อง:</strong> ${booking.room ? booking.room.name : 'N/A'}</p>
-                <p><strong>เวลาเริ่ม:</strong> ${new Date(booking.startTime).toLocaleString('th-TH')}</p>
-                <p><strong>เวลาสิ้นสุด:</strong> ${new Date(booking.endTime).toLocaleString('th-TH')}</p>
-            </div>
+    const {
+        topicText,
+        topicHtml,
+        userNameHtml,
+        roomNameHtml,
+        startDateTime,
+        endDateTime
+    } = getSafeBookingEmailDetails(booking);
 
-            <p style="color: #6b7280; font-size: 14px;">คุณจะได้รับอีเมลแจ้งเตือนอีกครั้งเมื่อแอดมินอนุมัติการจอง</p>
-        </div>
-    `;
-    await sendEmail(booking.user.email, subject, html);
+    const subject = `ได้รับคำขอจองห้อง: ${topicText}`;
+    const html = renderEmailLayout({
+        accentColor: 'linear-gradient(135deg, #16a34a, #15803d)',
+        title: 'ได้รับคำขอจองห้องเรียบร้อยแล้ว',
+        body: `
+            <p style="margin-top: 0;">เรียนคุณ ${userNameHtml},</p>
+            <p>ระบบได้รับข้อมูลการจองของคุณแล้ว และกำลังรอการพิจารณาอนุมัติจากเจ้าหน้าที่</p>
+            ${renderInfoCard([
+                renderLabelValue('หัวข้อ', topicHtml),
+                renderLabelValue('ห้อง', roomNameHtml),
+                renderLabelValue('เวลาเริ่ม', startDateTime),
+                renderLabelValue('เวลาสิ้นสุด', endDateTime)
+            ])}
+            <p style="margin-bottom: 0; color: #64748b;">ระบบจะแจ้งผลการอนุมัติให้ทราบทางอีเมลอีกครั้ง</p>
+        `
+    });
+
+    return sendEmail(booking.user.email, subject, html);
 };
 
 const sendBookingApproved = async (booking) => {
-    const subject = `✅ อนุมัติการจองห้องประชุม: ${booking.topic}`;
-    const html = `
-        <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto; padding: 20px; border: 1px solid #eee; border-radius: 10px;">
-            <h2 style="color: #16a34a;">การจองของคุณได้รับการอนุมัติแล้ว</h2>
-            <p>เรียนคุณ ${booking.user.name},</p>
-            
-            <div style="background-color: #f0fdf4; padding: 15px; border-radius: 8px; margin: 20px 0; border-left: 4px solid #16a34a;">
-                <p><strong>หัวข้อ:</strong> ${booking.topic}</p>
-                <p><strong>ห้อง:</strong> ${booking.room ? booking.room.name : 'N/A'}</p>
-                <p><strong>เวลา:</strong> ${new Date(booking.startTime).toLocaleString('th-TH')} - ${new Date(booking.endTime).toLocaleTimeString('th-TH')}</p>
-            </div>
+    const {
+        topicText,
+        topicHtml,
+        userNameHtml,
+        roomNameHtml,
+        startDateTime,
+        endTime
+    } = getSafeBookingEmailDetails(booking);
 
-            <p>กรุณามาถึงก่อนเวลาเริ่มประชุม 5-10 นาที</p>
-        </div>
-    `;
-    await sendEmail(booking.user.email, subject, html);
+    const subject = `อนุมัติการจองห้อง: ${topicText}`;
+    const html = renderEmailLayout({
+        accentColor: 'linear-gradient(135deg, #16a34a, #0f766e)',
+        title: 'การจองของคุณได้รับการอนุมัติแล้ว',
+        body: `
+            <p style="margin-top: 0;">เรียนคุณ ${userNameHtml},</p>
+            <p>รายการจองห้องของคุณได้รับการอนุมัติเรียบร้อยแล้ว กรุณาตรวจสอบรายละเอียดดังต่อไปนี้</p>
+            ${renderInfoCard([
+                renderLabelValue('หัวข้อ', topicHtml),
+                renderLabelValue('ห้อง', roomNameHtml),
+                renderLabelValue('วันและเวลา', `${startDateTime} - ${endTime}`)
+            ], {
+                borderColor: '#16a34a',
+                backgroundColor: '#f0fdf4'
+            })}
+            <p style="margin-bottom: 0; color: #64748b;">กรุณามาถึงก่อนเวลาใช้งานประมาณ 5-10 นาที</p>
+        `
+    });
+
+    return sendEmail(booking.user.email, subject, html);
 };
 
 const sendBookingReminder = async (booking) => {
-    const subject = `⏰ แจ้งเตือน: ใกล้ถึงเวลาประชุม ${booking.topic}`;
-    const html = `
-        <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto; padding: 20px; border: 1px solid #eee; border-radius: 10px;">
-            <h2 style="color: #ea580c;">แจ้งเตือนใกล้ถึงเวลาประชุม</h2>
-            <p>เรียนคุณ ${booking.user.name},</p>
-            <p>การจองห้องประชุมของคุณกำลังจะเริ่มขึ้นในอีก 1 ชั่วโมง (หรือเร็วๆ นี้)</p>
-            
-            <div style="background-color: #fff7ed; padding: 15px; border-radius: 8px; margin: 20px 0; border-left: 4px solid #ea580c;">
-                <p><strong>หัวข้อ:</strong> ${booking.topic}</p>
-                <p><strong>ห้อง:</strong> ${booking.room ? booking.room.name : 'N/A'}</p>
-                <p><strong>เวลา:</strong> ${new Date(booking.startTime).toLocaleString('th-TH')}</p>
-            </div>
-        </div>
-    `;
-    await sendEmail(booking.user.email, subject, html);
+    const {
+        topicText,
+        topicHtml,
+        userNameHtml,
+        roomNameHtml,
+        startDateTime
+    } = getSafeBookingEmailDetails(booking);
+
+    const subject = `แจ้งเตือนใกล้ถึงเวลาใช้งานห้อง: ${topicText}`;
+    const html = renderEmailLayout({
+        accentColor: 'linear-gradient(135deg, #f97316, #ea580c)',
+        title: 'แจ้งเตือนใกล้ถึงเวลาใช้งานห้อง',
+        body: `
+            <p style="margin-top: 0;">เรียนคุณ ${userNameHtml},</p>
+            <p>รายการจองของคุณกำลังจะเริ่มภายใน 1 ชั่วโมง กรุณาตรวจสอบรายละเอียดก่อนเข้าใช้งาน</p>
+            ${renderInfoCard([
+                renderLabelValue('หัวข้อ', topicHtml),
+                renderLabelValue('ห้อง', roomNameHtml),
+                renderLabelValue('เวลาเริ่ม', startDateTime)
+            ], {
+                borderColor: '#ea580c',
+                backgroundColor: '#fff7ed'
+            })}
+            <p style="margin-bottom: 0; color: #64748b;">หากมีการเปลี่ยนแปลง กรุณาติดต่อเจ้าหน้าที่โดยเร็ว</p>
+        `
+    });
+
+    return sendEmail(booking.user.email, subject, html);
 };
 
 const sendBookingModified = async (booking, oldStartTime, oldEndTime) => {
-    const subject = `🔄 เวลาจองห้องประชุมถูกแก้ไข: ${booking.topic}`;
-    const html = `
-        <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto; padding: 20px; border: 1px solid #eee; border-radius: 10px;">
-            <h2 style="color: #2563eb;">เวลาจองห้องประชุมของคุณถูกแก้ไข</h2>
-            <p>เรียนคุณ ${booking.user.name},</p>
-            <p>แอดมินได้ทำการแก้ไขเวลาจองห้องประชุมของคุณ กรุณาตรวจสอบรายละเอียดใหม่ด้านล่าง:</p>
-            
-            <div style="background-color: #fef2f2; padding: 15px; border-radius: 8px; margin: 20px 0; border-left: 4px solid #ef4444;">
-                <p style="margin: 0 0 5px 0; color: #991b1b; font-weight: bold;">❌ เวลาเดิม (ยกเลิก)</p>
-                <p style="margin: 0; text-decoration: line-through; color: #6b7280;">${new Date(oldStartTime).toLocaleString('th-TH')} - ${new Date(oldEndTime).toLocaleTimeString('th-TH')}</p>
-            </div>
+    const {
+        topicText,
+        topicHtml,
+        userNameHtml,
+        roomNameHtml,
+        startDateTime,
+        endTime
+    } = getSafeBookingEmailDetails(booking);
 
-            <div style="background-color: #f0fdf4; padding: 15px; border-radius: 8px; margin: 20px 0; border-left: 4px solid #16a34a;">
-                <p style="margin: 0 0 5px 0; color: #166534; font-weight: bold;">✅ เวลาใหม่</p>
-                <p style="margin: 0; font-weight: bold; color: #166534;">${new Date(booking.startTime).toLocaleString('th-TH')} - ${new Date(booking.endTime).toLocaleTimeString('th-TH')}</p>
-            </div>
+    const subject = `มีการแก้ไขเวลาจองห้อง: ${topicText}`;
+    const html = renderEmailLayout({
+        accentColor: 'linear-gradient(135deg, #2563eb, #1d4ed8)',
+        title: 'เวลาจองห้องของคุณถูกแก้ไข',
+        body: `
+            <p style="margin-top: 0;">เรียนคุณ ${userNameHtml},</p>
+            <p>เจ้าหน้าที่ได้ทำการแก้ไขเวลาใช้งานห้องของคุณ กรุณาตรวจสอบรายละเอียดใหม่ด้านล่าง</p>
+            ${renderInfoCard([
+                renderLabelValue('เวลาเดิม', `${formatThaiDateTime(oldStartTime)} - ${formatThaiTime(oldEndTime)}`)
+            ], {
+                borderColor: '#ef4444',
+                backgroundColor: '#fef2f2'
+            })}
+            ${renderInfoCard([
+                renderLabelValue('เวลาใหม่', `${startDateTime} - ${endTime}`),
+                renderLabelValue('หัวข้อ', topicHtml),
+                renderLabelValue('ห้อง', roomNameHtml)
+            ], {
+                borderColor: '#16a34a',
+                backgroundColor: '#f0fdf4'
+            })}
+            <p style="margin-bottom: 0; color: #64748b;">หากมีข้อสงสัย กรุณาติดต่อเจ้าหน้าที่</p>
+        `
+    });
 
-            <div style="background-color: #f9fafb; padding: 15px; border-radius: 8px; margin: 20px 0;">
-                <p><strong>หัวข้อ:</strong> ${booking.topic}</p>
-                <p><strong>ห้อง:</strong> ${booking.room ? booking.room.name : 'N/A'}</p>
-            </div>
-
-            <p style="color: #6b7280; font-size: 14px;">หากมีข้อสงสัย กรุณาติดต่อเจ้าหน้าที่</p>
-        </div>
-    `;
-    await sendEmail(booking.user.email, subject, html);
+    return sendEmail(booking.user.email, subject, html);
 };
 
 const sendBookingCancelled = async (booking) => {
-    const subject = `🚫 การจองห้องประชุมถูกยกเลิก: ${booking.topic}`;
-    const html = `
-        <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto; padding: 20px; border: 1px solid #eee; border-radius: 10px;">
-            <h2 style="color: #dc2626;">การจองห้องประชุมของคุณถูกยกเลิก</h2>
-            <p>เรียนคุณ ${booking.user.name},</p>
-            <p>การจองห้องประชุมของคุณถูกยกเลิกแล้ว (โดยคุณ หรือ Admin)</p>
-            
-            <div style="background-color: #fef2f2; padding: 15px; border-radius: 8px; margin: 20px 0; border-left: 4px solid #dc2626;">
-                <p><strong>หัวข้อ:</strong> ${booking.topic}</p>
-                <p><strong>ห้อง:</strong> ${booking.room ? booking.room.name : 'N/A'}</p>
-                <p><strong>เวลา:</strong> ${new Date(booking.startTime).toLocaleString('th-TH')}</p>
-            </div>
+    const {
+        topicText,
+        topicHtml,
+        userNameHtml,
+        roomNameHtml,
+        startDateTime,
+        cancellationReasonHtml,
+        cancelledByLabel
+    } = getSafeBookingEmailDetails(booking);
 
-            <p style="color: #6b7280; font-size: 14px;">หากเป็นการยกเลิกโดยที่คุณไม่ได้ทำรายการ กรุณาติดต่อเจ้าหน้าที่</p>
-        </div>
-    `;
-    await sendEmail(booking.user.email, subject, html);
+    const subject = `การจองห้องถูกยกเลิก: ${topicText}`;
+    const reasonSection = cancellationReasonHtml
+        ? renderInfoCard([
+            renderLabelValue('เหตุผลในการยกเลิก', cancellationReasonHtml)
+        ], {
+            borderColor: '#f97316',
+            backgroundColor: '#fff7ed'
+        })
+        : '';
+
+    const html = renderEmailLayout({
+        accentColor: 'linear-gradient(135deg, #ef4444, #dc2626)',
+        title: 'การจองของคุณถูกยกเลิก',
+        body: `
+            <p style="margin-top: 0;">เรียนคุณ ${userNameHtml},</p>
+            <p>รายการจองห้องของคุณถูกยกเลิกโดย${escapeHtml(cancelledByLabel)}</p>
+            ${renderInfoCard([
+                renderLabelValue('หัวข้อ', topicHtml),
+                renderLabelValue('ห้อง', roomNameHtml),
+                renderLabelValue('วันและเวลา', startDateTime)
+            ], {
+                borderColor: '#dc2626',
+                backgroundColor: '#fef2f2'
+            })}
+            ${reasonSection}
+            <p style="margin-bottom: 0; color: #64748b;">หากคุณไม่ได้เป็นผู้ดำเนินการ กรุณาติดต่อเจ้าหน้าที่</p>
+        `
+    });
+
+    return sendEmail(booking.user.email, subject, html);
 };
 
 const sendBanNotification = async (user, reason) => {
-    const subject = `🚫 บัญชีของคุณถูกระงับการใช้งาน`;
-    const html = `
-        <div style="font-family: 'Segoe UI', Arial, sans-serif; max-width: 600px; margin: 0 auto; padding: 0; border: 1px solid #e5e7eb; border-radius: 16px; overflow: hidden;">
-            <div style="background: linear-gradient(135deg, #dc2626, #b91c1c); padding: 30px 20px; text-align: center;">
-                <h2 style="color: #fff; margin: 0; font-size: 22px;">⚠️ บัญชีถูกระงับการใช้งาน</h2>
-            </div>
-            <div style="padding: 30px 24px;">
-                <p style="color: #374151; font-size: 15px; line-height: 1.6;">เรียนคุณ ${user.name || 'ผู้ใช้งาน'},</p>
-                <p style="color: #374151; font-size: 15px; line-height: 1.6;">บัญชีของคุณในระบบจองห้องประชุม ภาควิชาคอมพิวเตอร์ศึกษา ถูกระงับการใช้งานโดยเจ้าหน้าที่</p>
-                
-                ${reason ? `
-                <div style="background-color: #fef2f2; padding: 16px; border-radius: 10px; margin: 20px 0; border-left: 4px solid #dc2626;">
-                    <p style="margin: 0 0 6px 0; color: #991b1b; font-weight: bold; font-size: 13px;">📋 เหตุผล:</p>
-                    <p style="margin: 0; color: #374151; font-size: 14px; line-height: 1.5;">${reason}</p>
-                </div>
-                ` : ''}
+    const safeUserName = escapeHtml(normalizeEmailText(user?.name, 'ผู้ใช้งาน'));
+    const safeUserEmail = escapeHtml(normalizeEmailText(user?.email, ''));
+    const safeReason = escapeHtml(normalizeEmailText(reason, ''));
+    const subject = 'บัญชีของคุณถูกระงับการใช้งาน';
+    const reasonSection = safeReason
+        ? renderInfoCard([
+            renderLabelValue('เหตุผล', safeReason)
+        ], {
+            borderColor: '#dc2626',
+            backgroundColor: '#fef2f2'
+        })
+        : '';
 
-                <div style="background-color: #f9fafb; padding: 16px; border-radius: 10px; margin: 20px 0;">
-                    <p style="margin: 0; color: #6b7280; font-size: 13px;">📧 อีเมล: ${user.email}</p>
-                    <p style="margin: 6px 0 0 0; color: #6b7280; font-size: 13px;">📅 วันที่ระงับ: ${new Date().toLocaleString('th-TH', { year: 'numeric', month: 'long', day: 'numeric', hour: '2-digit', minute: '2-digit' })}</p>
-                </div>
+    const html = renderEmailLayout({
+        accentColor: 'linear-gradient(135deg, #dc2626, #b91c1c)',
+        title: 'บัญชีถูกระงับการใช้งาน',
+        body: `
+            <p style="margin-top: 0;">เรียนคุณ ${safeUserName},</p>
+            <p>บัญชีของคุณในระบบจองห้องถูกระงับการใช้งานโดยเจ้าหน้าที่</p>
+            ${reasonSection}
+            ${renderInfoCard([
+                renderLabelValue('อีเมล', safeUserEmail),
+                renderLabelValue('วันที่ระงับ', new Date().toLocaleString('th-TH', {
+                    year: 'numeric',
+                    month: 'long',
+                    day: 'numeric',
+                    hour: '2-digit',
+                    minute: '2-digit'
+                }))
+            ])}
+            <p style="margin-bottom: 0; color: #64748b;">หากมีข้อสงสัย กรุณาติดต่อเจ้าหน้าที่ประจำระบบ</p>
+        `
+    });
 
-                <p style="color: #6b7280; font-size: 13px; line-height: 1.5;">หากคุณมีคำถามหรือต้องการอุทธรณ์ กรุณาติดต่อเจ้าหน้าที่ภาควิชาคอมพิวเตอร์ศึกษา</p>
-            </div>
-            <div style="background-color: #f9fafb; padding: 16px 24px; text-align: center; border-top: 1px solid #e5e7eb;">
-                <p style="margin: 0; color: #9ca3af; font-size: 11px;">ระบบจองห้องประชุม — ภาควิชาคอมพิวเตอร์ศึกษา KMUTNB</p>
-            </div>
-        </div>
-    `;
-    await sendEmail(user.email, subject, html);
+    return sendEmail(user.email, subject, html);
 };
 
 const sendUnbanNotification = async (user) => {
-    const subject = `✅ บัญชีของคุณได้รับการปลดระงับแล้ว`;
-    const html = `
-        <div style="font-family: 'Segoe UI', Arial, sans-serif; max-width: 600px; margin: 0 auto; padding: 0; border: 1px solid #e5e7eb; border-radius: 16px; overflow: hidden;">
-            <div style="background: linear-gradient(135deg, #16a34a, #15803d); padding: 30px 20px; text-align: center;">
-                <h2 style="color: #fff; margin: 0; font-size: 22px;">✅ ปลดระงับบัญชีเรียบร้อยแล้ว</h2>
-            </div>
-            <div style="padding: 30px 24px;">
-                <p style="color: #374151; font-size: 15px; line-height: 1.6;">เรียนคุณ ${user.name || 'ผู้ใช้งาน'},</p>
-                <p style="color: #374151; font-size: 15px; line-height: 1.6;">บัญชีของคุณได้รับการปลดระงับแล้ว คุณสามารถเข้าสู่ระบบจองห้องประชุมได้ตามปกติแล้ว</p>
-                
-                <div style="background-color: #f0fdf4; padding: 16px; border-radius: 10px; margin: 20px 0; border-left: 4px solid #16a34a;">
-                    <p style="margin: 0; color: #166534; font-size: 14px; line-height: 1.5;">🎉 คุณสามารถเข้าสู่ระบบและจองห้องประชุมได้ตามปกติแล้ว</p>
-                </div>
+    const safeUserName = escapeHtml(normalizeEmailText(user?.name, 'ผู้ใช้งาน'));
+    const safeUserEmail = escapeHtml(normalizeEmailText(user?.email, ''));
+    const subject = 'บัญชีของคุณถูกปลดระงับแล้ว';
+    const html = renderEmailLayout({
+        accentColor: 'linear-gradient(135deg, #16a34a, #15803d)',
+        title: 'ปลดระงับบัญชีเรียบร้อยแล้ว',
+        body: `
+            <p style="margin-top: 0;">เรียนคุณ ${safeUserName},</p>
+            <p>บัญชีของคุณได้รับการปลดระงับแล้ว และสามารถกลับเข้าใช้งานระบบได้ตามปกติ</p>
+            ${renderInfoCard([
+                renderLabelValue('อีเมล', safeUserEmail),
+                renderLabelValue('วันที่ปลดระงับ', new Date().toLocaleString('th-TH', {
+                    year: 'numeric',
+                    month: 'long',
+                    day: 'numeric',
+                    hour: '2-digit',
+                    minute: '2-digit'
+                }))
+            ], {
+                borderColor: '#16a34a',
+                backgroundColor: '#f0fdf4'
+            })}
+            <p style="margin-bottom: 0; color: #64748b;">กรุณาใช้งานระบบตามระเบียบที่กำหนด</p>
+        `
+    });
 
-                <div style="background-color: #f9fafb; padding: 16px; border-radius: 10px; margin: 20px 0;">
-                    <p style="margin: 0; color: #6b7280; font-size: 13px;">📧 อีเมล: ${user.email}</p>
-                    <p style="margin: 6px 0 0 0; color: #6b7280; font-size: 13px;">📅 วันที่ปลดระงับ: ${new Date().toLocaleString('th-TH', { year: 'numeric', month: 'long', day: 'numeric', hour: '2-digit', minute: '2-digit' })}</p>
-                </div>
-
-                <p style="color: #6b7280; font-size: 13px; line-height: 1.5;">กรุณาปฏิบัติตามระเบียบการใช้งานอย่างเคร่งครัด</p>
-            </div>
-            <div style="background-color: #f9fafb; padding: 16px 24px; text-align: center; border-top: 1px solid #e5e7eb;">
-                <p style="margin: 0; color: #9ca3af; font-size: 11px;">ระบบจองห้องประชุม — ภาควิชาคอมพิวเตอร์ศึกษา KMUTNB</p>
-            </div>
-        </div>
-    `;
-    await sendEmail(user.email, subject, html);
+    return sendEmail(user.email, subject, html);
 };
 
 const sendAdminContactEmail = async ({ recipient, adminUser, subject, message }) => {
-    const recipientName = escapeHtml(recipient?.name || recipient?.email || 'ผู้ใช้งาน');
-    const adminName = escapeHtml(adminUser?.name || adminUser?.email || 'ผู้ดูแลระบบ');
-    const adminEmail = escapeHtml(adminUser?.email || process.env.EMAIL_USER || '');
-    const safeSubject = String(subject || '').trim();
+    const recipientName = escapeHtml(normalizeEmailText(recipient?.name || recipient?.email, 'ผู้ใช้งาน'));
+    const adminName = escapeHtml(normalizeEmailText(adminUser?.name || adminUser?.email, 'ผู้ดูแลระบบ'));
+    const adminEmail = escapeHtml(normalizeEmailText(adminUser?.email || process.env.EMAIL_USER, ''));
+    const safeSubject = normalizeEmailText(subject, 'ข้อความจากผู้ดูแลระบบ');
     const safeMessage = escapeHtml(message).replace(/\n/g, '<br />');
-    const html = `
-        <div style="font-family: 'Segoe UI', Arial, sans-serif; max-width: 640px; margin: 0 auto; border: 1px solid #e5e7eb; border-radius: 16px; overflow: hidden;">
-            <div style="background: linear-gradient(135deg, #16a34a, #0f766e); padding: 28px 24px;">
-                <h2 style="margin: 0; color: #ffffff; font-size: 22px;">ข้อความจากผู้ดูแลระบบ</h2>
-                <p style="margin: 8px 0 0; color: rgba(255,255,255,0.86); font-size: 13px;">ระบบจองห้องประชุม ภาควิชาคอมพิวเตอร์ศึกษา</p>
+
+    const html = renderEmailLayout({
+        accentColor: 'linear-gradient(135deg, #16a34a, #0f766e)',
+        title: 'ข้อความจากผู้ดูแลระบบ',
+        body: `
+            <p style="margin-top: 0;">เรียนคุณ ${recipientName},</p>
+            <p>ผู้ดูแลระบบได้ส่งข้อความถึงคุณผ่านระบบจัดการผู้ใช้งาน</p>
+            ${renderInfoCard([
+                renderLabelValue('หัวข้อ', escapeHtml(safeSubject))
+            ])}
+            <div style="background-color: #ffffff; border: 1px solid #e5e7eb; border-radius: 12px; padding: 16px 18px; margin: 18px 0;">
+                <p style="margin: 0 0 8px; color: #0f172a; font-weight: 700;">ข้อความ</p>
+                <p style="margin: 0; color: #334155; line-height: 1.8;">${safeMessage}</p>
             </div>
-            <div style="padding: 28px 24px;">
-                <p style="margin: 0 0 12px; color: #374151; font-size: 15px; line-height: 1.6;">เรียนคุณ ${recipientName},</p>
-                <p style="margin: 0 0 18px; color: #4b5563; font-size: 14px; line-height: 1.7;">ผู้ดูแลระบบได้ส่งข้อความถึงคุณผ่านหน้าจัดการสมาชิก</p>
-
-                <div style="background-color: #f8fafc; border: 1px solid #e2e8f0; border-radius: 12px; padding: 16px; margin-bottom: 18px;">
-                    <p style="margin: 0 0 8px; color: #0f172a; font-size: 13px; font-weight: 700;">หัวข้อ</p>
-                    <p style="margin: 0; color: #334155; font-size: 14px; line-height: 1.6;">${escapeHtml(safeSubject)}</p>
-                </div>
-
-                <div style="background-color: #ffffff; border: 1px solid #e5e7eb; border-radius: 12px; padding: 18px; margin-bottom: 18px;">
-                    <p style="margin: 0 0 8px; color: #0f172a; font-size: 13px; font-weight: 700;">ข้อความ</p>
-                    <p style="margin: 0; color: #334155; font-size: 14px; line-height: 1.8;">${safeMessage}</p>
-                </div>
-
-                <div style="background-color: #f0fdf4; border-left: 4px solid #16a34a; border-radius: 10px; padding: 14px 16px;">
-                    <p style="margin: 0; color: #166534; font-size: 13px; line-height: 1.6;">
-                        ส่งโดย: ${adminName}<br />
-                        อีเมลติดต่อกลับ: ${adminEmail}
-                    </p>
-                </div>
-            </div>
-        </div>
-    `;
+            ${renderInfoCard([
+                renderLabelValue('ส่งโดย', adminName),
+                renderLabelValue('อีเมลติดต่อกลับ', adminEmail)
+            ], {
+                borderColor: '#16a34a',
+                backgroundColor: '#f0fdf4'
+            })}
+        `
+    });
 
     return sendEmail(recipient.email, safeSubject, html, {
         replyTo: adminUser?.email || undefined

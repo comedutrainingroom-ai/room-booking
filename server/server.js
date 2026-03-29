@@ -21,7 +21,14 @@ const validateRequiredEnv = () => {
         return;
     }
 
-    const requiredEnv = ['CLIENT_URL', 'MONGO_URI', 'ADMIN_PIN', 'ADMIN_PIN_TOKEN_SECRET'];
+    const requiredEnv = [
+        'CLIENT_URL',
+        'MONGO_URI',
+        'ADMIN_PIN',
+        'ADMIN_PIN_TOKEN_SECRET',
+        'EMAIL_USER',
+        'EMAIL_PASS'
+    ];
     const missingEnv = requiredEnv.filter((key) => !process.env[key]);
 
     if (missingEnv.length > 0) {

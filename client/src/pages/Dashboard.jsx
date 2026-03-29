@@ -278,7 +278,7 @@ const StatCard = ({ icon: Icon, label, value, accentClass }) => {
                     <Icon size={22} />
                 </div>
                 <div className="min-w-0 flex-1">
-                    <p className="text-sm font-semibold leading-5 text-slate-500">{label}</p>
+                    <p className="text-sm font-bold leading-5 text-slate-700">{label}</p>
                     <h2 className="mt-1 text-4xl font-black leading-none tracking-tight text-slate-900">
                         {formatNumber(value)}
                     </h2>
@@ -710,7 +710,7 @@ const Dashboard = () => {
                     <div className="flex flex-col gap-6 lg:flex-row lg:items-end lg:justify-between">
                         <div className="max-w-3xl">
                             <h1 className="text-3xl font-black tracking-tight text-slate-900 lg:text-4xl">
-                                ระบบจัดการห้องประชุม
+                                ระบบจัดการห้องอบรม
                             </h1>
 
                             <div className="mt-5 flex flex-wrap items-center gap-2.5 text-sm">

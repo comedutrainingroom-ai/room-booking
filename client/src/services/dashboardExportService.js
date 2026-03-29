@@ -1,17 +1,10 @@
-const STATUS_LABELS = {
-    approved: 'อนุมัติแล้ว',
-    pending: 'รอตรวจสอบ',
-    rejected: 'ไม่อนุมัติ / ยกเลิก',
-    cancelled: 'ยกเลิกแล้ว'
-};
+import { getBookingStatusLabel } from '../utils/bookingStatus';
 
 const CARD_THEMES = {
     total: { fill: 'EFF6FF', border: 'BFDBFE', text: '1D4ED8', accent: '#0EA5E9' },
     approved: { fill: 'ECFDF5', border: 'A7F3D0', text: '047857', accent: '#10B981' },
     pending: { fill: 'FFFBEB', border: 'FDE68A', text: 'B45309', accent: '#F59E0B' },
-    rejected: { fill: 'FFF1F2', border: 'FDA4AF', text: 'BE123C', accent: '#FB7185' },
-    users: { fill: 'F0FDFA', border: '99F6E4', text: '0F766E', accent: '#14B8A6' },
-    rooms: { fill: 'F8FAFC', border: 'CBD5E1', text: '334155', accent: '#64748B' }
+    rejected: { fill: 'FFF1F2', border: 'FDA4AF', text: 'BE123C', accent: '#FB7185' }
 };
 
 const CHART_SERIES = [
@@ -62,8 +55,11 @@ const formatTimeRange = (startTime, endTime) => `${formatTime(startTime)} - ${fo
 const getRoomName = (booking) => booking?.room?.name || 'ไม่ระบุห้อง';
 const getUserName = (booking) => booking?.user?.name || 'ไม่ทราบชื่อ';
 const getBookingCode = (booking) => `BK-${String(booking?._id || '').slice(-6).toUpperCase() || '------'}`;
-const getStatusLabel = (status) => STATUS_LABELS[status] || status || '-';
-const getTrendLabel = (trend) => (trend?.value ? `${trend.value}%` : 'คงที่');
+const getStatusThemeKey = (booking) => (booking?.status === 'approved'
+    ? 'approved'
+    : booking?.status === 'pending'
+        ? 'pending'
+        : 'rejected');
 
 const normalizeBookingRows = (bookings = []) => bookings.map((booking, index) => ({
     index: index + 1,
@@ -75,7 +71,8 @@ const normalizeBookingRows = (bookings = []) => bookings.map((booking, index) =>
     department: booking?.user?.department || '-',
     date: formatShortDate(booking?.startTime),
     time: formatTimeRange(booking?.startTime, booking?.endTime),
-    status: getStatusLabel(booking?.status),
+    status: getBookingStatusLabel(booking),
+    statusThemeKey: getStatusThemeKey(booking),
     createdAt: booking?.createdAt ? formatDateTime(booking.createdAt) : '-'
 }));
 
@@ -331,29 +328,24 @@ const createRoomShareChartImage = (report) => {
     }
 
     const { canvas, context } = chartBase;
-    const { roomShareData = [], filters, notes } = report;
+    const { roomShareData = [] } = report;
     const total = roomShareData.reduce((sum, item) => sum + item.count, 0);
 
     drawRoundedRect(context, 18, 18, 864, 524, 26, '#ffffff', '#E2E8F0');
 
-    context.fillStyle = '#0F172A';
-    setCanvasFont(context, 700, 28);
-    context.fillText('สัดส่วนการใช้งานห้อง', 48, 66);
-    context.fillStyle = '#64748B';
-    setCanvasFont(context, 400, 15);
-    context.fillText(notes.roomShare || `ความถี่การใช้งานห้องตาม ${filters.statusLabel}`, 48, 94);
-
     if (roomShareData.length === 0 || total === 0) {
         context.fillStyle = '#94A3B8';
         setCanvasFont(context, 600, 22);
-        context.fillText('ไม่มีข้อมูลสัดส่วนห้องสำหรับช่วงที่เลือก', 236, 290);
+        context.textAlign = 'center';
+        context.fillText('ไม่มีข้อมูลสัดส่วนห้องสำหรับช่วงที่เลือก', 450, 286);
+        context.textAlign = 'left';
         return canvas.toDataURL('image/png');
     }
 
-    const centerX = 260;
-    const centerY = 300;
-    const outerRadius = 120;
-    const innerRadius = 64;
+    const centerX = 246;
+    const centerY = 278;
+    const outerRadius = 126;
+    const innerRadius = 68;
     let currentAngle = -Math.PI / 2;
 
     roomShareData.forEach((item) => {
@@ -383,20 +375,20 @@ const createRoomShareChartImage = (report) => {
     context.fillText(formatNumber(total), centerX, centerY + 28);
     context.textAlign = 'left';
 
-    let legendY = 166;
+    let legendY = 136;
     roomShareData.forEach((item) => {
         context.fillStyle = item.color;
-        drawRoundedRect(context, 500, legendY - 11, 16, 16, 5, item.color);
+        drawRoundedRect(context, 476, legendY - 11, 16, 16, 5, item.color);
 
         context.fillStyle = '#0F172A';
         setCanvasFont(context, 600, 16);
-        context.fillText(item.label, 530, legendY + 2);
+        context.fillText(item.label, 506, legendY + 2);
 
         context.fillStyle = '#64748B';
         setCanvasFont(context, 400, 14);
-        context.fillText(`${formatNumber(item.count)} ครั้ง • ${item.percent.toFixed(1)}%`, 530, legendY + 26);
+        context.fillText(`${formatNumber(item.count)} ครั้ง • ${item.percent.toFixed(1)}%`, 506, legendY + 26);
 
-        legendY += 62;
+        legendY += 66;
     });
 
     return canvas.toDataURL('image/png');
@@ -419,12 +411,22 @@ const setSheetTitle = (sheet, title, subtitle) => {
 };
 
 const setMetricCard = (sheet, topLeftCell, bottomRightCell, card) => {
-    const theme = CARD_THEMES[card.key] || CARD_THEMES.rooms;
+    const theme = CARD_THEMES[card.key] || CARD_THEMES.total;
     sheet.mergeCells(`${topLeftCell}:${bottomRightCell}`);
     const cell = sheet.getCell(topLeftCell);
-    cell.value = `${card.label}\n${formatNumber(card.value)}\n${getTrendLabel(card.trend)} • ${card.subtitle}`;
-    cell.font = { name: EXCEL_FONT_FAMILY, size: 11, color: { argb: argb(theme.text) } };
-    cell.alignment = { vertical: 'top', horizontal: 'left', wrapText: true };
+    cell.value = {
+        richText: [
+            {
+                text: `${card.label}\n`,
+                font: { name: EXCEL_FONT_FAMILY, size: 11, bold: true, color: { argb: argb('475569') } }
+            },
+            {
+                text: formatNumber(card.value),
+                font: { name: EXCEL_FONT_FAMILY, size: 22, bold: true, color: { argb: argb(theme.text) } }
+            }
+        ]
+    };
+    cell.alignment = { vertical: 'middle', horizontal: 'left', wrapText: true };
     cell.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: argb(theme.fill) } };
     cell.border = {
         top: { style: 'thin', color: { argb: argb(theme.border) } },
@@ -463,14 +465,13 @@ const styleBodyRow = (row) => {
     });
 };
 
-const styleStatusCell = (cell, statusLabel) => {
+const styleStatusCell = (cell, statusThemeKey) => {
     const styles = {
-        'อนุมัติแล้ว': { fill: 'ECFDF5', text: '047857' },
-        'รอตรวจสอบ': { fill: 'FFFBEB', text: 'B45309' },
-        'ไม่อนุมัติ / ยกเลิก': { fill: 'FFF1F2', text: 'BE123C' },
-        'ยกเลิกแล้ว': { fill: 'FFF1F2', text: 'BE123C' }
+        approved: { fill: 'ECFDF5', text: '047857' },
+        pending: { fill: 'FFFBEB', text: 'B45309' },
+        rejected: { fill: 'FFF1F2', text: 'BE123C' }
     };
-    const style = styles[statusLabel] || { fill: 'F8FAFC', text: '334155' };
+    const style = styles[statusThemeKey] || { fill: 'F8FAFC', text: '334155' };
 
     cell.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: argb(style.fill) } };
     cell.font = { name: EXCEL_FONT_FAMILY, size: 10, bold: true, color: { argb: argb(style.text) } };
@@ -489,7 +490,7 @@ const createOverviewSheet = (workbook, report, brandAssets) => {
 
     sheet.mergeCells('A1:H4');
     const heroCell = sheet.getCell('A1');
-    heroCell.value = `Dashboard Intelligence Report\n${report.title}\n${report.subtitle}`;
+    heroCell.value = `${report.title}\n${report.subtitle}`;
     heroCell.font = { name: EXCEL_FONT_FAMILY, size: 18, bold: true, color: { argb: argb('FFFFFF') } };
     heroCell.alignment = { vertical: 'middle', horizontal: 'left', wrapText: true };
     heroCell.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: argb('0F766E') } };
@@ -503,7 +504,7 @@ const createOverviewSheet = (workbook, report, brandAssets) => {
     sheet.mergeCells('I1:L4');
     const metaCell = sheet.getCell('I1');
     metaCell.value = [
-        'สรุปตัวกรองของรายงาน',
+        'ข้อมูลรายงาน',
         `ช่วงข้อมูล: ${report.filters.rangeLabel}`,
         `สถานะ: ${report.filters.statusLabel}`,
         `คำค้นหา: ${report.filters.searchQuery || 'ไม่มี'}`,
@@ -532,22 +533,20 @@ const createOverviewSheet = (workbook, report, brandAssets) => {
         ['A6', 'C9'],
         ['D6', 'F9'],
         ['G6', 'I9'],
-        ['J6', 'L9'],
-        ['A11', 'F14'],
-        ['G11', 'L14']
+        ['J6', 'L9']
     ];
 
-    report.cards.slice(0, 6).forEach((card, index) => {
+    report.cards.slice(0, 4).forEach((card, index) => {
         const [startCell, endCell] = cardRanges[index];
         setMetricCard(sheet, startCell, endCell, card);
     });
 
-    sheet.mergeCells('A16:L19');
-    const noteCell = sheet.getCell('A16');
+    sheet.mergeCells('A11:L13');
+    const noteCell = sheet.getCell('A11');
     noteCell.value = [
-        'Executive Summary',
-        `รายงานนี้สรุปข้อมูลจาก Dashboard จริงในช่วง ${report.filters.rangeLabel} โดยแยกกราฟสถานะ, สัดส่วนห้อง, และชุดข้อมูลตารางสำหรับนำไปวิเคราะห์ต่อ`,
-        `จำนวนข้อมูลที่ใช้สร้าง KPI: ${formatNumber(report.summary.overviewBookings)} รายการ | จำนวนข้อมูลที่พร้อมส่งต่อ: ${formatNumber(report.summary.tableBookings)} รายการ`
+        'สรุปข้อมูลรายงาน',
+        `ข้อมูลที่ใช้สรุปภาพรวม: ${formatNumber(report.summary.overviewBookings)} รายการ`,
+        `ข้อมูลตามตัวกรองที่พร้อมส่งออก: ${formatNumber(report.summary.tableBookings)} รายการ`
     ].join('\n');
     noteCell.font = { name: EXCEL_FONT_FAMILY, size: 11, color: { argb: argb('334155') } };
     noteCell.alignment = { vertical: 'middle', horizontal: 'left', wrapText: true };
@@ -670,7 +669,7 @@ const createRoomShareSheet = (workbook, report, chartImage, brandAssets) => {
                 item.label,
                 item.count,
                 item.percent,
-                index === 0 ? 'ห้องที่ถูกใช้งานมากที่สุดในช่วงนี้' : ''
+                index === 0 ? 'ห้องที่มีการใช้งานสูงสุดในช่วงนี้' : ''
             ];
             styleBodyRow(row);
         });
@@ -738,7 +737,7 @@ const createBookingSheet = (workbook, title, subtitle, bookings, sheetName, bran
             ];
             styleBodyRow(row);
             row.getCell(2).font = { name: EXCEL_FONT_FAMILY, size: 10, bold: true, color: { argb: argb('0F172A') } };
-            styleStatusCell(row.getCell(10), item.status);
+            styleStatusCell(row.getCell(10), item.statusThemeKey);
         });
     }
 
@@ -826,42 +825,24 @@ const drawPdfChip = (doc, x, y, width, label, value, accent) => {
 };
 
 const drawPdfCard = (doc, x, y, width, height, card) => {
-    const theme = CARD_THEMES[card.key] || CARD_THEMES.rooms;
+    const theme = CARD_THEMES[card.key] || CARD_THEMES.total;
     const [red, green, blue] = hexToRgb(theme.accent);
-    const note = `${getTrendLabel(card.trend)} • ${card.subtitle}`;
     const isCompact = height <= 26;
-    const displayNote = note.length > (isCompact ? 38 : 44)
-        ? `${note.slice(0, isCompact ? 37 : 43)}…`
-        : note;
     doc.setFillColor(...hexToRgb(theme.fill));
     doc.setDrawColor(...hexToRgb(theme.border));
     doc.roundedRect(x, y, width, height, 4, 4, 'FD');
     doc.setFillColor(red, green, blue);
     doc.roundedRect(x, y, width, 4, 4, 4, 'F');
 
-    doc.setFillColor(255, 255, 255);
-    doc.setDrawColor(red, green, blue);
-    doc.roundedRect(x + width - 25, y + 6, 20, 7, 2, 2, 'FD');
-
-    doc.setFont('Sarabun', 'normal');
-    doc.setFontSize(isCompact ? 8.5 : 9);
+    doc.setFont('Sarabun', 'bold');
+    doc.setFontSize(isCompact ? 8.8 : 9.2);
     doc.setTextColor(71, 85, 105);
-    doc.text(card.label, x + 4, y + (isCompact ? 10.2 : 11));
+    doc.text(card.label, x + 4, y + (isCompact ? 10.2 : 11.5));
 
     doc.setFont('Sarabun', 'bold');
     doc.setFontSize(isCompact ? 16.5 : 18);
     doc.setTextColor(red, green, blue);
-    doc.text(formatNumber(card.value), x + 4, y + (isCompact ? 18.2 : 20));
-
-    doc.setFont('Sarabun', 'bold');
-    doc.setFontSize(7);
-    doc.setTextColor(red, green, blue);
-    doc.text(getTrendLabel(card.trend), x + width - 15, y + 11.2, { align: 'center' });
-
-    doc.setFont('Sarabun', 'normal');
-    doc.setFontSize(isCompact ? 7.2 : 8);
-    doc.setTextColor(100, 116, 139);
-    doc.text(getPdfTextLines(doc, displayNote, width - 8).slice(0, 1), x + 4, y + height - (isCompact ? 3.2 : 4));
+    doc.text(formatNumber(card.value), x + 4, y + (isCompact ? 19.4 : 21));
 };
 
 const drawPdfHero = (doc, report, brandAssets = {}) => {
@@ -884,7 +865,7 @@ const drawPdfHero = (doc, report, brandAssets = {}) => {
     doc.setFont('Sarabun', 'bold');
     doc.setFontSize(9);
     doc.setTextColor(220, 252, 231);
-    doc.text('EXECUTIVE DASHBOARD REPORT', 18, 42);
+    doc.text('ข้อมูลสรุปสำหรับผู้ดูแลระบบ', 18, 42);
 
     doc.setFontSize(19);
     doc.setTextColor(255, 255, 255);
@@ -926,7 +907,7 @@ const drawPdfSectionPanel = (doc, x, y, width, height, title, subtitle) => {
     };
 };
 
-const addPdfFooters = (doc) => {
+const addPdfFooters = (doc, report) => {
     const pageCount = doc.getNumberOfPages();
 
     for (let page = 1; page <= pageCount; page += 1) {
@@ -936,7 +917,7 @@ const addPdfFooters = (doc) => {
         doc.setFont('Sarabun', 'normal');
         doc.setFontSize(9);
         doc.setTextColor(100, 116, 139);
-        doc.text('Room Intelligence Dashboard Report', 14, 292);
+        doc.text(report.title, 14, 292);
         doc.text(`หน้า ${page} / ${pageCount}`, 196, 292, { align: 'right' });
     }
 };
@@ -950,7 +931,7 @@ export const exportDashboardToExcel = async (report, filename = 'dashboard_expor
     await ensureCanvasFontsLoaded();
 
     const workbook = new ExcelJS.Workbook();
-    workbook.creator = 'Room Booking Dashboard';
+    workbook.creator = 'ระบบจัดการห้องอบรม';
     workbook.created = new Date();
     workbook.modified = new Date();
 
@@ -964,7 +945,7 @@ export const exportDashboardToExcel = async (report, filename = 'dashboard_expor
     createBookingSheet(
         workbook,
         'ข้อมูลช่วงเวลาสรุป',
-        `ชุดข้อมูลที่ใช้สร้าง KPI และกราฟสถานะ • ${report.filters.rangeLabel}`,
+        `ชุดข้อมูลที่ใช้สรุปภาพรวมและกราฟสถานะ • ${report.filters.rangeLabel}`,
         report.datasets.overviewBookings,
         'ข้อมูลช่วงเวลาสรุป',
         brandAssets
@@ -1002,11 +983,10 @@ export const exportDashboardToPDF = async (report, filename = 'dashboard_export'
     const roomShareChartImage = createRoomShareChartImage(report);
     const tableRows = normalizeBookingRows(report.datasets.tableBookings);
     const primaryCards = report.cards.slice(0, 4);
-    const secondaryCards = report.cards.slice(4, 6);
     const roomShareSummaryRows = report.roomShareData.slice(0, 5);
     const roomShareSummarySubtitle = report.roomShareData.length > roomShareSummaryRows.length
-        ? `แสดง ${formatNumber(roomShareSummaryRows.length)} ห้องที่มีการใช้งานสูงสุดจาก ${formatNumber(report.roomShareData.length)} กลุ่มห้อง`
-        : `${formatNumber(report.roomShareData.length)} กลุ่มห้องในรายงานนี้`;
+        ? `แสดง ${formatNumber(roomShareSummaryRows.length)} ห้องที่มีการใช้งานสูงสุดจาก ${formatNumber(report.roomShareData.length)} ห้อง`
+        : `${formatNumber(report.roomShareData.length)} ห้องในรายงานนี้`;
 
     drawPdfHero(doc, report, brandAssets);
 
@@ -1027,7 +1007,7 @@ export const exportDashboardToPDF = async (report, filename = 'dashboard_export'
         182,
         116,
         'ภาพรวมสถานะการจอง',
-        `กราฟสรุปจากข้อมูลจริงในช่วง ${report.filters.rangeLabel} พร้อมใช้อ้างอิงในการติดตามงาน`
+        `สรุปจำนวนรายการตามสถานะจากข้อมูลจริงในช่วง ${report.filters.rangeLabel}`
     );
     if (statusChartImage) {
         const statusChartY = statusOverviewPanel.contentStartY + 1;
@@ -1038,33 +1018,29 @@ export const exportDashboardToPDF = async (report, filename = 'dashboard_export'
     doc.addPage();
     drawPdfHeader(doc, report, 'สัดส่วนห้องและข้อมูลประกอบ', brandAssets);
 
-    secondaryCards.forEach((card, index) => {
-        drawPdfCard(doc, index === 0 ? 14 : 106, 34, 88, 26, card);
-    });
-
     const roomSharePanel = drawPdfSectionPanel(
         doc,
         14,
-        66,
-        92,
-        84,
+        34,
+        182,
+        136,
         'สัดส่วนการใช้งานห้อง',
-        'แสดงสัดส่วนห้องตามตัวกรองสถานะที่เลือก'
+        'แสดงห้องที่มีการใช้งานตามตัวกรองสถานะที่เลือก'
     );
 
     if (roomShareChartImage) {
-        const roomShareChartY = roomSharePanel.contentStartY + 1;
-        const roomShareChartHeight = Math.max(50, roomSharePanel.bottomY - roomShareChartY - 1);
-        doc.addImage(roomShareChartImage, 'PNG', 18, roomShareChartY, 84, roomShareChartHeight);
+        const roomShareChartY = roomSharePanel.contentStartY + 2;
+        const roomShareChartHeight = Math.max(84, roomSharePanel.bottomY - roomShareChartY - 1);
+        doc.addImage(roomShareChartImage, 'PNG', 18, roomShareChartY, 174, roomShareChartHeight);
     }
 
     const roomSummaryPanel = drawPdfSectionPanel(
         doc,
-        110,
-        66,
-        86,
-        84,
-        'สรุปห้องที่ถูกใช้งาน',
+        14,
+        176,
+        182,
+        96,
+        'สรุปห้องที่ใช้งาน',
         roomShareSummarySubtitle
     );
     autoTable(doc, {
@@ -1079,11 +1055,11 @@ export const exportDashboardToPDF = async (report, filename = 'dashboard_export'
             headStyles: { fontSize: 7.4, minCellHeight: 9.5 }
         }),
         columnStyles: {
-            0: { cellWidth: 32 },
-            1: { cellWidth: 18, halign: 'center' },
-            2: { cellWidth: 18, halign: 'center' }
+            0: { cellWidth: 90 },
+            1: { cellWidth: 28, halign: 'center' },
+            2: { cellWidth: 28, halign: 'center' }
         },
-        margin: { left: 114, right: 14 }
+        margin: { left: 18, right: 18 }
     });
 
     doc.addPage();
@@ -1094,8 +1070,8 @@ export const exportDashboardToPDF = async (report, filename = 'dashboard_export'
         34,
         182,
         238,
-        'ตารางประกอบกราฟสถานะ',
-        'เหมาะสำหรับตรวจสอบค่ารายช่วงเวลาและใช้ต่อยอดในการรายงานเชิงสถิติ'
+        'ตารางข้อมูลประกอบกราฟสถานะ',
+        'ใช้ตรวจสอบจำนวนรายการในแต่ละช่วงเวลา'
     );
     autoTable(doc, {
         startY: statusSupportPanel.contentStartY + 2,
@@ -1138,7 +1114,7 @@ export const exportDashboardToPDF = async (report, filename = 'dashboard_export'
         56,
         182,
         30,
-        'ชุดข้อมูลสำหรับนำไปทำงานต่อ',
+        'ข้อมูลรายการที่ส่งออก',
         report.notes.search
     );
 
@@ -1176,6 +1152,6 @@ export const exportDashboardToPDF = async (report, filename = 'dashboard_export'
         margin: { left: 14, right: 14, bottom: 22 }
     });
 
-    addPdfFooters(doc);
+    addPdfFooters(doc, report);
     doc.save(`${filename}_${new Date().toISOString().slice(0, 10)}.pdf`);
 };

@@ -166,7 +166,7 @@ const AdminApprove = () => {
             <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4 mb-6">
                 <div>
                     <h1 className="text-xl md:text-2xl font-extrabold text-gray-900">
-                        จัดการคำขอจอง
+                        จัดการคำขอ/ อนุมัติ
                     </h1>
                     <p className="text-gray-400 mt-1 text-xs md:text-base">อนุมัติหรือปฏิเสธคำขอจองห้อง</p>
                 </div>

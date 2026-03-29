@@ -6,14 +6,16 @@ const {
     sendBookingCreated,
     sendBookingApproved,
     sendBookingModified,
-    sendBookingReminder,
     sendBookingCancelled
 } = require('../services/emailService');
 const {
     checkRoomAvailability,
-    validateBookingTime,
-    isUrgentBooking
+    validateBookingTime
 } = require('../services/bookingService');
+const {
+    sendImmediateReminderIfNeeded,
+    applyReminderReset
+} = require('../services/bookingReminderService');
 const { logAction } = require('../services/auditService');
 const {
     emitBookingCreatedNotification,
@@ -38,6 +40,18 @@ const {
 
 const ADMIN_BOOKING_UPDATE_FIELDS = ['status', 'startTime', 'endTime', 'room', 'topic', 'note'];
 const ACTIVE_BOOKING_STATUSES = ['approved', 'pending'];
+
+const sendEmailInBackground = (emailPromise, failureMessage, errorMessage) => {
+    emailPromise
+        .then((deliveryResult) => {
+            if (!deliveryResult?.success) {
+                console.warn(`[EMAIL] ${failureMessage} (${deliveryResult?.code || 'UNKNOWN_FAILURE'})`);
+            }
+        })
+        .catch((error) => {
+            console.error(errorMessage, error);
+        });
+};
 
 const getAdminPinErrorResponse = (req) => ({
     success: false,
@@ -356,13 +370,21 @@ const createBooking = async (req, res) => {
 
         booking = await booking.populate('room');
 
-        sendBookingCreated(booking).catch((error) => console.error('Failed to send creation email:', error));
+        sendEmailInBackground(
+            sendBookingCreated(booking),
+            `Booking creation email not delivered for booking ${booking._id}`,
+            'Failed to send creation email:'
+        );
 
-        if (isUrgentBooking(normalizedStartTime)) {
-            console.log(`Urgent booking detected: ${booking._id}. Sending immediate reminder.`);
-            sendBookingReminder(booking).catch((error) => console.error('Failed to send reminder email:', error));
+        const immediateReminderResult = await sendImmediateReminderIfNeeded(booking).catch((error) => {
+            console.error('Failed to process immediate reminder email:', error);
+            return null;
+        });
+
+        if (immediateReminderResult?.success) {
             booking.reminderSent = true;
-            await booking.save();
+            booking.reminderSentAt = immediateReminderResult.booking.reminderSentAt;
+            booking.reminderProcessingAt = undefined;
         }
 
         res.status(201).json({
@@ -493,10 +515,14 @@ const updateBooking = async (req, res) => {
         const nextEndTime = Object.prototype.hasOwnProperty.call(updateData, 'endTime')
             ? parseDateInput(updateData.endTime, 'End time')
             : oldEndTime;
+        const nextStatus = Object.prototype.hasOwnProperty.call(updateData, 'status')
+            ? updateData.status
+            : originalBooking.status;
         const timeChanged = new Date(nextStartTime).getTime() !== new Date(oldStartTime).getTime() ||
             new Date(nextEndTime).getTime() !== new Date(oldEndTime).getTime();
         const roomChanged = Object.prototype.hasOwnProperty.call(updateData, 'room') &&
             String(updateData.room) !== String(originalBooking.room);
+        const statusChanged = nextStatus !== originalBooking.status;
 
         if (Object.prototype.hasOwnProperty.call(updateData, 'room') && !isValidObjectId(nextRoomId)) {
             return res.status(400).json({
@@ -574,6 +600,10 @@ const updateBooking = async (req, res) => {
             };
         }
 
+        if (statusChanged || timeChanged || roomChanged) {
+            applyReminderReset(updateOperation);
+        }
+
         const booking = await Booking.findByIdAndUpdate(req.params.id, updateOperation, {
             returnDocument: 'after',
             runValidators: true
@@ -584,17 +614,38 @@ const updateBooking = async (req, res) => {
         }
 
         if (updateData.status === 'cancelled' && originalBooking.status !== 'cancelled') {
-            sendBookingCancelled(booking).catch((error) => console.error('Failed to send cancellation email:', error));
+            sendEmailInBackground(
+                sendBookingCancelled(booking),
+                `Booking cancellation email not delivered for booking ${booking._id}`,
+                'Failed to send cancellation email:'
+            );
         }
 
         if (updateData.status === 'approved' && originalBooking.status !== 'approved') {
-            sendBookingApproved(booking).catch((error) => console.error('Failed to send approval email:', error));
+            sendEmailInBackground(
+                sendBookingApproved(booking),
+                `Booking approval email not delivered for booking ${booking._id}`,
+                'Failed to send approval email:'
+            );
         }
 
         if (timeChanged) {
-            sendBookingModified(booking, oldStartTime, oldEndTime).catch((error) => {
-                console.error('Failed to send modification email:', error);
-            });
+            sendEmailInBackground(
+                sendBookingModified(booking, oldStartTime, oldEndTime),
+                `Booking modification email not delivered for booking ${booking._id}`,
+                'Failed to send modification email:'
+            );
+        }
+
+        const immediateReminderResult = await sendImmediateReminderIfNeeded(booking).catch((error) => {
+            console.error('Failed to process immediate reminder email:', error);
+            return null;
+        });
+
+        if (immediateReminderResult?.success) {
+            booking.reminderSent = true;
+            booking.reminderSentAt = immediateReminderResult.booking.reminderSentAt;
+            booking.reminderProcessingAt = undefined;
         }
 
         res.status(200).json({ success: true, data: booking });

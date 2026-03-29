@@ -5,8 +5,12 @@ import RoomCard from '../components/RoomCard.jsx';
 import { useToast } from '../contexts/ToastContext';
 
 const ROOM_IMAGE_MAX_FILES = 8;
-const ROOM_IMAGE_MAX_FILE_SIZE_MB = 10;
+const ROOM_IMAGE_MAX_FILE_SIZE_MB = 20;
 const ROOM_IMAGE_MAX_FILE_SIZE_BYTES = ROOM_IMAGE_MAX_FILE_SIZE_MB * 1024 * 1024;
+const ROOM_IMAGE_MAX_TOTAL_UPLOAD_MB = 100;
+const ROOM_IMAGE_MAX_TOTAL_UPLOAD_BYTES = ROOM_IMAGE_MAX_TOTAL_UPLOAD_MB * 1024 * 1024;
+
+const getSelectedImageTotalBytes = (files = []) => files.reduce((total, file) => total + (file?.size || 0), 0);
 
 const RoomManagement = () => {
     const toast = useToast();
@@ -151,6 +155,12 @@ const RoomManagement = () => {
             return;
         }
 
+        if (getSelectedImageTotalBytes(files) > ROOM_IMAGE_MAX_TOTAL_UPLOAD_BYTES) {
+            toast.error(`ขนาดรูปใหม่รวมกันต้องไม่เกิน ${ROOM_IMAGE_MAX_TOTAL_UPLOAD_MB} MB ต่อครั้ง`);
+            e.target.value = '';
+            return;
+        }
+
         setSelectedImages(files);
     };
 
@@ -159,6 +169,11 @@ const RoomManagement = () => {
 
         if ((existingImages.length + selectedImages.length) > ROOM_IMAGE_MAX_FILES) {
             toast.error(`ใส่รูปได้สูงสุด ${ROOM_IMAGE_MAX_FILES} รูปต่อห้อง`);
+            return;
+        }
+
+        if (getSelectedImageTotalBytes(selectedImages) > ROOM_IMAGE_MAX_TOTAL_UPLOAD_BYTES) {
+            toast.error(`ขนาดรูปใหม่รวมกันต้องไม่เกิน ${ROOM_IMAGE_MAX_TOTAL_UPLOAD_MB} MB ต่อครั้ง`);
             return;
         }
 
@@ -199,7 +214,7 @@ const RoomManagement = () => {
         } catch (error) {
             console.error("Error saving room", error);
             if (error.response?.status === 413) {
-                toast.error('ขนาดไฟล์รวมใหญ่เกินไป กรุณาลดขนาดรูปหรือจำนวนรูปแล้วลองใหม่');
+                toast.error(`ขนาดไฟล์รวมใหญ่เกินไป กรุณาลดขนาดรูปให้รวมกันไม่เกิน ${ROOM_IMAGE_MAX_TOTAL_UPLOAD_MB} MB`);
                 return;
             }
             const errorMessage = error.response?.data?.error || 'เกิดข้อผิดพลาดในการบันทึกข้อมูล';
@@ -446,7 +461,10 @@ const RoomManagement = () => {
                                         className="w-full text-sm px-3 py-1.5 rounded-lg border border-gray-300 focus:outline-none focus:ring-2 focus:ring-primary/50"
                                     />
                                     <p className="mt-1 text-[11px] text-gray-400">
-                                        รองรับสูงสุด {ROOM_IMAGE_MAX_FILES} รูปต่อห้อง และรูปละไม่เกิน {ROOM_IMAGE_MAX_FILE_SIZE_MB} MB
+                                        รองรับสูงสุด {ROOM_IMAGE_MAX_FILES} รูปต่อห้อง รูปละไม่เกิน {ROOM_IMAGE_MAX_FILE_SIZE_MB} MB
+                                    </p>
+                                    <p className="text-[11px] text-gray-400">
+                                        รูปใหม่ที่อัปโหลดในครั้งเดียวรวมกันต้องไม่เกิน {ROOM_IMAGE_MAX_TOTAL_UPLOAD_MB} MB
                                     </p>
                                     <p className="text-[11px] text-gray-400">
                                         ตอนนี้เลือกไว้ {existingImages.length + selectedImages.length} / {ROOM_IMAGE_MAX_FILES} รูป

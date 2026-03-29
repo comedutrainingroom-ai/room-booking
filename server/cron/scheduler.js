@@ -1,8 +1,11 @@
 const cron = require('node-cron');
-const Booking = require('../models/Booking');
-const { sendBookingReminder } = require('../services/emailService');
+const {
+    claimReminderBooking,
+    deliverClaimedReminder
+} = require('../services/bookingReminderService');
 
 let reminderTask = null;
+let reminderJobRunning = false;
 
 const isSchedulerEnabled = () => {
     const rawValue = process.env.BOOKING_REMINDER_SCHEDULER_ENABLED;
@@ -14,29 +17,30 @@ const isSchedulerEnabled = () => {
 };
 
 const runReminderJob = async () => {
-    const now = new Date();
-    const oneHourLater = new Date(now.getTime() + 60 * 60 * 1000);
+    if (reminderJobRunning) {
+        console.log('[Scheduler] Reminder job skipped because a previous run is still in progress.');
+        return;
+    }
 
-    const bookings = await Booking.find({
-        status: 'approved',
-        reminderSent: false,
-        startTime: {
-            $gt: now,
-            $lte: oneHourLater
+    reminderJobRunning = true;
+
+    try {
+        const attemptedBookingIds = new Set();
+
+        while (true) {
+            const claimedReminder = await claimReminderBooking({
+                excludeBookingIds: [...attemptedBookingIds]
+            });
+
+            if (!claimedReminder) {
+                break;
+            }
+
+            attemptedBookingIds.add(String(claimedReminder.booking._id));
+            await deliverClaimedReminder(claimedReminder);
         }
-    }).populate('room');
-
-    for (const booking of bookings) {
-        console.log(`Sending reminder for booking ${booking._id}`);
-        const deliveryResult = await sendBookingReminder(booking);
-
-        if (deliveryResult?.success) {
-            booking.reminderSent = true;
-            await booking.save();
-            continue;
-        }
-
-        console.warn(`[Scheduler] Reminder email not marked as sent for booking ${booking._id} (${deliveryResult?.code || 'UNKNOWN_FAILURE'})`);
+    } finally {
+        reminderJobRunning = false;
     }
 };
 

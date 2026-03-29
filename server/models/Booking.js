@@ -74,6 +74,12 @@ const bookingSchema = mongoose.Schema({
         type: Boolean,
         default: false
     },
+    reminderSentAt: {
+        type: Date
+    },
+    reminderProcessingAt: {
+        type: Date
+    },
     isImported: {
         type: Boolean,
         default: false
